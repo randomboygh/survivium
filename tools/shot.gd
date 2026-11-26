@@ -49,6 +49,9 @@ var keys_only := false
 var magenta := false
 ## The spots and scenes of the shots (see tools/shot/places.gd).
 var places := Places.new()
+## A finger a shot holds down on the screen (`press`), and where.
+var _finger_down := false
+var _finger_at := Vector2.ZERO
 
 
 func _initialize() -> void:
@@ -207,8 +210,13 @@ func _run() -> void:
 				shot.get("lamps", false), shot.get("door_first", false))
 		if shot.get("furniture", false):
 			main.player.position = places.furniture(main.world, main.player.position)
+		if shot.get("build_room", false):
+			main.player.position = places.build_room(main.world, main.player.position)
 		if shot.get("plan", false):
 			main.player.position = places.plan(main.world, main.player.position)
+		if shot.has("uneven"):
+			main.settings.values.build_level = 0 if shot.uneven else 1
+			main.player.position = places.uneven(main.world, main.player.position, shot.uneven, shot.get("built", false))
 		if shot.get("forms", false):
 			main.player.position = places.forms(main.world, main.player.position, shot.get("only", 0))
 		if shot.get("underground", false):
@@ -1311,8 +1319,9 @@ func _run() -> void:
 			for st in [["materials:planks", 60], ["materials:brick", 40], ["materials:log_wall", 30], ["materials:cut_stone", 30],
 					["materials:wattle", 20], ["materials:glass", 12], ["tools:door", 2], ["tools:window", 3], ["tools:wooden_bed", 1],
 					["tools:chest", 1], ["tools:table", 1], ["tools:stool", 2], ["tools:fireplace", 1], ["tools:stairs", 2]]:
-				if Items.has(st[0]):
-					inv.add(st[0], st[1])
+				# Topped up to the count: a run of shots does not fill the bag with more of them.
+				if Items.has(st[0]) and inv.count(st[0]) < st[1]:
+					inv.add(st[0], st[1] - inv.count(st[0]))
 			for i in 3:
 				await process_frame
 			main.build.filter = shot.get("filter", "all")
@@ -1323,10 +1332,17 @@ func _run() -> void:
 			main.build.form = shot.get("form", 0)
 			main.build.enter("materials:planks")
 			main.build.set_erasing(shot.build_mode == "erase")
+			if shot.build_mode == "replace":
+				# Drawing → erasing → replacing (the panel's button pressed twice).
+				main.build.next_mode()
+				main.build.next_mode()
 			var feet := Vector3i((main.player.position / CELL).floor())
 			var s := {"plan": main.build.kind, "first": feet + Vector3i(-6, 0, -9), "last": feet + Vector3i(-6, 0, -1)}
 			if shot.build_mode == "erase":
 				s = {"plan": "line", "first": feet + Vector3i(-5, 0, -9), "last": feet + Vector3i(0, 0, -9)}
+			elif shot.build_mode == "replace":
+				# Along the brick wall north of the room's corner (places.build_room).
+				s = {"plan": "line", "first": feet + Vector3i(-8, 0, -7), "last": feet + Vector3i(-2, 0, -7)}
 			elif main.build.kind in ["plane", "cube", "flatten"]:
 				# On the ground (a floor or a room stand on it), or the ground itself flattened.
 				var y := -1 if main.build.kind == "flatten" else 0
@@ -1353,6 +1369,9 @@ func _run() -> void:
 				await process_frame
 			if not shot.has("flights") and shot.get("stroke", true):
 				main.build.show_stroke(s)
+				# On a touch screen the cursor goes CURSOR_TIME after the last touch: kept here,
+				# as a finger held on would.
+				main.controls._cursor_clock = 1e9
 			if shot.has("hold_new"):
 				# A thing new from the bag held up where it goes (a stroke with "put", its finger
 				# off the screen): [item, from the feet, fits]; not fitting, its cells shown red.
@@ -1364,6 +1383,84 @@ func _run() -> void:
 					await process_frame
 				if not shot.hold_new[2]:
 					main.build._frame(shot.hold_new[0], at, 0, false)
+			if shot.has("lone"):
+				# The ghost of a lone column drawn by the server: [form, from the feet, height];
+				# `double_tap`: then tapped twice on the screen, as a player turns it
+				# (BuildMode._second_ghost_tap, Protocol.PLAN_TURN).
+				var hp = main.host.player
+				hp.hands = ["materials:planks", ""]
+				hp.active = 0
+				var c: Vector3i = feet + shot.lone[1]
+				main.session.plans.erase(main.session.actions, hp, main.session.plans.cells.keys())
+				main.session.plans.draw(main.session.actions, hp, "line", c, c, shot.lone[2], 1, false, shot.lone[0])
+				for i in 30:
+					await process_frame
+				print("lone forms before: ", _forms_over(c))
+				if shot.get("double_tap", false):
+					var on: Vector2 = main.view.screen_of((Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL)
+					for i in 2:
+						_finger(true, on)
+						for f in 3:
+							await process_frame
+						_finger(false, on)
+						for f in 3:
+							await process_frame
+					for i in 30:
+						await process_frame
+					print("lone forms after: ", _forms_over(c))
+			if shot.has("ghosts"):
+				await _ghost_things(shot.ghosts, feet)
+			if shot.has("undo"):
+				await _undo_wall(shot.undo, feet)
+			if shot.has("need"):
+				await _need_wall(feet)
+			if shot.has("pick"):
+				# The eyedropper on (BuildMode.picking); with a point from the feet in cells, a
+				# finger then taps there and takes what is there into the hand (pick_at).
+				main.build.set_picking(true)
+				if shot.pick is Vector3:
+					var on: Vector2 = main.view.screen_of((Vector3(feet) + shot.pick) * CELL)
+					_finger(true, on)
+					for f in 3:
+						await process_frame
+					_finger(false, on)
+					for f in 30:
+						await process_frame
+					print("pick: chosen %s, picking %s" % [main.build.chosen(), main.build.picking])
+			if shot.has("replace"):
+				await _replace_wall(shot.replace, s)
+			if shot.has("press"):
+				# A finger pressed on a touch screen with a thing of the bag chosen (2026-11-26):
+				# [item, the world point aimed at from the feet, in cells]. The finger goes
+				# BuildMode.FINGER_LIFT under that point, so the thing shows there as in the
+				# game, over the finger (BuildMode.start_stroke, _drag_new); it is let go after
+				# the shot without setting it down.
+				if inv.count(shot.press[0]) == 0:
+					if inv.room_for(shot.press[0]) == 0:
+						# A slot for it: the bag of a run of shots is full by now.
+						inv.take_slot(inv.slots.size() - 1, 9999)
+					inv.add(shot.press[0], 1)
+					# Until the client's copy of the bag has it too.
+					for i in 30:
+						await process_frame
+				main.build.choose(shot.press[0])
+				for i in 3:
+					await process_frame
+				var aim: Vector2 = main.view.screen_of((Vector3(feet) + shot.press[1]) * CELL)
+				_finger(true, aim + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT)))
+				for i in 20:
+					await process_frame
+				var held: Dictionary = main.controls._stroke
+				print("press: chosen %s, stroke %s, aim %s, spot %s, turn %s, face %s" % [main.build.chosen(), held.keys(),
+					held.get("aim"), held.get("spot"), held.get("shown"), held.get("face")])
+			if shot.has("opening"):
+				await _move_opening(shot.opening, feet)
+			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts") or shot.has("undo") or shot.has("need") \
+					or shot.has("pick") or shot.has("replace"):
+				# The toasts of the recipes the things put into the bag taught, off the view.
+				main.hud._toasts.clear()
+				for i in 3:
+					await process_frame
 		if shot.has("sapling_tree"):
 			# The oak sapling at its last stage east of the farm (TestGround.SAPLINGS) grown
 			# by the server into a young tree ("young") or a tree ("grown", "felled"), and
@@ -1737,6 +1834,8 @@ func _run() -> void:
 			img.save_png(out_dir.path_join(shot_name + ".png"))
 		if RenderingServer.frame_pre_draw.is_connected(no_xray):
 			RenderingServer.frame_pre_draw.disconnect(no_xray)
+		if _finger_down:
+			await _lift_finger()
 		main.hud.visible = true
 		print("player at ", main.player.position)
 		# Frames of the sun moving at the game's speed, 60 a second, to see how the
@@ -2281,6 +2380,268 @@ func _gather() -> void:
 	main.host.player.vitals.stamina = 45.0
 	main.host.player.vitals.satiety = 35.0
 	main.hud.refresh_counts()
+
+
+## A finger down on the screen (`down`) or let go at screen point `pos`, as a touch
+## screen sends it (Godot makes the mouse's button of it too).
+func _finger(down: bool, pos: Vector2) -> void:
+	var ev := InputEventScreenTouch.new()
+	ev.index = 0
+	ev.position = pos
+	ev.pressed = down
+	Input.parse_input_event(ev)
+	_finger_down = down
+	_finger_at = pos
+	print("finger %s at %s" % ["down" if down else "up", pos])
+
+
+## The blueprint's forms of the ghost cells of the column at `c` and the two over it.
+func _forms_over(c: Vector3i) -> Array:
+	var out := []
+	for dy in 3:
+		out.append(main.session.plans.forms.get(c + Vector3i(0, dy, 0), -1))
+	return out
+
+
+## A door or a window (2026-11-26, the building UX's PR 2) set by the server into the north
+## wall of the room's corner (places.build_room): `o` = [item, its wall cell from the feet
+## `feet`, the wall cell it is moved to from the feet, what is shot]: "before" as it is set
+## in; "held" pressed by a finger and carried over its new place (BuildMode._drag_opening);
+## "moved" let go there, its old place walled up again (Placed._move_opening); "taken"
+## tapped, back into the bag, ghost blocks left in its hole (Placed.take_up). The things
+## and the ghost blocks of the shots before go first.
+func _move_opening(o: Array, feet: Vector3i) -> void:
+	var sp = main.session.placed
+	var hp = main.host.player
+	for e: Dictionary in sp.things.duplicate():
+		if absi(e.cell.x - feet.x) < 14 and absi(e.cell.z - feet.z) < 14:
+			sp._remove(e)
+	main.session.plans.erase(main.session.actions, hp, main.session.plans.cells.keys())
+	if hp.inventory.room_for(o[0]) == 0:
+		hp.inventory.take_slot(hp.inventory.slots.size() - 1, 9999)
+	hp.inventory.add(o[0], 1)
+	var cell: Vector3i = feet + o[1]
+	var put: bool = sp.put_at(hp, o[0], cell, main.world.size_y, -1, false, 2)
+	for i in 40:
+		await process_frame
+	var e: Dictionary = main.placed.things[-1] if not main.placed.things.is_empty() else {}
+	print("opening: put %s, %s" % [put, e])
+	if o[3] == "before" or e.is_empty():
+		return
+	var on: Vector2 = main.view.screen_of(Placed.center(e))
+	if o[3] == "taken":
+		_finger(true, on)
+		for i in 3:
+			await process_frame
+		_finger(false, on)
+		await _wait_ms(main.build.DOUBLE_TAP_MS + 400)
+		print("opening: taken, ghost cells %s" % [main.session.plans.cells])
+		return
+	_finger(true, on)
+	await _wait_ms(main.build.HOLD_MS + 200)
+	var to: Vector3 = Vector3(feet + o[2]) + Vector3(0.5, 0.6, 1.02)
+	var end: Vector2 = main.view.screen_of(to * CELL) + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT))
+	for k in range(1, 9):
+		_finger_move(on.lerp(end, k / 8.0))
+		for i in 3:
+			await process_frame
+	for i in 10:
+		await process_frame
+	var held: Dictionary = main.controls._stroke
+	print("opening: held %s, aim %s, face %s, to %s, turn %s" % [held.get("moved"), held.get("aim"), held.get("face"),
+		held.get("to"), held.get("turn")])
+	if o[3] == "held":
+		return
+	_finger(false, end)
+	for i in 40:
+		await process_frame
+	var cells: Array = []
+	for c: Vector3i in sp.opening_cells({"item": e.item, "cell": e.cell, "turn": e.turn}):
+		cells.append(Mat.IDS[main.world.get_cell(c.x, c.y, c.z)])
+	print("opening: moved to %s, its old cells %s, ghost cells %s" % [sp.things[-1].cell, cells, main.session.plans.cells])
+
+
+## Things set down by the blueprint in the room's corner (places.build_room; the building
+## UX's PR 3, 2026-11-26): a ghost wall of planks across the room, a ghost door into it, a
+## ghost window into the brick wall, a ghost table and chair before them, set as a player
+## sets them (Plans.put_thing); `mode` "drawn" leaves them so, "built" builds the blueprint
+## with the action button's rule (Plans.build: the blocks, then the things).
+## Undo and redo of the blueprint (the building UX's PR 4): over the ghosts of
+## _ghost_things, a ghost wall drawn by the player's request ("drawn"), undone by the bar's
+## ↶ ("undone"), and done again by its ↷ ("redone").
+func _undo_wall(mode: String, feet: Vector3i) -> void:
+	await _ghost_things("drawn", feet)
+	var h = main.host.link.requests.history
+	h.undos.clear()
+	h.redos.clear()
+	main.build.choose("materials:planks")
+	for i in 10:
+		await process_frame
+	var r = main.net.request(load("res://src/shared/net/protocol.gd").PLAN, ["line", feet + Vector3i(1, 0, -6), feet + Vector3i(4, 0, -6), 2, 1, false, 0])
+	for i in 30:
+		await process_frame
+	print("undo: wall drawn %s, held %s" % [r.value, main.host.player.held()])
+	var bar = main.hud.build_bar
+	if mode in ["undone", "redone"]:
+		bar._undo.pressed.emit()
+		for i in 20:
+			await process_frame
+	if mode == "redone":
+		bar._redo.pressed.emit()
+		for i in 20:
+			await process_frame
+	print("undo: %s, %d ghost cells, can undo %d, redo %d" % [mode, main.plans.cells.size(), main.build.undos, main.build.redos])
+
+
+## What the blueprint needs on the palette (the building UX's PR 5): over the ghosts of
+## _ghost_things, a ghost wall of cut stone 6 long and 3 high with only 10 in the bag (short),
+## and the table taken out of the bag (needed, none: dimmed).
+func _need_wall(feet: Vector3i) -> void:
+	await _ghost_things("drawn", feet)
+	var hp = main.host.player
+	hp.inventory.remove("tools:table", hp.inventory.count("tools:table"))
+	hp.inventory.remove("materials:cut_stone", hp.inventory.count("materials:cut_stone"))
+	hp.inventory.add("materials:cut_stone", 10)
+	for i in 10:
+		await process_frame
+	main.build.choose("materials:cut_stone")
+	for i in 10:
+		await process_frame
+	var r = main.net.request(load("res://src/shared/net/protocol.gd").PLAN, ["line", feet + Vector3i(1, 0, -6), feet + Vector3i(6, 0, -6), 3, 1, false, 0])
+	await _wait_ms(1200)
+	print("need: wall drawn %s, need %s, palette %s" % [r.value, main.build.need(), main.build.palette().slice(0, 6)])
+
+
+## Replacing the material (the building UX's PR 8): stroke `s` along the room's brick wall
+## sent with planks in hand ("marked": the wall's blocks become ghosts of planks); "built":
+## then its two lower rows swapped for planks, as the action button does (Plans.build), the
+## top row still a ghost.
+func _replace_wall(mode: String, s: Dictionary) -> void:
+	# The stroke's boxes of the shot before (kept on, see build_mode) off.
+	main.controls._cursor_clock = 0.0
+	main.cursor.show_boxes([], [])
+	var r = main.net.request(load("res://src/shared/net/protocol.gd").PLAN, [s.plan, s.first, s.last, 3, 1, false, 0,
+		false, true])
+	await _wait_ms(1200)
+	var plans = main.session.plans
+	if mode == "built":
+		var block := Mat.index("materials:planks")
+		for c: Vector3i in plans.cells.keys():
+			if c.y < s.first.y + 2:
+				main.session.actions.build_cell(c, block, plans.forms.get(c, 0))
+				plans.cells.erase(c)
+				plans.changed.emit([c], "")
+		await _wait_ms(1200)
+	print("replace: %s, sent %s, %d ghost cells" % [mode, r.value, plans.cells.size()])
+
+
+func _ghost_things(mode: String, feet: Vector3i) -> void:
+	var sp = main.session.placed
+	var plans = main.session.plans
+	var acts = main.session.actions
+	var hp = main.host.player
+	for e: Dictionary in sp.things.duplicate():
+		if absi(e.cell.x - feet.x) < 14 and absi(e.cell.z - feet.z) < 14:
+			sp._remove(e)
+	plans.erase(acts, hp, plans.cells.keys())
+	for t: Dictionary in plans.things.duplicate():
+		plans.drop_thing(t)
+	var bag := {"tools:table": 1, "tools:wooden_chair": 1, "tools:door": 1, "tools:window": 1, "materials:planks": 30}
+	# Slots for them: the bag of a run of shots is full by now.
+	for k in range(hp.inventory.slots.size() - bag.size() - 1, hp.inventory.slots.size()):
+		hp.inventory.take_slot(k, 9999)
+	for id: String in bag:
+		hp.inventory.add(id, bag[id])
+	hp.hands = ["materials:planks", ""]
+	hp.active = 0
+	var drawn: int = plans.draw(acts, hp, "line", feet + Vector3i(-7, 0, -4), feet + Vector3i(-1, 0, -4), 3)
+	var view: int = main.props.view_turn()
+	var set := [plans.put_thing(acts, hp, "tools:door", feet + Vector3i(-4, 0, -4), -1, false, 2),
+		plans.put_thing(acts, hp, "tools:window", feet + Vector3i(-2, 1, -7), -1, false, 2),
+		plans.put_thing(acts, hp, "tools:table", feet + Vector3i(-6, 0, -2), view),
+		plans.put_thing(acts, hp, "tools:wooden_chair", feet + Vector3i(-3, 0, -2), view)]
+	for i in 40:
+		await process_frame
+	print("ghosts: wall %d cells, things set %s, %s" % [drawn, set, plans.things.map(func(t: Dictionary) -> Array: return [t.item, t.cell, t.turn])])
+	if mode in ["tapped", "turned", "dragged", "moved"]:
+		# The ghost chair tapped once (taken off) or twice (turned); the ghost table held and
+		# carried two cells east (held up, or let go: moved), as a player does.
+		var t: Dictionary = main.plans.thing_at(feet + (Vector3i(-3, 0, -2) if mode in ["tapped", "turned"] else Vector3i(-6, 0, -2)))
+		if t.is_empty():
+			print("ghosts: no ghost thing there on the client's copy")
+			return
+		var on: Vector2 = main.view.screen_of(Placed.center({"item": t.item, "cell": t.cell, "turn": t.turn}))
+		if mode != "dragged" and mode != "moved":
+			for k in (2 if mode == "turned" else 1):
+				_finger(true, on)
+				await process_frame
+				_finger(false, on)
+				await process_frame
+			await _wait_ms(main.build.DOUBLE_TAP_MS + 400)
+		else:
+			_finger(true, on)
+			await _wait_ms(main.build.HOLD_MS + 200)
+			var to: Vector3 = Vector3(t.cell + Vector3i(3, 0, 0)) + Vector3(0.5, 0.0, 0.5)
+			var end: Vector2 = main.view.screen_of(to * CELL) + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT))
+			for k in range(1, 9):
+				_finger_move(on.lerp(end, k / 8.0))
+				for i in 3:
+					await process_frame
+			for i in 10:
+				await process_frame
+			var held: Dictionary = main.controls._stroke
+			print("ghosts: held %s, to %s, turn %s" % [held.get("moved"), held.get("to"), held.get("found_turn")])
+			if mode == "dragged":
+				return
+			_finger(false, end)
+		for i in 40:
+			await process_frame
+		print("ghosts: after %s: %s" % [mode, plans.things.map(func(g: Dictionary) -> Array: return [g.item, g.cell, g.turn])])
+		return
+	if mode != "built":
+		return
+	var built := 0
+	for i in 80:
+		hp.vitals.stamina = hp.vitals.MAX
+		var done: Dictionary = plans.build(acts, hp)
+		if not done.has("placed"):
+			break
+		built += 1
+	for i in 40:
+		await process_frame
+	print("ghosts: built %d, %d cells and %d things left, door %s, window %s" % [built, plans.cells.size(), plans.things.size(),
+		sp.at(feet + Vector3i(-4, 0, -4)), sp.at(feet + Vector3i(-2, 1, -7))])
+
+
+## Frames go by until `ms` milliseconds have passed (the build mode's holds and taps go by
+## the clock, not by frames).
+func _wait_ms(ms: int) -> void:
+	var until := Time.get_ticks_msec() + ms
+	while Time.get_ticks_msec() < until:
+		await process_frame
+
+
+## A finger on a touch screen moved to `pos` (a drag; the stroke follows its emulated mouse).
+func _finger_move(pos: Vector2) -> void:
+	var ev := InputEventScreenDrag.new()
+	ev.index = 0
+	ev.position = pos
+	ev.relative = pos - _finger_at
+	Input.parse_input_event(ev)
+	_finger_at = pos
+
+
+## Lets go the finger a shot held down (`press`) without setting its thing down: the
+## stroke is dropped first, and what it held up with it.
+func _lift_finger() -> void:
+	if main.controls._stroke.has("prop"):
+		main.props.settle(main.controls._stroke.prop)
+	main.controls._stroke = {}
+	main.props.drop_new()
+	main.cursor.show_boxes([], [])
+	_finger(false, _finger_at)
+	for i in 3:
+		await process_frame
 
 
 ## The nearest spot to `p` with level dry ground and no trees for 7 cells around.

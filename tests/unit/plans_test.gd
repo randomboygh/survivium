@@ -3,7 +3,13 @@ extends "res://tests/unit/test_case.gd"
 ## cell from the bag with the action button, and its save.
 
 const Plans := preload("res://src/shared/game/plans.gd")
+const PlanHistory := preload("res://src/shared/game/plan_history.gd")
 const PLANKS := "materials:planks"
+
+
+## One drawing and building with the things it sets down (Plans.put_thing: Placed.ghost_spot).
+class Builder extends "res://tests/unit/test_case.gd".Who:
+	var placed
 
 
 func run() -> void:
@@ -12,7 +18,12 @@ func run() -> void:
 	_test_forms()
 	_test_flights()
 	_test_bands()
+	_test_turn_form()
 	_test_flatten()
+	_test_earthwork()
+	_test_replace()
+	_test_ghost_things()
+	_test_undo()
 
 
 func _test_shapes() -> void:
@@ -182,6 +193,55 @@ func _test_flights() -> void:
 	_check(sorted.fit.size() == 10 and sorted.hanging.is_empty(), "and its hanging cells are not told as uneven ground")
 
 
+## A double tap on the ghost of a slope turns it (Plans.turn_form, the user's pick of
+## 2026-11-26 in place of the turn button): every formed cell of the column joined to the
+## cell tapped turns a quarter, the copies hear of it; a column of cubes, one out of reach
+## and one apart over a gap do not.
+func _test_turn_form() -> void:
+	var w := WorldData.new(40, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(10.5, 1.0, 10.5) * WorldData.CELL
+	who.item = PLANKS
+	var east := WorldData.FORM_RAMP | 1 << 2
+	_check(plans.draw(actions, who, "line", Vector3i(12, 1, 9), Vector3i(12, 1, 9), 3, 1, false, east) == 3
+		and plans.forms == {Vector3i(12, 3, 9): east}, "a lone column of a ramp three high: %s" % [plans.forms])
+	# A second column apart, over a gap of air in the same column.
+	plans.cells[Vector3i(12, 5, 9)] = PLANKS
+	plans.forms[Vector3i(12, 5, 9)] = east
+	var heard := []
+	plans.changed.connect(func(cells: Array, item: String) -> void: heard.append([cells, item]))
+	_check(plans.formed_at(Vector3i(12, 1, 9)) and plans.column_of(Vector3i(12, 1, 9)).size() == 3,
+		"the column of the cell tapped holds the ramp, the cells over the gap apart")
+	_check(plans.turn_form(actions, who, Vector3i(12, 1, 9)) == 1
+		and plans.forms[Vector3i(12, 3, 9)] == WorldData.FORM_RAMP | 2 << 2 and plans.forms[Vector3i(12, 5, 9)] == east
+		and heard.size() == 1 and heard[0][0] == [Vector3i(12, 3, 9)] and heard[0][1] == PLANKS,
+		"a tap twice on its foot turns its top a quarter, the column over the gap stays: %s" % [plans.forms])
+	for i in 3:
+		plans.turn_form(actions, who, Vector3i(12, 3, 9))
+	_check(plans.forms[Vector3i(12, 3, 9)] == east, "four quarters bring it back")
+	var band := WorldData.FORM_RAMP | 1 << 2
+	var under := WorldData.FORM_UPPER | 3 << 2
+	plans.cells[Vector3i(20, 1, 9)] = PLANKS
+	plans.cells[Vector3i(20, 2, 9)] = PLANKS
+	plans.forms[Vector3i(20, 2, 9)] = band
+	plans.forms[Vector3i(20, 1, 9)] = under
+	plans.turn_form(actions, who, Vector3i(20, 2, 9))
+	_check(plans.forms[Vector3i(20, 2, 9)] == WorldData.FORM_RAMP | 2 << 2 and plans.forms[Vector3i(20, 1, 9)] == WorldData.FORM_UPPER,
+		"a band's underside turns with its top, still the other way: %s" % [plans.forms])
+	plans.draw(actions, who, "line", Vector3i(14, 1, 12), Vector3i(14, 1, 12), 2, 1, false, 0)
+	_check(not plans.formed_at(Vector3i(14, 1, 12)) and plans.turn_form(actions, who, Vector3i(14, 1, 12)) == 0,
+		"a column of cubes has nothing to turn")
+	who.position = Vector3(100.5, 1.0, 100.5) * WorldData.CELL
+	_check(plans.turn_form(actions, who, Vector3i(12, 3, 9)) == 0 and plans.forms[Vector3i(12, 3, 9)] == east,
+		"nor is a ghost out of reach turned")
+
+
 ## A flight drawn as a band (Plans.BAND): one block thick along its slope, the underside
 ## a slope turned the other way, or notches under stairs, so it steps as the top does.
 func _test_bands() -> void:
@@ -327,3 +387,369 @@ func _test_flatten() -> void:
 	who.inventory.add("tools:wooden_shovel", 1)
 	_check(Plans.best_tool(who, Mat.DIRT) == "tools:wooden_shovel", "a shovel in the bag digs it faster")
 	_check(Plans.best_tool(who, Mat.STONE) == null, "nothing in the bag digs stone")
+
+
+## A figure drawn on uneven ground with `level` levels it as «выровнять» would (the user's
+## item 11 and picks, 2026-11-26): the natural bump in its footprint over its level is dug
+## out (the figure's own cells in it are dug, then built), a dip under it down to solid
+## ground (FLAT_DOWN at most) filled with soil; ground over the figure's top stays (2Б), so it does not hang; a deeper dip is left;
+## a flight only has its dips filled; the eraser takes the earth's ghost with the figure.
+func _test_earthwork() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+			w.set_natural(x, 1, z, true)
+	# Along the wall at z 10: a stone bump two high at x 11, a dip one deep at x 13, a hole
+	# deeper than FLAT_DOWN at x 15.
+	for y in [2, 3]:
+		w.set_cell(11, y, 10, Mat.STONE)
+		w.set_natural(11, y, 10, true)
+	w.set_cell(13, 1, 10, Mat.AIR)
+	for y in range(0, 2):
+		w.set_cell(15, y, 10, Mat.AIR)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(12.5, 2.0, 12.5) * WorldData.CELL
+	who.item = PLANKS
+	var soil: String = Mat.RECORDS[Mat.DIRT].item
+	var a := Vector3i(10, 2, 10)
+	var b := Vector3i(15, 2, 10)
+	var flat := Plans.new()
+	var as_is := flat.sort(actions, who, "line", a, Plans.shape("line", a, b, 1), Mat.index(PLANKS))
+	_check(as_is.blocked.has(Vector3i(11, 2, 10)) and as_is.hanging.has(Vector3i(13, 2, 10)),
+		"without levelling the bump blocks the wall and it hangs over the dip")
+	var n := plans.draw(actions, who, "line", a, b, 1, 1, false, 0, true)
+	_check(plans.cells.get(Vector3i(11, 2, 10)) == PLANKS and not plans.cells.has(Vector3i(11, 3, 10))
+		and plans.cells.get(Vector3i(13, 1, 10)) == soil and plans.cells.get(Vector3i(13, 2, 10)) == PLANKS
+		and not plans.cells.has(Vector3i(15, 1, 10)) and not plans.cells.has(Vector3i(15, 0, 10)) and n == 7,
+		"the wall's cell in the bump is drawn, the bump over the wall's top left (2Б), the dip filled, the deep hole left: %s" % [plans.cells])
+	var tall := plans.earthwork(actions, who, "line", a, b, Plans.shape("line", a, b, 2))
+	_check(tall.dig.has(Vector3i(11, 3, 10)) and tall.cut.is_empty(), "a wall two high digs the bump to its top")
+	var work := plans.earthwork(actions, who, "line", a, b, Plans.shape("line", a, b, 1))
+	var sorted := plans.sort(actions, who, "line", a, Plans.shape("line", a, b, 1), Mat.index(PLANKS), false, work)
+	_check(sorted.hanging.size() == 0 and sorted.blocked.size() == 0,
+		"what is drawn already is in none; nothing hangs over a filled dip: %s" % [sorted])
+	who.inventory.add(PLANKS, 6)
+	who.inventory.add(soil, 1)
+	who.inventory.add("tools:stone_pickaxe", 1)
+	for i in 20:
+		plans.build(actions, who)
+	_check(w.get_cell(11, 3, 10) == Mat.STONE and w.get_cell(11, 2, 10) == Mat.index(PLANKS)
+		and w.get_cell(13, 1, 10) == Mat.DIRT and w.get_cell(13, 2, 10) == Mat.index(PLANKS),
+		"building digs the wall's cell in the bump, fills the dip and sets the wall")
+	_check(plans.cells.keys().all(func(c: Vector3i) -> bool: return c == Vector3i(15, 2, 10)),
+		"all is built but, maybe, the cell over the deep hole: %s" % [plans.cells])
+	# A square levels the ground inside its walls too; the eraser takes the earth's ghost.
+	w.set_cell(22, 2, 22, Mat.DIRT)
+	w.set_natural(22, 2, 22, true)
+	who.position = Vector3(20.5, 2.0, 20.5) * WorldData.CELL
+	plans.draw(actions, who, "square", Vector3i(20, 2, 20), Vector3i(24, 2, 24), 1, 1, false, 0, true)
+	_check(plans.cells.get(Vector3i(22, 2, 22)) == Plans.CUT, "a square levels the ground inside its walls")
+	plans.cells[Vector3i(22, 6, 22)] = PLANKS
+	plans.draw(actions, who, "square", Vector3i(20, 2, 20), Vector3i(24, 2, 24), 1, 1, true, 0, true)
+	_check(not plans.cells.has(Vector3i(22, 2, 22)) and not plans.cells.has(Vector3i(20, 2, 20))
+		and plans.cells.get(Vector3i(22, 6, 22)) == PLANKS,
+		"the eraser takes the figure and its earthwork, a ghost block over it stays")
+	# A flight only fills: the bump at its foot is not cut.
+	w.set_cell(31, 2, 30, Mat.DIRT)
+	w.set_natural(31, 2, 30, true)
+	w.set_cell(33, 1, 30, Mat.AIR)
+	who.position = Vector3(31.5, 2.0, 31.5) * WorldData.CELL
+	var ramp := WorldData.FORM_RAMP
+	var fw := plans.earthwork(actions, who, "line", Vector3i(30, 2, 30), Vector3i(34, 2, 30),
+		Plans.shape("line", Vector3i(30, 2, 30), Vector3i(34, 2, 30), 3, Vector2.INF, 1, ramp), ramp)
+	_check(fw.cut.is_empty() and fw.dig.is_empty() and fw.fill == [Vector3i(33, 1, 30)],
+		"a flight's dips are filled, the ground over it not cut: %s" % [fw])
+
+
+## Replacing the material (the user's idea 6, 2026-11-26): a stroke over a wall players built
+## marks its blocks of another material with the block in hand, keeping their forms; natural
+## ground and blocks of that material are left; ghost blocks in the box are repainted. The
+## action button swaps an old block (to the bag) for the new one in one work, with the new one
+## in the bag and a tool for the old.
+func _test_replace() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+			w.set_natural(x, 1, z, true)
+	# The wall is of brick (knocked out with a pickaxe), replaced by planks (`fresh`).
+	var old := Mat.index("materials:brick")
+	var fresh := PLANKS
+	# A brick wall two high along z 10, x 10..13, its top east cell a ramp; a natural stone
+	# at x 14; a planks block at x 12 level 2; a ghost of brick over the wall.
+	for x in range(10, 14):
+		for y in [2, 3]:
+			w.set_cell(x, y, 10, old)
+	w.set_form(13, 3, 10, WorldData.FORM_RAMP)
+	w.set_cell(12, 2, 10, Mat.index(fresh))
+	w.set_cell(14, 2, 10, Mat.STONE)
+	w.set_natural(14, 2, 10, true)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(12.5, 2.0, 12.5) * WorldData.CELL
+	who.item = fresh
+	plans.cells[Vector3i(11, 4, 10)] = "materials:brick"
+	var n := plans.draw(actions, who, "line", Vector3i(10, 2, 10), Vector3i(14, 2, 10), 3, 1, false, 0, false, true)
+	_check(n == 8 and plans.cells.get(Vector3i(10, 2, 10)) == fresh and plans.cells.get(Vector3i(13, 3, 10)) == fresh
+		and plans.cells.get(Vector3i(11, 4, 10)) == fresh and not plans.cells.has(Vector3i(12, 2, 10))
+		and not plans.cells.has(Vector3i(14, 2, 10)) and not plans.cells.has(Vector3i(10, 1, 10)),
+		"the brick blocks and the ghost are marked planks; planks, natural stone and ground left: %d %s" % [n, plans.cells])
+	_check(plans.forms.get(Vector3i(13, 3, 10)) == WorldData.FORM_RAMP and not plans.forms.has(Vector3i(10, 2, 10)),
+		"a replaced slope keeps its form: %s" % [plans.forms])
+	plans.build(actions, who)
+	_check(w.get_cell(10, 2, 10) == old, "with no planks in the bag nothing is swapped")
+	who.inventory.add(fresh, 10)
+	for i in 3:
+		plans.build(actions, who)
+	_check(w.get_cell(10, 2, 10) == old and who.inventory.count(fresh) == 9,
+		"with no tool for brick nothing is swapped (the ghost over the wall is built): %d" % who.inventory.count(fresh))
+	who.inventory.add("tools:stone_pickaxe", 1)
+	var hole := false
+	for i in 30:
+		plans.build(actions, who)
+		for x in range(10, 14):
+			hole = hole or w.get_cell(x, 2, 10) == Mat.AIR or w.get_cell(x, 3, 10) == Mat.AIR
+	_check(not hole, "each block is swapped in one work: no hole is left in the wall")
+	_check(w.get_cell(10, 2, 10) == Mat.index(fresh) and w.get_cell(13, 3, 10) == Mat.index(fresh)
+		and w.form_at(13, 3, 10) == WorldData.FORM_RAMP and w.get_cell(14, 2, 10) == Mat.STONE,
+		"the wall is rebuilt of planks, the slope a planks slope")
+	_check(who.inventory.count("materials:brick") == 7 and plans.cells.is_empty(),
+		"the old blocks went to the bag, the ghost over the wall built too: %d %s"
+		% [who.inventory.count("materials:brick"), plans.cells])
+
+
+## Doors, windows and furniture set down by the blueprint (the user's picks, 2026-11-26,
+## 1А, 2А): their ghosts are set where the thing would go in the world as the blueprint will
+## stand (a door into a ghost wall takes its ghost blocks' place), saved, moved, turned and
+## taken off like things, and built by the action button after the blocks, from the bag.
+func _test_ghost_things() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var plans := Plans.new()
+	placed.plans = plans
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	actions.plans = plans
+	var who := Builder.new()
+	who.placed = placed
+	who.position = Vector3(14.5, 1.0, 14.5) * WorldData.CELL
+	_check(not plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 16)) and plans.things.is_empty()
+		and who.said.any(func(s: String) -> bool: return s.contains("Not in the bag")),
+		"no ghost of a thing the bag does not hold")
+	who.inventory.add("tools:stool", 1)
+	who.inventory.add("tools:door", 1)
+	_check(plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 16)) and plans.things.size() == 1,
+		"a ghost stool is set where the stool would go")
+	var stool: Dictionary = plans.things[0]
+	_check(stool.cell == Vector3i(14, 1, 16) and stool.cells == [Vector3i(14, 1, 16)] and placed.things.is_empty()
+		and not w.blockers.has(stool.cell) and who.inventory.count("tools:stool") == 1,
+		"it fills its cell in the blueprint only: nothing is set down, nothing leaves the bag")
+	_check(plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 16)) and plans.things.size() == 2
+		and plans.things[1].cell != stool.cell, "a second ghost goes beside the first, not into it")
+	_check(plans.erase_thing(actions, who, plans.things[1].cell) and plans.things.size() == 1, "a ghost thing is taken off")
+	_check(not plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 90)) and plans.things.size() == 1,
+		"not out of reach")
+	# A ghost wall of planks along x at z 20, three high; the wall drawn through the stool goes round it.
+	who.item = PLANKS
+	_check(plans.draw(actions, who, "line", Vector3i(8, 1, 20), Vector3i(20, 1, 20), 3) == 39, "(a ghost wall)")
+	_check(plans.draw(actions, who, "line", Vector3i(12, 1, 16), Vector3i(16, 1, 16), 1) == 4 and not plans.cells.has(stool.cell),
+		"ghost blocks are not drawn where a ghost thing stands")
+	plans.erase(actions, who, [Vector3i(12, 1, 16), Vector3i(13, 1, 16), Vector3i(15, 1, 16), Vector3i(16, 1, 16)])
+	# A door into the ghost wall, the face of it looking north tapped.
+	_check(plans.put_thing(actions, who, "tools:door", Vector3i(12, 1, 20), -1, false, 0) and plans.things.size() == 2,
+		"a ghost door goes into the ghost wall")
+	var door: Dictionary = plans.things[1]
+	_check(door.cells.has(Vector3i(12, 1, 20)) and door.cells.has(Vector3i(12, 2, 20)) and door.cells.size() == 2
+		and door.turn % 2 == 0, "in the wall's plane, where it was pressed: %s" % [door])
+	_check(not plans.cells.has(Vector3i(12, 1, 20)) and not plans.cells.has(Vector3i(12, 2, 20)) and plans.cells.has(Vector3i(12, 3, 20))
+		and door.wall.size() == 2 and door.wall.values().all(func(v: String) -> bool: return v == PLANKS),
+		"its ghost blocks are taken off and kept by it (1А): %s" % [door.wall])
+	# Saved and read back, through the JSON of a world's file.
+	var copy := Plans.new()
+	copy.from_list(JSON.parse_string(JSON.stringify(plans.to_list())))
+	_check(copy.things.size() == 2 and copy.cells == plans.cells and copy.thing_at(Vector3i(12, 2, 20)).get("cell") == door.cell
+		and copy.thing_at(Vector3i(12, 2, 20)).turn == door.turn and copy.thing_at(Vector3i(12, 2, 20)).wall == door.wall,
+		"the ghost things are saved with the blueprint and read back")
+	var told: Array = []
+	var copy2 := Plans.new()
+	copy2.thing_changed.connect(func(t: Dictionary, came: bool) -> void: told.append([t.cell, came]))
+	copy2.take_thing(Plans.thing_record(door))
+	copy2.take_thing_gone(door.cell)
+	_check(told == [[door.cell, true], [door.cell, false]] and copy2.things.is_empty(), "a client's copy takes them as told")
+	# Moved along the wall: its ghost wall goes back into its old cells.
+	var was: Vector3i = door.cell
+	_check(plans.move_thing(actions, who, Vector3i(12, 1, 20), Vector3i(14, 1, 20), door.turn, 0), "a ghost door is moved along the wall")
+	door = plans.thing_at(Vector3i(14, 1, 20))
+	_check(not door.is_empty() and door.cells.has(Vector3i(14, 2, 20)) and plans.cells.get(Vector3i(12, 1, 20)) == PLANKS
+		and plans.cells.get(Vector3i(12, 2, 20)) == PLANKS and not plans.cells.has(Vector3i(14, 1, 20)) and door.wall.size() == 2,
+		"its old place is a ghost wall again, the new one taken off")
+	var cells_before: Array = door.cells.duplicate()
+	cells_before.sort()
+	var turn_before: int = door.turn
+	_check(plans.move_thing(actions, who, door.cell, door.cell, (door.turn + 2) % 4, -1), "a ghost door is turned the other way round")
+	door = plans.thing_at(Vector3i(14, 1, 20))
+	var cells_after: Array = door.cells.duplicate()
+	cells_after.sort()
+	_check(door.turn == (turn_before + 2) % 4 and cells_after == cells_before and door.wall.size() == 2, "where it stands")
+	_check(plans.move_thing(actions, who, stool.cell, Vector3i(16, 1, 16), 0) and not plans.thing_at(Vector3i(16, 1, 16)).is_empty()
+		and plans.thing_at(Vector3i(14, 1, 16)).is_empty(), "a ghost stool is moved")
+	stool = plans.thing_at(Vector3i(16, 1, 16))
+	_check(plans.move_thing(actions, who, stool.cell, stool.cell, (stool.turn + 1) % 4)
+		and plans.thing_at(stool.cell).turn == (stool.turn + 1) % 4, "and turned a quarter where it stands")
+	stool = plans.thing_at(Vector3i(16, 1, 16))
+	# On a ghost block: it rests on it, as on the floor that will be built.
+	plans.cells[Vector3i(30, 3, 30)] = PLANKS
+	_check(plans.put_thing(actions, who, "tools:stool", Vector3i(30, 4, 30)) and plans.thing_at(Vector3i(30, 4, 30)).get("cell") == Vector3i(30, 4, 30),
+		"a ghost thing stands on a ghost floor")
+	var raised: Dictionary = plans.thing_at(Vector3i(30, 4, 30))
+	plans.drop_thing(raised)
+	plans.cells.erase(Vector3i(30, 3, 30))
+	# Built: the blocks first, then the things, from the bag.
+	who.inventory.add(PLANKS, 60)
+	who.item = PLANKS
+	var things_while_blocks := false
+	for i in 60:
+		var cells_left := plans.cells.size()
+		var things_left := plans.things.size()
+		var done := plans.build(actions, who)
+		if not done.has("placed"):
+			break
+		if plans.things.size() < things_left and cells_left > 0:
+			things_while_blocks = true
+	_check(plans.cells.is_empty() and plans.things.is_empty() and not things_while_blocks,
+		"the action button builds the blocks, then the things: %d cells, %d things left" % [plans.cells.size(), plans.things.size()])
+	var real_door: Dictionary = placed.at(Vector3i(14, 1, 20))
+	_check(not real_door.is_empty() and real_door.item == "tools:door" and real_door.cell == door.cell and real_door.turn == door.turn
+		and w.get_cell(14, 1, 20) == Mat.AIR and w.get_cell(14, 3, 20) == Mat.index(PLANKS),
+		"the door stands where its ghost was, in the wall built round it")
+	_check(real_door.get("cut", {}).size() == 2 and real_door.cut.values().all(func(v: String) -> bool: return v == Mat.IDS[Mat.index(PLANKS)]),
+		"remembering the ghost blocks it took the place of as cut, to wall them up when moved: %s" % [real_door.get("cut")])
+	_check(placed.at(stool.cell).get("item", "") == "tools:stool" and placed.at(stool.cell).turn == stool.turn
+		and who.inventory.count("tools:stool") == 0 and who.inventory.count("tools:door") == 0, "the stool too, as it was turned")
+	# A ghost thing with nothing to build it with waits; one where a thing is set down for real goes.
+	_check(plans.put_thing(actions, who, "tools:door", Vector3i(20, 1, 12)) == false, "(the bag holds no door now)")
+	who.inventory.add("tools:stool", 2)
+	plans.put_thing(actions, who, "tools:stool", Vector3i(10, 1, 12))
+	var ghost: Dictionary = plans.thing_at(Vector3i(10, 1, 12))
+	_check(not ghost.is_empty() and placed.put_at(who, "tools:stool", Vector3i(10, 1, 12), 40) and plans.thing_at(Vector3i(10, 1, 12)).is_empty(),
+		"a thing set down for real where a ghost thing stands takes its place")
+	plans.put_thing(actions, who, "tools:stool", Vector3i(6, 1, 12))
+	_check(plans.clear(actions, who) >= 1 and plans.things.is_empty(), "clearing the blueprint takes the ghost things off")
+	plans.put_thing(actions, who, "tools:stool", Vector3i(6, 1, 12))
+	who.item = PLANKS
+	_check(plans.draw(actions, who, "line", Vector3i(4, 1, 12), Vector3i(8, 1, 12), 1, 1, true) >= 1 and plans.things.is_empty(),
+		"and so does an erasing stroke over them")
+
+
+## Undo and redo of the blueprint (PlanHistory; the user's picks of 2026-11-26, 1А 2А).
+func _test_undo() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var plans := Plans.new()
+	placed.plans = plans
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	actions.plans = plans
+	var who := Builder.new()
+	who.placed = placed
+	who.position = Vector3(14.5, 1.0, 14.5) * WorldData.CELL
+	who.item = PLANKS
+	var h := PlanHistory.new(plans)
+	var step := func(work: Callable) -> Variant:
+		h.begin()
+		var out: Variant = work.call()
+		h.end()
+		return out
+	_check(h.undo(actions, who) == 0 and h.redo(actions, who) == 0, "nothing to undo or redo at first")
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(10, 1, 20), Vector3i(14, 1, 20), 2))
+	_check(plans.cells.size() == 10 and h.undos.size() == 1, "a wall drawn is one step")
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(30, 1, 20), Vector3i(30, 1, 20), 1, 1, true))
+	_check(h.undos.size() == 1, "a request that changed nothing is no step")
+	_check(h.undo(actions, who) == 10 and plans.cells.is_empty() and h.redos.size() == 1, "undone: its ghost goes")
+	_check(h.redo(actions, who) == 10 and plans.cells.size() == 10 and h.undos.size() == 1 and h.redos.is_empty(),
+		"redone: it comes back")
+	# Erasing part of it, undone, brings that part back.
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(10, 1, 20), Vector3i(11, 1, 20), 2, 1, true))
+	_check(plans.cells.size() == 6, "(part erased)")
+	_check(h.undo(actions, who) == 4 and plans.cells.size() == 10, "an erase undone puts the ghost back")
+	_check(h.redo(actions, who) == 4 and plans.cells.size() == 6, "and redone takes it off again")
+	h.undo(actions, who)
+	# A cell built meanwhile (gone from the blueprint) and one drawn over by someone else stay.
+	plans.erase(actions, who, [Vector3i(14, 1, 20)])
+	w.set_cell(14, 1, 20, Mat.index(Items.get_item(PLANKS).place))
+	plans.cells[Vector3i(14, 2, 20)] = "materials:cobblestone"
+	_check(h.undo(actions, who) == 8 and plans.cells.size() == 1 and plans.cells.get(Vector3i(14, 2, 20)) == "materials:cobblestone",
+		"undo leaves a cell built meanwhile and one changed since: %s" % [plans.cells])
+	plans.cells.clear()
+	plans.forms.clear()
+	_check(h.redo(actions, who) == 9 and plans.cells.size() == 9, "redo puts back what is still as it was undone, not a ghost on the block built")
+	# A new step lets the undone ones go.
+	h.undo(actions, who)
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(10, 1, 22), Vector3i(12, 1, 22), 1))
+	_check(h.redos.is_empty(), "a new step lets the steps undone go")
+	# At most MAX steps.
+	for i in PlanHistory.MAX + 5:
+		var x := 2 + i % 30
+		var z := 2 + 2 * (i / 30)
+		step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(x, 1, z), Vector3i(x, 1, z), 1))
+	_check(h.undos.size() == PlanHistory.MAX, "at most %d steps are kept: %d" % [PlanHistory.MAX, h.undos.size()])
+	h.undos.clear()
+	plans.cells.clear()
+	plans.forms.clear()
+	# A slope turned, undone.
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(20, 1, 10), Vector3i(20, 1, 10), 1, 1, false,
+		WorldData.FORM_RAMP))
+	var slope := Vector3i(20, 1, 10)
+	var form0: int = plans.forms.get(slope, 0)
+	step.call(func() -> int: return plans.turn_form(actions, who, slope))
+	_check(form0 != 0 and plans.forms[slope] != form0, "(a slope drawn and turned)")
+	_check(h.undo(actions, who) == 1 and plans.forms[slope] == form0, "a slope's turn is undone")
+	_check(h.redo(actions, who) == 1 and plans.forms[slope] != form0, "and redone")
+	# Ghost things: a door set into a ghost wall, moved, taken off; «clear».
+	who.inventory.add("tools:door", 1)
+	who.inventory.add("tools:stool", 1)
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(8, 1, 30), Vector3i(20, 1, 30), 3))
+	var wall: Dictionary = plans.cells.duplicate()
+	step.call(func() -> bool: return plans.put_thing(actions, who, "tools:door", Vector3i(12, 1, 30), -1, false, 0))
+	var door: Dictionary = plans.thing_at(Vector3i(12, 1, 30))
+	_check(not door.is_empty() and not plans.cells.has(Vector3i(12, 1, 30)), "(a ghost door in the ghost wall)")
+	_check(h.undo(actions, who) == 3 and plans.things.is_empty() and plans.cells == wall, "a ghost door undone: the wall is whole again")
+	_check(h.redo(actions, who) == 3 and plans.things.size() == 1 and not plans.cells.has(Vector3i(12, 1, 30))
+		and plans.thing_at(Vector3i(12, 2, 30)).wall.size() == 2, "redone: it is back in the wall, its wall kept")
+	door = plans.thing_at(Vector3i(12, 1, 30))
+	step.call(func() -> bool: return plans.move_thing(actions, who, door.cell, Vector3i(15, 1, 30), door.turn, 0))
+	_check(not plans.thing_at(Vector3i(15, 1, 30)).is_empty() and plans.cells.has(Vector3i(12, 1, 30)), "(moved along the wall)")
+	_check(h.undo(actions, who) > 0 and not plans.thing_at(Vector3i(12, 1, 30)).is_empty() and plans.thing_at(Vector3i(15, 1, 30)).is_empty()
+		and plans.cells.has(Vector3i(15, 1, 30)) and not plans.cells.has(Vector3i(12, 1, 30)), "a move undone puts it back where it was")
+	step.call(func() -> bool: return plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 16)))
+	var cells_before: Dictionary = plans.cells.duplicate()
+	var things_before := plans.things.map(func(t: Dictionary) -> String: return str([t.item, t.cell, t.turn]))
+	step.call(func() -> int: return plans.clear(actions, who))
+	_check(plans.cells.is_empty() and plans.things.is_empty(), "(cleared)")
+	h.undo(actions, who)
+	var things_after := plans.things.map(func(t: Dictionary) -> String: return str([t.item, t.cell, t.turn]))
+	things_before.sort()
+	things_after.sort()
+	_check(plans.things.size() == 2 and things_after == things_before and plans.cells == cells_before,
+		"«clear» undone brings every ghost back")
+	# Out of reach: the step stays, the player is told.
+	who.position = Vector3(14.5, 1.0, 400.5) * WorldData.CELL
+	var steps := h.redos.size()
+	_check(h.redo(actions, who) == -1 and h.redos.size() == steps and who.said.any(func(s: String) -> bool: return s.contains("closer")),
+		"a step far off is not done; it waits, and the player is told")

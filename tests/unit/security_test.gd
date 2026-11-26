@@ -164,6 +164,12 @@ func _test_requests() -> void:
 		"a thing out of reach is not moved near")
 	_check(req._rule(Protocol.PROP_MOVE, [sign.cell, Vector3i(40, 2, 40), 0]) == false and not p[0].placed.at(sign.cell).is_empty(),
 		"nor a thing near moved far")
+	_check(req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 0, 4]) == null and req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 0, -2]) == null
+		and req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 0, "x"]) == null and req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 0, 1, 1]) == null,
+		"a door is not moved along a wall by a face's side out of bounds or no number")
+	var far_door: Dictionary = p[0].placed.put("tools:door", Vector3i(28, 2, 26))
+	_check(req._rule(Protocol.PROP_MOVE, [far_door.cell, Vector3i(9, 2, 9), 0, 2]) == false and not p[0].placed.at(far_door.cell).is_empty(),
+		"nor one out of reach moved near")
 	_check(req.PACED.has(Protocol.PROP_MOVE), "moving takes the hands' time")
 	_check(req._rule(Protocol.PROP_TAKE, [far_sign.cell]) == false and not p[0].placed.at(far_sign.cell).is_empty(),
 		"a thing out of reach is not taken up")
@@ -171,6 +177,56 @@ func _test_requests() -> void:
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), "2"]) == null
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 5, true]) == null
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, 1]) == null, "a thing is not set down turned out of bounds")
+	_check(req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, false, 4]) == null
+		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, false, -2]) == null
+		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, false, "2"]) == null,
+		"nor by the face of a wall that is out of bounds or no number")
+	var far_ghost := Vector3i(200, 2, 200)
+	p[0].plans.cells[far_ghost] = "materials:planks"
+	p[0].plans.forms[far_ghost] = WorldData.FORM_RAMP
+	_check(req._rule(Protocol.PLAN, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, false, 0, 1]) == null
+		and req._rule(Protocol.PLAN, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, false, 0, true, 0]) == null
+		and req._rule(Protocol.PLAN, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, false, 0, true, false, 0]) == null,
+		"a blueprint whose «level» or «replace» is no bool, or with more arguments, is refused")
+	_check(req._rule(Protocol.PLAN_TURN, ["x"]) == null and req._rule(Protocol.PLAN_TURN, []) == null
+		and req._rule(Protocol.PLAN_TURN, [far_ghost]) == 0 and p[0].plans.forms[far_ghost] == WorldData.FORM_RAMP,
+		"a ghost slope is turned only by a cell, and only within reach")
+	p[0].plans.cells.erase(far_ghost)
+	p[0].plans.forms.erase(far_ghost)
+	# Ghost things of the blueprint (Plans.put_thing, move_thing, erase_thing).
+	_check(req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 4, false, -1]) == null
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 0, false, 4]) == null
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 0, 1, -1]) == null
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", "x", 0, false, -1]) == null
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 0]) == null,
+		"no ghost thing is set turned or by a face out of bounds, at a cell that is none or with args missing")
+	_check(req._rule(Protocol.PLAN_THING, ["tools:chest", far_ghost, 0, false, -1]) == false
+		and req._rule(Protocol.PLAN_THING, ["no:such_thing", Vector3i(9, 2, 9), 0, false, -1]) == false
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 0, false, -1]) == false
+		and p[0].plans.things.is_empty(), "nor out of reach, of a thing that is none, or of one the bag does not hold")
+	var ghost: Dictionary = p[0].plans.add_thing("tools:chest", far_ghost, 0, [far_ghost])
+	_check(req._rule(Protocol.PLAN_THING_MOVE, [far_ghost, Vector3i(9, 2, 9), 0, -1]) == false
+		and is_same(p[0].plans.thing_at(far_ghost), ghost) and req._rule(Protocol.PLAN_THING_TAKE, [far_ghost]) == false
+		and p[0].plans.things.size() == 1, "a ghost thing out of reach is neither moved near nor taken off")
+	_check(req._rule(Protocol.PLAN_THING_MOVE, [far_ghost, far_ghost, 4, -1]) == null
+		and req._rule(Protocol.PLAN_THING_MOVE, [far_ghost, far_ghost, 0, 4]) == null
+		and req._rule(Protocol.PLAN_THING_MOVE, [far_ghost, "x", 0, -1]) == null
+		and req._rule(Protocol.PLAN_THING_TAKE, ["x"]) == null and req._rule(Protocol.PLAN_THING_TAKE, []) == null,
+		"nor moved turned or by a face out of bounds, nor by a cell that is none")
+	p[0].plans.drop_thing(ghost)
+	# Undo and redo (PlanHistory): no args, not of another player, not far off.
+	_check(req._rule(Protocol.PLAN_UNDO, [0]) == null and req._rule(Protocol.PLAN_REDO, ["x"]) == null
+		and req._rule(Protocol.PLAN_UNDO, []) == 0 and not req.PACED.has(Protocol.PLAN_UNDO),
+		"undo and redo take no args, and do nothing with nothing done")
+	var other = p[0].plans
+	req.history.begin()
+	other.cells[far_ghost] = "materials:planks"
+	other.changed.emit([far_ghost], "materials:planks")
+	req.history.end()
+	_check(req._rule(Protocol.PLAN_UNDO, []) == -1 and other.cells.has(far_ghost) and req.history.undos.size() == 1,
+		"a step out of reach is not undone")
+	other.cells.erase(far_ghost)
+	req.history.undos.clear()
 	var far_rain: Dictionary = p[0].placed.put("tools:rain_catcher", Vector3i(30, 2, 30))
 	far_rain.water = 100.0
 	a.vitals.water = 10.0

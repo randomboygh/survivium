@@ -1,8 +1,8 @@
 extends VBoxContainer
 ## The build mode's bar (BuildMode), in the hotbar's place while the mode is on: on top
 ## the panel of the mode in one row, one button each going round its choices: the shape
-## (line, plane, square, cube) with flattening beside it, the form (a block, the slopes, stairs) with
-## its turn, how high and how thick the walls are (1–4), drawing or taking off the
+## (line, plane, square, cube) with flattening beside it, the form (a block, the slopes, stairs; a
+## double tap on the ghost of a lone slope turns it, BuildMode), how high and how thick the walls are (1–4), drawing or taking off the
 ## blueprint joined with taking all of it off near (a second tap to confirm), on a PC the
 ## action button's work (building the blueprint, F; on a touch screen the big action button
 ## does it), and leaving the mode; under it the palette: the bag's blocks and things in one row made as the
@@ -48,11 +48,15 @@ var _forms: HBoxContainer
 var _shape: Button
 var _flatten: Button
 var _form: Button
-var _turn: Button
 var _height: Button
 var _thick: Button
 var _mode: Button
 var _clear: Button
+## The eyedropper (BuildMode.picking): the next tap on the world takes what is there.
+var _pick: Button
+## Undo and redo of the blueprint (BuildMode.undo, redo), dimmed with nothing to do.
+var _undo: Button
+var _redo: Button
 ## The mode's action on a PC (the touch screen's action button, F): starts the work of the
 ## whole blueprint or the marks near, a second press stops it.
 var _go: Button
@@ -110,12 +114,12 @@ func _make_panel(panel: HBoxContainer) -> void:
 	_shape = shapes.get_child(0)
 	_flatten = shapes.get_child(1)
 	panel.add_child(shapes)
+	# No turn button (the user's pick, 2026-11-26): a lone slope rises away from the
+	# player, a double tap on its ghost turns it, the key Y the next ones.
 	_forms = TabRow.split([
 		[UiStyle.icon("form_cube"), "", func() -> void: game.build.next_form()],
-		[UiStyle.icon("turn_right"), "[turn_the_slope_or_stairs]", func() -> void: game.build.turn()],
 	])
 	_form = _forms.get_child(0)
-	_turn = _forms.get_child(1)
 	panel.add_child(_forms)
 	_height = _cycle("build_height", "[height]", func() -> void: game.build.next_height())
 	_thick = _cycle("build_thick", "[wall_thickness]", func() -> void: game.build.next_thick())
@@ -123,17 +127,28 @@ func _make_panel(panel: HBoxContainer) -> void:
 	sizes.add_child(_height)
 	sizes.add_child(_thick)
 	panel.add_child(sizes)
+	# Undo and redo of the blueprint, beside the eraser (the user's pick, 2026-11-26, 2А).
+	var history := TabRow.split([
+		[UiStyle.icon("undo"), "[undo_ctrl_z]", func() -> void: game.build.undo()],
+		[UiStyle.icon("redo"), "[redo_ctrl_y]", func() -> void: game.build.redo()],
+	])
+	_undo = history.get_child(0)
+	_redo = history.get_child(1)
+	panel.add_child(history)
+	# The eyedropper beside the eraser (the user's pick, 2026-11-26, 1А).
 	var marks := TabRow.split([
-		[UiStyle.icon("build_draw"), "", func() -> void: game.build.set_erasing(not game.build.erasing)],
+		[UiStyle.icon("build_pick"), "", func() -> void: game.build.set_picking(not game.build.picking)],
+		[UiStyle.icon("build_draw"), "", func() -> void: game.build.next_mode()],
 		[UiStyle.icon("trash"), "[remove_all_blueprints_nearby_press]", _tap_clear],
 	])
-	_mode = marks.get_child(0)
-	_clear = marks.get_child(1)
+	_pick = marks.get_child(0)
+	_mode = marks.get_child(1)
+	_clear = marks.get_child(2)
 	panel.add_child(marks)
 	_add_go(panel)
 	var leave := TabRow.icon_button(UiStyle.icon("close"), "[leave_build_mode_b]", func() -> void: game.build.leave())
 	panel.add_child(leave)
-	for b: Button in [_shape, _flatten, _form, _turn, _mode, _clear, leave]:
+	for b: Button in [_shape, _flatten, _form, _undo, _redo, _pick, _mode, _clear, leave]:
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
 
 
@@ -238,7 +253,9 @@ func fit(width: float, portrait := false) -> void:
 	var one: HBoxContainer = _rows.get_child(1)
 	var across := 0.0
 	for g: Control in one.get_children() + _row2.get_children():
-		across += g.get_combined_minimum_size().x + 6
+		# A button not shown (the action button on a touch screen) takes no room.
+		if g.visible:
+			across += g.get_combined_minimum_size().x + 6
 	var two := across - 6 > width
 	var home: HBoxContainer = _row2 if two else one
 	var wide := _wide_group()
@@ -283,20 +300,33 @@ func _show_panel() -> void:
 	# A room is of cubes: no slopes or stairs for it.
 	var formed: bool = b.forms_drawn()
 	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form_index() if formed else 0][0]))
-	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form_index()][1]]) if formed \
+	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form_index()][1]]) \
+		+ ("\n" + Lang.t("[double_tap_a_slopes_blueprint_to]") if b.form != 0 else "") if formed \
 		else "[slopes_and_stairs_are_drawn_by]"
 	_form.disabled = not formed
-	_turn.disabled = b.form == 0 or not formed
 	# A plane is as many levels as its height and has no walls to thicken.
 	_number(_height, b.height, b.kind == "flatten")
 	_number(_thick, b.thick, b.kind in ["plane", "flatten"])
 	_height.tooltip_text = Lang.f("[height_floor_walls_cube_with]", [
 		b.heights.plane, b.heights.line, b.heights.cube])
-	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if b.erasing else "build_draw"))
-	_mode.tooltip_text = "[erasing_the_blueprint_press_to]" if b.erasing else "[drawing_the_blueprint_press_to]"
-	TabRow.light(_mode, b.erasing, b.erasing)
+	# Drawing → erasing → replacing the material (the user's pick, 2026-11-26).
+	_mode.icon = UiStyle.centred(UiStyle.icon("build_replace" if b.replacing else "build_erase" if b.erasing
+		else "build_draw"))
+	_mode.tooltip_text = "[replacing_the_material_press_to]" if b.replacing else "[erasing_the_blueprint_press_to]" \
+		if b.erasing else "[drawing_the_blueprint_press_to]"
+	TabRow.light(_mode, b.erasing or b.replacing, b.erasing)
+	_pick.tooltip_text = "[tap_a_block_or_a_thing_to]" if b.picking else "[eyedropper_takes_a_block_or_a]"
+	TabRow.light(_pick, b.picking)
 	_light_clear(_clear, _asks.armed == _clear)
+	_dim(_undo, b.undos == 0)
+	_dim(_redo, b.redos == 0)
 	_show_go()
+
+
+## Dims the picture of button `b` with nothing to do, and lets it not be pressed.
+static func _dim(b: Button, off: bool) -> void:
+	b.disabled = off
+	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.35))
 
 
 ## Shows the palette anew: the mode's items, the chosen one marked.
@@ -315,6 +345,7 @@ func _show_palette() -> void:
 		_slots.append(s)
 	var inv = game.character.inventory
 	var held: String = b.chosen()
+	var need: Dictionary = b.need() if b.has_method("need") else {}
 	for i in _slots.size():
 		var s = _slots[i]
 		s.visible = i < shown
@@ -324,9 +355,17 @@ func _show_palette() -> void:
 		var id: String = _items[at] if at < _items.size() else ""
 		s.texture = ItemIcons.of_item(id) if id != "" else null
 		var count: int = inv.count(id) if id != "" else 0
-		s.number = "×%d" % count if count > 1 else ""
+		var needed: int = need.get(id, 0)
+		# What the bag has bottom right, what the blueprint near needs top left: cold as
+		# the ghosts, red when the bag has less (the user's picks, 2026-11-26).
+		s.number = "×%d" % count if count > 1 or (needed > 0 and count == 0) else ""
+		s.tag = str(needed) if needed > 0 else ""
+		s.tag_color = UiStyle.DANGER if needed > 0 and b.short_of(id) else UiStyle.COLD
+		s.inactive = id != "" and count == 0
 		s.selected = id != "" and id == held
 		s.tooltip_text = Lang.t(Items.title(id)) if id != "" else ""
+		if needed > 0:
+			s.tooltip_text += "\n" + Lang.f("[the_blueprint_near_needs_the_bag_has]", [needed, count])
 	if _items.is_empty():
 		_slots[0].tooltip_text = _nothing()
 

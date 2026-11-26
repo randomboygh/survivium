@@ -25,6 +25,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const PlanHistory := preload("res://src/shared/game/plan_history.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Cheats := preload("res://src/server/cheats.gd")
@@ -47,6 +48,10 @@ const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, P
 	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.PROP_MOVE, Protocol.LIGHT_PUT, Protocol.BUILD,
 	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH, Protocol.SIGN_WRITE, Protocol.SIGN_TURN, Protocol.PROP_DRINK, Protocol.MEND]
 const WORK_AHEAD := 2.0
+## The requests of the build mode that change the blueprint: each one done is a step of the
+## player's undo (`history`, PlanHistory).
+const RECORDED := [Protocol.PLAN, Protocol.PLAN_TURN, Protocol.PLAN_CLEAR, Protocol.PLAN_THING,
+	Protocol.PLAN_THING_MOVE, Protocol.PLAN_THING_TAKE]
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
 const WORK_STEP := 0.25
 ## Seconds between two mods put on the server by one player (Protocol.MOD_PUT): each is
@@ -100,6 +105,8 @@ var _put_pieces := 0
 var _put_bytes := PackedByteArray()
 var _put_got := 0
 var _put_at := -INF
+## The player's undo and redo of the blueprint (PlanHistory), while they are in the world.
+var history
 var _owed := 0.0
 var _owed_at := -1.0
 
@@ -108,6 +115,7 @@ func _init(s, w, shop) -> void:
 	session = s
 	who = w
 	workshop = shop
+	history = PlanHistory.new(s.plans)
 
 
 ## Answers request `msg`: the reply message.
@@ -132,7 +140,12 @@ func _do(kind: String, args: Array) -> Variant:
 		flagged.emit("pace", "%s: %.1f s of work ahead" % [kind, _owed])
 		return {} if kind in [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.MEND] else false
 	var tool_swing: float = who.tool().get("swing", WORK_STEP) if kind == Protocol.GATHER else WORK_STEP
+	var recorded := kind in RECORDED
+	if recorded:
+		history.begin()
 	var out: Variant = _rule(kind, args)
+	if recorded:
+		history.end()
 	if out == null:
 		flagged.emit("malformed", kind)
 	if out is Dictionary and out.has("swing") and who.haste != 1.0:
@@ -212,6 +225,10 @@ func _rule(kind: String, args: Array) -> Variant:
 			# The turn kept for things of its kind (BuildMode.kept_turns): taken by any thing.
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL]) and args[2] >= 0 and args[2] < 4:
 				return placed.put_at(who, args[0], args[1], session.world.size_y, args[2], args[3])
+			# And the side of the wall's face tapped (Placed.plane_turn), -1 for none.
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
+					and args[4] >= -1 and args[4] < 4:
+				return placed.put_at(who, args[0], args[1], session.world.size_y, args[2], args[3], args[4])
 		Protocol.LIGHT_PUT:
 			if _fit(args, [TYPE_STRING, TYPE_INT]):
 				return placed.put_light_from_bag(who, args[0], args[1])
@@ -226,6 +243,12 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT]) and args[2] >= 0 and args[2] < 4:
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.move(who, e, args[1], args[2])
+			# A door, a window or a hatch moved along its wall (Placed.move_opening): the wall's
+			# cell pressed, its turn (found again by the server) and the side of the face, -1 for none.
+			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
+					and args[3] >= -1 and args[3] < 4:
+				var e: Dictionary = _near(args[0])
+				return not e.is_empty() and placed.move_opening(who, e, args[1], args[3])
 		Protocol.PROP_FIRE:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_BOOL]):
 				var e: Dictionary = _near(args[0])
@@ -260,9 +283,14 @@ func _rule(kind: String, args: Array) -> Variant:
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.turn_sign(who, e)
 		Protocol.PLAN:
-			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL, TYPE_INT]) \
-					and args[0] in Plans.KINDS and args[6] >= 0 and args[6] < 64:
-				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3], args[4], args[5], args[6])
+			# The earthwork flag (8th) and the replace flag (9th) may be left out: the ground
+			# is then taken as it lies, and the shape drawn.
+			var plan_types := [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL, TYPE_INT]
+			for i in range(7, mini(args.size(), 9)):
+				plan_types.append(TYPE_BOOL)
+			if _fit(args, plan_types) and args[0] in Plans.KINDS and args[6] >= 0 and args[6] < 64:
+				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3], args[4], args[5], args[6],
+					args.size() >= 8 and args[7], args.size() == 9 and args[8])
 		Protocol.MEND:
 			if _fit(args, [TYPE_VECTOR3I]):
 				return session.decay.mend(who, args[0])
@@ -272,6 +300,26 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.PLAN_CLEAR:
 			if _fit(args, []):
 				return session.plans.clear(actions, who)
+		Protocol.PLAN_TURN:
+			if _fit(args, [TYPE_VECTOR3I]):
+				return session.plans.turn_form(actions, who, args[0])
+		Protocol.PLAN_UNDO:
+			if _fit(args, []):
+				return history.undo(actions, who)
+		Protocol.PLAN_REDO:
+			if _fit(args, []):
+				return history.redo(actions, who)
+		Protocol.PLAN_THING:
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
+					and args[4] >= -1 and args[4] < 4:
+				return session.plans.put_thing(actions, who, args[0], args[1], args[2], args[3], args[4])
+		Protocol.PLAN_THING_MOVE:
+			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
+					and args[3] >= -1 and args[3] < 4:
+				return session.plans.move_thing(actions, who, args[0], args[1], args[2], args[3])
+		Protocol.PLAN_THING_TAKE:
+			if _fit(args, [TYPE_VECTOR3I]):
+				return session.plans.erase_thing(actions, who, args[0])
 		Protocol.FARM:
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_BOOL, TYPE_BOOL]) and args[0] in Plans.WORKS:
 				return session.plans.mark(actions, who, args[0], args[1], args[2], args[3], args[4])

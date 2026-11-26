@@ -299,6 +299,101 @@ const SHOTS := {
 		"hold_new": ["tools:table", Vector3i(2, 0, 2), true]},
 	"build-hold-bad": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false,
 		"hold_new": ["tools:table", Vector3i(2, 0, 2), false]},
+	# A finger pressed on a phone in a room's corner (places.build_room) with a thing of the
+	# bag chosen (2026-11-26): the thing shows at once, held BuildMode.FINGER_LIFT over the
+	# finger; a door and a window pressed on a wall from aside
+	# stand in its plane, a bed and a chair pressed by a wall have their backs to it.
+	"build-lift-table": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:table", Vector3(-2.5, 0.0, -2.5)]},
+	"build-lift-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:door", Vector3(-5.5, 0.6, -5.98)]},
+	"build-lift-window": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:window", Vector3(-3.5, 1.5, -5.98)]},
+	# A door pressed on the west wall's face, the view turned to see it (a step to the left).
+	"build-lift-door-west": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "turn": 1, "press": ["tools:door", Vector3(-6.98, 0.6, -4.5)]},
+	"build-lift-bed": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_bed", Vector3(-1.5, 0.0, -5.5)]},
+	"build-lift-chair": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_chair", Vector3(-6.5, 0.0, -1.5)]},
+	# The ghost of lone stairs rising away from the player (north), then tapped twice: turned
+	# a quarter (Plans.turn_form); the panel has no turn button (2026-11-26).
+	# A door and a window set into the room's north wall moved along it by a finger, and a
+	# door taken back into the bag (2026-11-26, the building UX's PR 2): "opening" = [item,
+	# its wall cell from the feet, the cell it is moved to, "before" | "held" | "moved" |
+	# "taken"] (shot.gd _move_opening).
+	"build-move-door-before": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "before"]},
+	"build-move-door-held": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "held"]},
+	"build-move-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "moved"]},
+	"build-move-window-before": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:window_3x2", Vector3i(-5, 1, -7), Vector3i(-4, 1, -7), "before"]},
+	"build-move-window": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:window_3x2", Vector3i(-5, 1, -7), Vector3i(-4, 1, -7), "moved"]},
+	"build-take-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "taken"]},
+	# Things set down by the blueprint (2026-11-26, the building UX's PR 3): a ghost wall across
+	# the room with a ghost door in it, a ghost window in the brick wall, a ghost table and a
+	# chair ("ghosts": "drawn"); a chair new from the bag held over the floor in the same look;
+	# the blueprint built by the action button, blocks first, then the things ("built").
+	"build-ghosts": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "drawn"},
+	"build-ghosts-held": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "drawn", "press": ["tools:wooden_chair", Vector3(-1.5, 0.0, -1.5)]},
+	"build-ghosts-built": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "built"},
+	# The ghost chair tapped once (taken off the blueprint) and twice (turned); the ghost table
+	# held up and carried two cells east ("dragged"), and let go there ("moved").
+	"build-ghosts-tapped": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "tapped"},
+	"build-ghosts-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "turned"},
+	"build-ghosts-dragged": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "dragged"},
+	"build-ghosts-moved": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "moved"},
+	# Undo and redo (2026-11-26, the building UX's PR 4): a ghost wall drawn, undone by the
+	# bar's ↶, done again by its ↷.
+	"build-undo-drawn": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "undo": "drawn"},
+	"build-undo-undone": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "undo": "undone"},
+	"build-undo-redone": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "undo": "redone"},
+	# What the blueprint near needs (2026-11-26, the building UX's PR 5): need top left of the
+	# palette's cells (cold, red when short), the table needed and none in the bag dimmed.
+	"build-need": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "need": true},
+	# A room and walls drawn on uneven ground (2026-11-26, the building UX's PR 6): as it
+	# lies (bumps block, dips hang red) and levelled (Plans.earthwork: bumps to dig, dips
+	# filled with soil).
+	"build-level-off": {"time": 0.4, "season": 1, "uneven": false, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"]},
+	"build-level-on": {"time": 0.4, "season": 1, "uneven": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"]},
+	"build-level-built": {"time": 0.4, "season": 1, "uneven": true, "built": true, "build_mode": "draw",
+		"stroke": false, "touch": true, "hide": ["chunks: grass"]},
+	# The eyedropper (BuildMode.pick_at) in a room's corner (places.build_room): on, planks in
+	# the hand; then a tap on the brick wall west took brick.
+	"build-pick-on": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "pick": true},
+	"build-pick-brick": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "pick": Vector3(-7.5, 1.5, -3.5)},
+	# Replacing the material (BuildMode.replacing, the building UX's PR 8) along the brick
+	# wall north of the room's corner, planks in hand: the stroke held (the box, the blocks to
+	# replace lit), the wall marked, its two lower rows rebuilt of planks.
+	"build-replace-stroke": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "replace",
+		"touch": true, "hide": ["chunks: grass"]},
+	"build-replace-marked": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "replace", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "replace": "marked"},
+	"build-replace-built": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "replace", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "replace": "built"},
+	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
+	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2], "double_tap": true},
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
 	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube"},
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},
@@ -1249,6 +1344,8 @@ const SHOTS := {
 	"ui-settings-graphics": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "graphics"},
 	"ui-settings-graphics-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings", "section": "graphics"},
 	# Its bottom: the effects by kind, then fog and haze.
+	# The game page's end: «Стройка», things from the bag by blueprint or at once (2026-11-26).
+	"ui-settings-game-end": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "game", "menu_end": true},
 	"ui-settings-effects": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "graphics", "menu_end": true},
 	"ui-test-pc": {"time": 0.45, "season": 1, "menu": true, "page": "test"},
 	# The playtest page's other tabs: the player's switches and the tools button, debugging.

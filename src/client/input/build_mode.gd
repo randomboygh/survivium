@@ -14,18 +14,28 @@ extends "res://src/client/input/work_mode.gd"
 ## a chest, furniture, a sign) is taken up into the air by a finger or the mouse held on
 ## it, carried to another place and set down there as it is let go; a double tap turns
 ## it a quarter, and the next of its kind is set down turned so (`kept_turns`) while the
-## bag holds one; a single tap takes it once the double tap's time is over. A thing new from the bag is set down
-## where tapped, or held hangs in the air the same way and is set down where it is let
-## go. Leaving gives the hands back what they held before.
+## bag holds one; a single tap takes it once the double tap's time is over. A thing new from the bag
+## shows at once where the finger or the mouse presses, follows it while held, and is set
+## down where it is let go (the user's picks, 2026-11-26), turned as Placed.put_spot finds
+## best (a door in the plane of its wall, furniture with its back to one). On a touch
+## screen a thing is held FINGER_LIFT over the finger, so the finger does not hide it (no
+## line drawn to it: the user's pick, 2026-11-26); a short buzz tells it is taken up
+## (Vibration "lift").
+## A slope or stairs drawn in one column rise away from the player; a double tap on the
+## ghost of one turns it (Plans.turn_form; the panel has no turn button since 2026-11-26,
+## the key Y still turns the next ones). Leaving gives the hands back what they held before.
 ## `game` is the Main node.
 
 const Items := preload("res://src/shared/content/items.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
+const Props := preload("res://src/client/game/props.gd")
 
 ## The palette's filters: everything, blocks (Tools.use_of "place"), parts of a house
 ## (Items.is_interior).
@@ -45,6 +55,22 @@ const HOLD_MS := 280
 ## How far a finger or the mouse goes before a thing is taken up sooner than HOLD_MS, a
 ## share of the screen's shorter side.
 const DRAG_SHARE := 0.025
+## How far over the finger a thing is held on a touch screen, in UI pixels at the size of
+## the touch controls (HudLayout.touch_px: a phone's shorter side is 400 of them, so 40 are
+## about 0.7 cm; the user's picks, 2026-11-26: a little under 1.3 cm, then less than 1 cm).
+## A mouse points at the place itself.
+const FINGER_LIFT := 40.0
+## A second tap on the ghost of a slope or stairs within this many ms of the first turns
+## them (Plans.turn_form); a single tap there draws nothing.
+const GHOST_TAP_MS := 400
+## How many cells a door or a window held up into a wall is drawn out of it, toward its
+## front (out_of_wall): in the wall the blocks it will cut would hide it.
+const WALL_OUT := 1.15
+## How far round the player the palette counts what the blueprint needs (need): its ghost
+## cells and things within reach of drawing (Plans.PLAN_REACH; the user's pick, 2026-11-26),
+## counted again when it changes or the player has gone NEED_STEP cells, at most every
+## CHECK_TIME.
+const NEED_STEP := 4
 
 ## The shape drawn (one of Plans.KINDS), how high its walls are (levels) and how thick
 ## (cells). Kept with the player.
@@ -59,25 +85,44 @@ var thick := 1
 ## floor, three levels of walls, a ceiling). Kept with the player.
 var heights := DEFAULT_HEIGHTS.duplicate()
 ## The form of the blocks drawn (WorldData.FORM_*: a cube, a ramp, an upturned ramp,
-## stairs), and the quarter turns from the way they rise by themselves: away from the
-## player, so a ramp or stairs drawn ahead go up from where they stand. Kept with the
-## player. `band`: the slopes and stairs drawn as a band one block thick along the
-## flight, not filled down to the ground (Plans.BAND).
+## stairs), kept with the player, and the quarter turns of a one-column stroke from the
+## way it rises by itself: away from the player, so a ramp or stairs drawn ahead go up
+## from where they stand (the key Y turns them, back to 0 each time the mode is entered;
+## a double tap on the ghost turns one drawn). `band`: the slopes and stairs drawn as a
+## band one block thick along the flight, not filled down to the ground (Plans.BAND).
 var form := 0
 var band := false
 var turns := 0
+## The first tap on the ghost of a slope or stairs waiting for a second one: {"cell",
+## "ms"}, {} for none (see GHOST_TAP_MS).
+var _ghost_wait := {}
 ## A tap on a thing that moves waiting to see whether a second one comes: {"cell", "ms"},
 ## {} for none (see DOUBLE_TAP_MS).
 var _tap_wait := {}
 ## The turn the player last gave a thing of each kind by a double tap, by item id: the
 ## next ones are set down turned so while the bag holds one (then it is forgotten).
 var kept_turns := {}
-## The thing dragged now (see drag), {} for none.
+## The eyedropper is on (set_picking): the next tap on the world takes what is there into
+## the hand (pick_at) instead of drawing, then it goes off by itself.
+var picking := false
+## Strokes replace the material (next_mode, the third state of the panel's draw/erase
+## button; the user's idea 6, 2026-11-26): the blocks built in the box of the shape are
+## marked to be rebuilt of the block in hand (Plans.replace).
+var replacing := false
+## The thing dragged now (see drag), {} for none; the ghost thing of the blueprint dragged.
 var _dragged := {}
+var _dragged_ghost := {}
+## What the blueprint near needs, item id -> how many (need), the cell it was counted from,
+## whether the blueprint changed since, and the blueprint watched.
+var _need := {}
+var _need_from := Vector3i.ZERO
+var _need_due := true
+var _need_clock := 0.0
+var _need_of = null
 
 
 func to_dict() -> Dictionary:
-	return {"kind": kind, "heights": heights.duplicate(), "thick": thick, "filter": filter, "form": form, "band": band, "turns": turns}
+	return {"kind": kind, "heights": heights.duplicate(), "thick": thick, "filter": filter, "form": form, "band": band}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -97,7 +142,6 @@ func from_dict(d: Dictionary) -> void:
 	filter = f if f is String and f in FILTERS else "all"
 	form = clampi(int(d.get("form", 0)), 0, 3)
 	band = form != 0 and bool(d.get("band", false))
-	turns = clampi(int(d.get("turns", 0)), 0, 3)
 
 
 ## Whether item `id` is built with in the build mode: a block, or a part of a house.
@@ -123,13 +167,36 @@ func _in_palette(id: String) -> bool:
 	return passes(id, filter)
 
 
+## What the blueprint near needs (need) first, the most needed first, the bag's ones and
+## the ones it has none of (shown dimmed with what is short; the user's pick, 2026-11-26),
+## then the rest of the bag's items.
+func palette() -> Array[String]:
+	var bag := super()
+	var needed: Array = []
+	for id: String in _need:
+		if _in_palette(id):
+			needed.append(id)
+	needed.sort_custom(func(x: String, y: String) -> bool:
+		return _need[x] > _need[y] if _need[x] != _need[y] else x < y)
+	var out: Array[String] = []
+	for id: String in needed:
+		out.append(id)
+	for id in bag:
+		if not _need.has(id):
+			out.append(id)
+	return out
+
+
 func _show(shown: bool) -> void:
 	game.hud.show_build(shown)
 
 
 ## A thing dragged is set down, one new from the bag held up goes.
 func _left() -> void:
+	picking = false
+	replacing = false
 	_take_waiting()
+	_ghost_wait = {}
 	game.props.drop_new()
 	if not _dragged.is_empty():
 		game.props.settle(_dragged)
@@ -140,12 +207,18 @@ func _left() -> void:
 func enter(id: String) -> void:
 	if game.farm != null and game.farm.on:
 		game.farm.leave()
+	if not on:
+		turns = 0
 	_begin()
 	choose(id)
 
 
 ## Item `id` of the palette into the hand in use.
 func choose(id: String) -> void:
+	if game.character.inventory.count(id) <= 0:
+		# Shown only for what the blueprint needs: there is none to take in hand.
+		game.character.nag("no_block", Lang.line("[not_in_the_bag]", [Items.title(id)]))
+		return
 	game.controls.put_in_hand(id, -1, false)
 	changed.emit()
 
@@ -153,6 +226,82 @@ func choose(id: String) -> void:
 ## The item chosen on the palette (in the hand in use).
 func chosen() -> String:
 	return game.controls.held()
+
+
+## The panel's draw/erase/replace button: drawing → erasing → replacing → drawing.
+func next_mode() -> void:
+	if replacing:
+		replacing = false
+	elif erasing:
+		erasing = false
+		replacing = true
+	else:
+		erasing = true
+	changed.emit()
+
+
+func set_erasing(e: bool) -> void:
+	replacing = false
+	super(e)
+
+
+## Turns the eyedropper on or off (the panel's button).
+func set_picking(p: bool) -> void:
+	picking = p
+	changed.emit()
+
+
+## The eyedropper (the user's picks, 2026-11-26): what the world shows at screen point `pos`
+## into the hand in use, as if chosen on the palette: a thing set down or a ghost thing (and
+## its turn kept for the next), else the ghost block of the blueprint nearest, else the
+## block there (natural ones too, by the item that builds that material). Once something is
+## taken the eyedropper goes off, and the eraser too; with nothing there to take, or none of
+## it in the bag (choose's nag), it stays on for the next tap (the user's pick, 6Б).
+func pick_at(pos: Vector2) -> void:
+	var got := picked_at(pos)
+	var id: String = got.get("item", "")
+	if id == "" or not builds_with(id):
+		return
+	if game.character.inventory.count(id) <= 0:
+		choose(id)
+		return
+	if got.has("turn") and not Plans.drawn_with(id):
+		kept_turns[id] = int(got.turn)
+	picking = false
+	erasing = false
+	choose(id)
+	changed.emit()
+
+
+## What the eyedropper finds at screen point `pos`: {"item", and "turn" for a thing}, {} for
+## nothing to take.
+func picked_at(pos: Vector2) -> Dictionary:
+	var target: Dictionary = game.gathering.target_at(pos)
+	if target.has("prop"):
+		return {"item": target.prop.item, "turn": int(target.prop.get("turn", 0))}
+	var thing: Dictionary = game.controls.ghost_thing_at(pos)
+	if not thing.is_empty():
+		return {"item": thing.item, "turn": int(thing.turn)}
+	var ghost: Variant = game.controls.ghost_at(pos)
+	if ghost != null:
+		var planned: String = game.plans.cells.get(ghost, "")
+		if planned != Plans.CUT and not Plans.is_mark(planned):
+			return {"item": planned}
+	var hit: Dictionary = game.controls.pick(pos)
+	if hit.is_empty():
+		return {}
+	return {"item": block_item(game.world.get_cell(hit.cell.x, hit.cell.y, hit.cell.z))}
+
+
+## The item that builds material `m`: the one placing it, else the one it gives dug (grass
+## gives earth) when that builds; "" for none.
+static func block_item(m: int) -> String:
+	if m <= Mat.AIR or m >= Items.placed_by.size():
+		return ""
+	var id: String = Items.placed_by[m]
+	if id == "":
+		id = Items.dug[m]
+	return id if builds_with(id) else ""
 
 
 func set_kind(k: String) -> void:
@@ -240,6 +389,31 @@ func next_thick() -> void:
 	changed.emit()
 
 
+## How many changes of the player's blueprint can be undone and redone (the server's
+## PlanHistory, Protocol.PLAN_HISTORY): the bar's ↶ ↷ are dimmed at 0.
+var undos := 0
+var redos := 0
+
+
+## The server told how many changes can be undone and redone.
+func take_history(u: int, r: int) -> void:
+	undos = maxi(u, 0)
+	redos = maxi(r, 0)
+	changed.emit()
+
+
+## Undoes the last change of the blueprint (↶, Ctrl+Z; PlanHistory.undo).
+func undo() -> void:
+	if undos > 0:
+		game.net.request(Protocol.PLAN_UNDO, [])
+
+
+## Does the last change undone again (↷, Ctrl+Y or Ctrl+Shift+Z).
+func redo() -> void:
+	if redos > 0:
+		game.net.request(Protocol.PLAN_REDO, [])
+
+
 ## Takes the ghost off near the player.
 func clear() -> void:
 	game.net.request(Protocol.PLAN_CLEAR, [])
@@ -251,7 +425,7 @@ func clear() -> void:
 func toggle_auto() -> void:
 	if auto:
 		auto = false
-	elif game.plans.cells.is_empty() or game.plans.cells.size() == game.farm.marks():
+	elif game.plans.cells.size() == game.farm.marks() and game.plans.things.is_empty():
 		game.character.nag("plan_none", "[no_blueprint_draw_one_on]")
 	elif not _has_blocks():
 		game.character.nag("no_block", "[no_blocks_in_the_bag]")
@@ -272,18 +446,23 @@ func update(delta: float) -> void:
 		# A thing new from the bag held up with no stroke on it any more goes.
 		game.cursor.show_boxes([], [])
 		game.props.drop_new()
+	if not _dragged_ghost.is_empty() and not is_same(game.controls.dragging().get("ghost_thing"), _dragged_ghost):
+		game.cursor.show_boxes([], [])
+		game.plan_view.things.settle(_dragged_ghost)
+		_dragged_ghost = {}
 	if not _dragged.is_empty() and not is_same(game.controls.dragging().get("prop"), _dragged):
 		# Held up with no finger or button on it any more (its stroke went another way):
 		# it drops back where it stands, never left hanging in the air.
 		game.cursor.show_boxes([], [])
 		game.props.settle(_dragged)
 		_dragged = {}
+	_count_need(delta)
 	if not on or not auto:
 		return
 	_check_clock -= delta
 	if _check_clock <= 0.0:
 		_check_clock = CHECK_TIME
-		if game.plans.cells.size() == game.farm.marks():
+		if game.plans.cells.size() == game.farm.marks() and game.plans.things.is_empty():
 			auto = false
 			game.hud.toast("[blueprint_built]")
 			changed.emit()
@@ -296,11 +475,90 @@ func update(delta: float) -> void:
 	game.controls.build_step()
 
 
-## Whether the bag holds a block for some ghost cell (or building is free).
+## What the blueprint within PLAN_REACH of the player needs, item id -> how many: one block
+## of its item for each ghost cell (a slope or stairs too; digging out takes none), one
+## thing for each ghost thing. The palette shows it beside what the bag has.
+func need() -> Dictionary:
+	return _need
+
+
+## Whether the bag holds less of item `id` than the blueprint near needs (`need`): blocks
+## are never short when building is free, things always come from the bag.
+func short_of(id: String) -> bool:
+	if game.rules.free_build and not Items.is_interior(id):
+		return false
+	return int(_need.get(id, 0)) > game.character.inventory.count(id)
+
+
+## The world materials of the ghost blocks the bag has too little of (short_of), for
+## PlanBlocks to tint; none out of the mode.
+func short_blocks() -> Array[int]:
+	var out: Array[int] = []
+	if not on:
+		return out
+	for id: String in _need:
+		var m := Mat.index(Items.get_item(id).get("place", ""))
+		if m > 0 and short_of(id):
+			out.append(m)
+	return out
+
+
+## Counts the blueprint near again (need) when it changed or the player went NEED_STEP
+## cells, at most every CHECK_TIME while the mode is on; the bar is told when it differs.
+func _count_need(delta: float) -> void:
+	if not on:
+		return
+	if _need_of != game.plans:
+		_need_of = game.plans
+		_need_of.changed.connect(_on_plans_changed)
+		_need_of.thing_changed.connect(_on_plans_changed)
+		_need_due = true
+	_need_clock -= delta
+	if _need_clock > 0.0:
+		return
+	var at := Vector3i((game.player.position / Plans.CELL).floor())
+	if not _need_due and maxi(absi(at.x - _need_from.x), maxi(absi(at.y - _need_from.y), absi(at.z - _need_from.z))) < NEED_STEP:
+		return
+	_need_clock = CHECK_TIME
+	_need_due = false
+	_need_from = at
+	var now := count_need(game.plans, game.player.position / Plans.CELL)
+	if now != _need:
+		_need = now
+		changed.emit()
+
+
+func _on_plans_changed(_a = null, _b = null) -> void:
+	_need_due = true
+
+
+## What blueprint `plans` needs within PLAN_REACH of point `p` (in cells), item id -> how
+## many (see need).
+static func count_need(plans, p: Vector3) -> Dictionary:
+	var out := {}
+	var r := float(Plans.PLAN_REACH)
+	for c: Vector3i in plans.cells:
+		var item: String = plans.cells[c]
+		if item == Plans.CUT or Plans.is_mark(item):
+			continue
+		if absf(c.y - p.y) <= r and Vector2(c.x + 0.5 - p.x, c.z + 0.5 - p.z).length() <= r:
+			out[item] = int(out.get(item, 0)) + 1
+	for t: Dictionary in plans.things:
+		var c: Vector3i = t.cell
+		if absf(c.y - p.y) <= r and Vector2(c.x + 0.5 - p.x, c.z + 0.5 - p.z).length() <= r:
+			out[t.item] = int(out.get(t.item, 0)) + 1
+	return out
+
+
+## Whether the bag holds a block for some ghost cell (or building is free), or a thing for
+## a ghost thing (taken from the bag whatever the rules).
 func _has_blocks() -> bool:
-	if game.rules.free_build:
-		return true
 	var inv = game.character.inventory
+	for t: Dictionary in game.plans.things:
+		if inv.count(t.item) > 0:
+			return true
+	if game.rules.free_build:
+		return game.plans.cells.size() > game.farm.marks()
 	var seen := {}
 	for c: Vector3i in game.plans.cells:
 		var item: String = game.plans.cells[c]
@@ -323,6 +581,11 @@ func _has_blocks() -> bool:
 ## while it is held, {} for none): from the ground cell tapped for a plane or a box (a
 ## floor takes the place of the top ground cell), from the cell over it for the walls.
 func start_stroke(button: int, pos: Vector2) -> Dictionary:
+	if picking:
+		pick_at(pos)
+		return {}
+	if replacing:
+		return _replace_stroke(button, pos)
 	var target: Dictionary = game.gathering.target_at(pos)
 	var item := Items.get_item(chosen())
 	if target.has("prop") and not erasing and item.get("ladder", false) and Placed.is_ladder(target.prop):
@@ -344,7 +607,7 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		# bag holds none of them a tap takes them back.
 		var near: Dictionary = target.prop
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
-			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _beside(near, pos),
+			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _beside(near, pos), "face": -1,
 			"turn": kept_turns.get(chosen(), game.props.view_turn()), "kept": kept_turns.has(chosen()),
 			"spot": null, "shown": null}
 	if target.has("prop") and Placed.is_light(target.prop) and not erasing:
@@ -372,30 +635,144 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		_take_waiting()
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "prop": e,
 			"from": pos, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "corner": null,
-			"turn": int(e.get("turn", 0)), "shown": null, "grab": _grab(e, pos)}
+			"turn": int(e.get("turn", 0)), "shown": null, "grab": _grab(e, pos), "aim": e.cell, "face": -1}
+	var ghost_thing: Dictionary = {} if erasing else game.controls.ghost_thing_at(pos)
+	if not ghost_thing.is_empty():
+		# A ghost thing of the blueprint is handled as a thing set down: held, it is carried
+		# (PLAN_THING_MOVE); a double tap turns it; a single tap takes it off the blueprint.
+		if not _tap_wait.is_empty() and _tap_wait.cell == ghost_thing.cell and _tap_wait.get("ghost", false):
+			_tap_wait = {}
+			turn_ghost(ghost_thing)
+			return {}
+		_take_waiting()
+		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "ghost_thing": ghost_thing,
+			"from": pos, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "turn": int(ghost_thing.turn),
+			"shown": null, "grab": _grab(ghost_thing, pos), "aim": ghost_thing.cell, "face": -1}
 	var hit: Dictionary = game.controls.pick(pos)
-	if hit.is_empty():
-		return {}
-	if not erasing and game.world.is_cracked(hit.cell.x, hit.cell.y, hit.cell.z):
+	if not erasing and not hit.is_empty() and game.world.is_cracked(hit.cell.x, hit.cell.y, hit.cell.z):
 		# A cracked block (building decay) tapped is mended, free, with a swing of the tool
 		# in the hand (decision 6A); once whole, a tap on it builds on as ever.
 		game.controls.mend(hit.cell)
 		return {}
 	if not Plans.drawn_with(chosen()) and not erasing:
-		# A thing is set down where tapped as the finger lifts; held, it hangs in the air over
-		# the place under the finger until it is let go (drag, release).
+		# A thing shows at once over the place pressed (on a touch screen over the finger,
+		# _aimed), follows the finger while held, and is set down where it is let go (drag,
+		# release); a tap sets it down there at once. An empty hand (the last one set down)
+		# does nothing.
+		if item.get("prop", "none") == "none":
+			return {}
+		var aimed := _aimed(pos, _by_blueprint(chosen()))
+		if aimed.is_empty():
+			return {}
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
-			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _aim(hit, item),
+			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _aim(aimed, item), "face": face_of(aimed),
 			"turn": kept_turns.get(chosen(), game.props.view_turn()), "kept": kept_turns.has(chosen()),
 			"spot": null, "shown": null}
-	var first := start_cell(hit)
-	if erasing:
-		# The ghost under the finger, when it is nearer than the cell tapped.
-		var ghost: Variant = game.controls.ghost_at(pos)
-		if ghost != null:
-			first = ghost
-	return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "plan": kind,
-		"first": first, "last": first, "normal": Vector3i.UP}
+	# The ghost under the finger, when it is nearer than the cell tapped: where a stroke that
+	# erases begins; the ghost of a slope or stairs tapped twice is turned.
+	var ghost: Variant = game.controls.ghost_at(pos)
+	var on_slope: bool = not erasing and ghost != null and game.plans.formed_at(ghost)
+	if on_slope and _second_ghost_tap(ghost):
+		game.net.request(Protocol.PLAN_TURN, [ghost])
+		return {}
+	if hit.is_empty() and not on_slope:
+		return {}
+	var first: Vector3i = ghost if erasing and ghost != null or hit.is_empty() else start_cell(hit)
+	var s := {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "plan": kind,
+		"first": first, "last": first, "normal": Vector3i.UP, "from": pos}
+	if on_slope:
+		# Let go where it was pressed, it was a tap on the ghost: nothing is drawn, and a
+		# second tap soon turns it (end_stroke).
+		s.ghost = ghost
+	return s
+
+
+## A stroke of replacing (`replacing`) pressed at `pos`: it begins at the block (or the
+## ghost block, when nearer) under the finger and takes the box of the shape drawn from
+## there (a plane for «выровнять»); none without a block in hand.
+func _replace_stroke(button: int, pos: Vector2) -> Dictionary:
+	if Mat.index(Items.get_item(chosen()).get("place", "")) < 0:
+		game.character.nag("plan_block", "[choose_a_block_for_the]")
+		return {}
+	var hit: Dictionary = game.controls.pick(pos)
+	var ghost: Variant = game.controls.ghost_at(pos)
+	if hit.is_empty() and ghost == null:
+		return {}
+	var first: Vector3i = ghost if ghost != null else hit.cell
+	return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false,
+		"plan": "plane" if kind == "flatten" else kind, "first": first, "last": first, "normal": Vector3i.UP, "from": pos}
+
+
+## The cells stroke `s` of replacing would mark (Plans.replace, as the server finds them):
+## the blocks built and the ghost blocks of another material in its box.
+func replaced_cells(s: Dictionary) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	var item := chosen()
+	var block := Mat.index(Items.get_item(item).get("place", ""))
+	var p: Vector3 = game.player.position
+	for c in Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick):
+		var was: String = game.plans.cells.get(c, "")
+		if was == item or Plans.is_mark(was) or Plans.is_earth(was) or was != "" and not Items.get_item(was).has("place"):
+			continue
+		if was != "" or game.plans.replaceable(game.actions, c, block):
+			out.append(c)
+	return out
+
+
+## Whether a tap on the ghost column at `cell` is the second of a double tap on it (the
+## first waits in `_ghost_wait`, GHOST_TAP_MS); the wait is over either way.
+func _second_ghost_tap(cell: Vector3i) -> bool:
+	if _ghost_wait.is_empty():
+		return false
+	var second: bool = Time.get_ticks_msec() - int(_ghost_wait.ms) <= GHOST_TAP_MS \
+		and game.plans.column_of(cell).has(_ghost_wait.cell)
+	_ghost_wait = {}
+	return second
+
+
+## Whether stroke `s` is still a tap on the ghost of a slope or stairs (start_stroke): it
+## began on one and the finger has not gone a little way (its first and last cells may
+## still differ by one: the cell tapped and the one on the plane under it are found
+## apart, Controls._run_stroke).
+func _ghost_tap(s: Dictionary) -> bool:
+	return s.has("ghost") and s.pos.distance_to(s.get("from", s.pos)) < _slop()
+
+
+## What a thing new from the bag is aimed at for a finger or the mouse at screen point
+## `pos` (VoxelRaycast.cast's hit): on a touch screen the place FINGER_LIFT over the finger
+## (_lifted), so the finger does not hide the thing, or the place under it where there the
+## ray finds nothing; under the mouse. With `planned` the blueprint's ghost blocks are met
+## as blocks (Controls.pick_planned: a ghost thing goes onto, against or into them).
+func _aimed(pos: Vector2, planned := false) -> Dictionary:
+	var at := _lifted(pos)
+	var hit: Dictionary = game.controls.pick_planned(at) if planned else game.controls.pick(at)
+	if hit.is_empty() and at != pos:
+		hit = game.controls.pick_planned(pos) if planned else game.controls.pick(pos)
+	return hit
+
+
+## Whether thing `id` new from the bag goes into the blueprint as a ghost thing, built after
+## its blocks (Plans.put_thing): the setting «Вещи из сумки» (Settings `build_things`, by the
+## blueprint unless set to at once; the user's picks, 2026-11-26, 1А, 2А), for a thing with a
+## model of its own (Props.ghostly; a campfire is set down at once).
+func _by_blueprint(id: String) -> bool:
+	return int(game.settings.values.get("build_things", 0)) == 0 and Props.ghostly(id)
+
+
+## Screen point `pos` of a finger moved FINGER_LIFT up (not past the screen's top) on a
+## touch screen, `pos` itself for the mouse.
+func _lifted(pos: Vector2) -> Vector2:
+	if not game.controls.touch:
+		return pos
+	return Vector2(pos.x, maxf(0.0, pos.y - game.hud.touch_px(FINGER_LIFT)))
+
+
+## The side (Placed.SIDES index) the face of hit `hit` (VoxelRaycast.cast) looks toward: a
+## wall's face, which a door or a window set into it lies along (Placed.plane_turn); -1 for
+## a top or a bottom.
+static func face_of(hit: Dictionary) -> int:
+	var n: Vector3i = hit.get("normal", Vector3i.UP)
+	return Placed.SIDES.find(n) if n.y == 0 else -1
 
 
 ## The cell of thing `e` under screen point `pos`, from its north-west cell (the thing
@@ -422,21 +799,39 @@ func _aim(hit: Dictionary, item: Dictionary) -> Vector3i:
 	return cell if into_wall or into_floor else cell + hit.normal
 
 
+## Ghost thing `t` of the blueprint turned where it stands (a double tap on it): a quarter,
+## a door, a window or a hatch the other way round (Plans.move_thing).
+func turn_ghost(t: Dictionary) -> void:
+	var turned := (int(t.turn) + (2 if Placed.is_opening(t.item) else 1)) % 4
+	if not Placed.is_opening(t.item):
+		kept_turns[t.item] = turned
+	game.net.request(Protocol.PLAN_THING_MOVE, [t.cell, t.cell, turned, -1])
+
+
 ## Thing `e` turned a quarter where it stands (a double tap on it), and the next of its
-## kind set down turned so while the bag holds one (kept_turns).
+## kind set down turned so while the bag holds one (kept_turns); a door, a window or a
+## hatch turned the other way round in its wall, its front to the other side.
 func turn_thing(e: Dictionary) -> void:
+	if Placed.is_opening(e.item):
+		game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, (int(e.get("turn", 0)) + 2) % 4])
+		return
 	var turned := (int(e.get("turn", 0)) + 1) % 4
 	kept_turns[e.item] = turned
 	game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, turned])
 
 
-## The tap on a thing waiting for a second one takes the thing now (see DOUBLE_TAP_MS).
+## The tap on a thing waiting for a second one takes the thing now (see DOUBLE_TAP_MS); on
+## a ghost thing, takes it off the blueprint.
 func _take_waiting() -> void:
 	if _tap_wait.is_empty():
 		return
 	var cell: Vector3i = _tap_wait.cell
+	var ghost: bool = _tap_wait.get("ghost", false)
 	_tap_wait = {}
-	if not game.placed.at(cell).is_empty():
+	if ghost:
+		if not game.plans.thing_at(cell).is_empty():
+			game.net.request(Protocol.PLAN_THING_TAKE, [cell])
+	elif not game.placed.at(cell).is_empty():
 		_take(cell)
 
 
@@ -487,10 +882,14 @@ static func face_in(corner: Vector3, from: Vector3, dir: Vector3) -> Vector3i:
 ## Whether stroke `s` takes its thing up into the air now: held HOLD_MS, or gone DRAG_SHARE
 ## of the screen.
 func _lift_due(s: Dictionary) -> bool:
-	if Time.get_ticks_msec() - int(s.ms) >= HOLD_MS:
-		return true
+	return Time.get_ticks_msec() - int(s.ms) >= HOLD_MS or s.pos.distance_to(s.from) >= _slop()
+
+
+## How far a finger or the mouse goes before a press is a stroke and no longer a tap:
+## DRAG_SHARE of the screen's shorter side.
+func _slop() -> float:
 	var screen: Vector2 = game.get_viewport().get_visible_rect().size
-	return s.pos.distance_to(s.from) >= minf(screen.x, screen.y) * DRAG_SHARE
+	return minf(screen.x, screen.y) * DRAG_SHARE
 
 
 ## A finger or the mouse held on a thing that moves, or on the ground with a thing new
@@ -502,6 +901,9 @@ func drag(s: Dictionary) -> void:
 	if s.has("put"):
 		_drag_new(s)
 		return
+	if s.has("ghost_thing"):
+		_drag_ghost(s)
+		return
 	var e: Dictionary = s.prop
 	if not is_same(game.placed.at(e.cell), e):
 		# Gone or changed under the finger: what was held up drops back (update).
@@ -511,8 +913,13 @@ func drag(s: Dictionary) -> void:
 			return
 		s.moved = true
 		_dragged = e
+		# A short buzz: it is taken up (the user's pick, 2026-11-26).
+		Vibration.play(game, "lift")
 		changed.emit()
-	var on_it: Variant = game.controls.on_plane(s.pos, e.cell, Vector3i.UP)
+	if Placed.is_opening(e.item):
+		_drag_opening(s, e)
+		return
+	var on_it: Variant = game.controls.on_plane(_lifted(s.pos), e.cell, Vector3i.UP)
 	if on_it == null:
 		return
 	var corner: Vector3i = on_it - s.grab
@@ -533,26 +940,122 @@ func drag(s: Dictionary) -> void:
 	_frame(e.item, at, turn, s.to != null)
 
 
-## A thing new from the bag held (stroke `s` with "put"): see drag.
+## A thing new from the bag pressed (stroke `s` with "put"): it shows at once (the user's
+## pick, 2026-11-26), over the place pressed till the finger goes a little way (_slop), then
+## over the place under the finger (over it on a touch screen, _aimed) while that is on the
+## screen; held HOLD_MS or carried, a short buzz tells it is taken up. See drag.
 func _drag_new(s: Dictionary) -> void:
 	if not s.up:
-		if not _lift_due(s):
-			return
 		s.up = true
 		changed.emit()
-	# The place under the finger, while it is on the screen.
-	var hit: Dictionary = game.controls.pick(s.pos) if game.get_viewport().get_visible_rect().has_point(s.pos) else {}
+	if not s.get("lifted", false) and _lift_due(s):
+		s.lifted = true
+		Vibration.play(game, "lift")
+	if not s.get("led", false) and s.pos.distance_to(s.from) >= _slop():
+		s.led = true
+	# Into the blueprint (_by_blueprint) it is seen and looked for as a ghost thing.
+	var ghost := _by_blueprint(s.put)
+	var hit: Dictionary = _aimed(s.pos, ghost) if s.get("led", false) and game.get_viewport().get_visible_rect().has_point(s.pos) else {}
 	if not hit.is_empty():
 		s.aim = _aim(hit, Items.get_item(s.put))
-	var shown := [s.aim, s.turn]
+		s.face = face_of(hit)
+	var shown := [s.aim, s.turn, s.get("face", -1), ghost]
 	if s.shown == shown:
 		return
 	s.shown = shown
-	var found: Array = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept)
+	var found: Array
+	if ghost:
+		found = game.placed.ghost_spot(game.character, game.plans, s.put, s.aim, s.turn, s.kept, s.get("face", -1))
+	else:
+		found = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept, s.get("face", -1))
 	s.spot = found[0]
 	var at: Vector3i = s.spot if s.spot != null else s.aim
-	game.props.hold_new(s.put, at, found[1])
+	game.props.hold_new(s.put, at, found[1], out_of_wall(s.put, at, found[1]) if s.spot != null else Vector3.ZERO,
+		game.plan_view.things.material() if ghost else null)
 	_frame(s.put, at, found[1], s.spot != null)
+
+
+## A ghost thing of the blueprint held (stroke `s` with "ghost_thing"): once held long enough
+## (_lift_due) it follows the finger as a thing set down does (drag), its place looked for in
+## the world as the blueprint will stand (Placed.ghost_move_spot); a door, a window or a hatch
+## along the wall under the finger, ghost walls too. Let go, it moves there (release).
+func _drag_ghost(s: Dictionary) -> void:
+	var t: Dictionary = s.ghost_thing
+	if not is_same(game.plans.thing_at(t.cell), t):
+		return
+	if not s.moved:
+		if not _lift_due(s):
+			return
+		s.moved = true
+		_dragged_ghost = t
+		Vibration.play(game, "lift")
+		changed.emit()
+	var at: Vector3i
+	var face := -1
+	if Placed.is_opening(t.item):
+		var hit: Dictionary = _aimed(s.pos, true) if game.get_viewport().get_visible_rect().has_point(s.pos) else {}
+		if hit.is_empty():
+			return
+		at = _aim(hit, Items.get_item(t.item))
+		face = face_of(hit)
+	else:
+		var on_it: Variant = game.controls.on_plane(_lifted(s.pos), t.cell, Vector3i.UP)
+		if on_it == null:
+			return
+		at = on_it - s.grab
+	var shown := [at, s.turn, face]
+	if s.shown == shown:
+		return
+	s.shown = shown
+	s.aim = at
+	s.face = face
+	var found: Array = game.placed.ghost_move_spot(game.character, game.plans, t, at, s.turn, face)
+	s.to = found[0]
+	s.found_turn = found[1]
+	var spot: Vector3i = s.to if s.to != null else at
+	game.plan_view.things.hold(t, spot, found[1], out_of_wall(t.item, spot, found[1]) if s.to != null else Vector3.ZERO)
+	_frame(t.item, spot, found[1], s.to != null)
+
+
+## A door, a window or a hatch held up (stroke `s` of opening `e`): it follows the wall
+## under the finger (over it on a touch screen, _aimed) as a new one from the bag does,
+## turned into the wall's plane (Placed.opening_spot, as the server will look for it), and
+## hangs before the blocks it would cut (out_of_wall); let go, it moves there and its old
+## place is walled up again (release, Placed.move).
+func _drag_opening(s: Dictionary, e: Dictionary) -> void:
+	var hit: Dictionary = _aimed(s.pos) if game.get_viewport().get_visible_rect().has_point(s.pos) else {}
+	if hit.is_empty():
+		return
+	var aim := _aim(hit, Items.get_item(e.item))
+	var face := face_of(hit)
+	var shown := [aim, face]
+	if s.shown == shown:
+		return
+	s.shown = shown
+	s.aim = aim
+	s.face = face
+	var found: Array = game.placed.opening_spot(game.character, e, aim, face)
+	s.to = found[0]
+	s.turn = found[1]
+	var at: Vector3i = s.to if s.to != null else aim
+	game.props.hold_at(e, at, s.turn, out_of_wall(e.item, at, s.turn) if s.to != null else Vector3.ZERO)
+	_frame(e.item, at, s.turn, s.to != null)
+
+
+## Where a door or a window `id` held up at north-west cell `at` turned `turn` is drawn
+## from there, in cells: where it goes into blocks (an opening to cut into a wall) they
+## would hide it, so it hangs WALL_OUT before them, toward its front (Placed.front_of: the
+## side it was pressed from); else where it goes (Props.hold_new).
+func out_of_wall(id: String, at: Vector3i, turn: int) -> Vector3:
+	var item := Items.get_item(id)
+	if not (item.get("door", false) or item.get("window", false)) or item.get("hatch", false):
+		return Vector3.ZERO
+	for o: Vector3i in game.placed.cells_of({"item": id, "cell": Vector3i.ZERO, "turn": turn}):
+		var c: Vector3i = at + o
+		if game.world.is_solid(c.x, c.y, c.z):
+			var f := Placed.front_of({"turn": turn})
+			return Vector3(f.x, 0.0, f.y) * WALL_OUT
+	return Vector3.ZERO
 
 
 ## Shows where thing `id` turned `turn` would go from the north-west cell `at`: where it
@@ -579,10 +1082,17 @@ func release(s: Dictionary) -> void:
 		s.up = false
 		game.props.drop_new()
 		game.cursor.show_boxes([], [])
-		game.land.expect_post(s.put)
-		game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, true] if s.kept else [s.put, s.aim, s.turn])
+		if _by_blueprint(s.put):
+			# Into the blueprint, built after its blocks (the user's picks, 2026-11-26, 2А: a tap too).
+			game.net.request(Protocol.PLAN_THING, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
+		else:
+			game.land.expect_post(s.put)
+			game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
 		if was_up:
 			changed.emit()
+		return
+	if s.has("ghost_thing"):
+		_release_ghost(s)
 		return
 	var e: Dictionary = s.prop
 	_dragged = {}
@@ -599,9 +1109,33 @@ func release(s: Dictionary) -> void:
 	if s.to == null or s.to == e.cell and turn == int(e.get("turn", 0)):
 		game.props.settle(e)
 		return
-	game.net.request(Protocol.PROP_MOVE, [e.cell, s.to, turn]).then(func(moved: Variant) -> void:
+	# A door, a window or a hatch goes by the wall's cell it was held over (_drag_opening).
+	var args := [e.cell, s.aim, turn, int(s.face)] if Placed.is_opening(e.item) else [e.cell, s.to, turn]
+	game.net.request(Protocol.PROP_MOVE, args).then(func(moved: Variant) -> void:
 		if not (moved is bool and moved) and game.placed.at(e.cell) == e:
 			game.props.settle(e))
+
+
+## A ghost thing of the blueprint let go (stroke `s`, see _drag_ghost): carried, it is moved
+## where it hung (Protocol.PLAN_THING_MOVE; it drops back when it cannot go there); only
+## tapped, it waits for a second tap (DOUBLE_TAP_MS) and then is taken off the blueprint.
+func _release_ghost(s: Dictionary) -> void:
+	var t: Dictionary = s.ghost_thing
+	_dragged_ghost = {}
+	if not s.moved:
+		_tap_wait = {"cell": t.cell, "ms": Time.get_ticks_msec(), "ghost": true}
+		return
+	changed.emit()
+	game.cursor.show_boxes([], [])
+	game.plan_view.things.settle(t)
+	if s.to == null or not is_same(game.plans.thing_at(t.cell), t):
+		return
+	var turn: int = s.get("found_turn", s.turn)
+	if s.to == t.cell and turn == int(t.turn):
+		return
+	# A door, a window or a hatch goes by the wall's cell it was held over, as a placed one.
+	var to: Vector3i = s.aim if Placed.is_opening(t.item) else s.to
+	game.net.request(Protocol.PLAN_THING_MOVE, [t.cell, to, turn, int(s.face)])
 
 
 ## The cell a stroke begins at on the cell `hit` (VoxelRaycast.cast): the cell over the
@@ -616,8 +1150,8 @@ func start_cell(hit: Dictionary) -> Vector3i:
 ## The cells stroke `s` covers now: the shape, or the box the ghost goes off.
 func stroke_cells(s: Dictionary) -> Array[Vector3i]:
 	var p: Vector3 = game.player.position
-	if erasing:
-		return Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick)
+	if erasing or replacing:
+		return Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick, levels() and not replacing)
 	if Plans.is_fence(chosen()):
 		# A fence: one segment high and thick (Plans.draw).
 		return Plans.shape(s.plan, s.first, s.last, 1, Vector2(p.x, p.z), 1) if s.plan in ["line", "square"] else []
@@ -627,15 +1161,27 @@ func stroke_cells(s: Dictionary) -> Array[Vector3i]:
 ## Shows what stroke `s` would do: the cells the ghost goes on light, those it cannot and
 ## those over a dip red; the ghost to be taken off red.
 func show_stroke(s: Dictionary) -> void:
+	if _ghost_tap(s):
+		# Pressed on the ghost of a slope or stairs: a tap there draws nothing.
+		game.cursor.show_boxes([], [])
+		return
 	var cells := stroke_cells(s)
 	if cells.is_empty():
 		# Too big a shape: its corners red.
 		game.cursor.show_boxes([], [s.first, s.last])
 		return
+	if replacing:
+		# The box lit, the blocks to be replaced in it as the figure.
+		game.cursor.show_boxes(replaced_cells(s), [], cells)
+		return
 	if erasing:
 		var gone: Array[Vector3i] = []
+		var figure := Plans.erase_box(s.plan, s.first, s.last, height, Vector2(game.player.position.x,
+			game.player.position.z), thick)
+		var ys := Vector2i(figure[0].y, figure[-1].y) if not figure.is_empty() else Vector2i.ZERO
 		for c in cells:
-			if game.plans.cells.has(c):
+			# Over and under the figure only the ghost of its earth goes (Plans.draw).
+			if game.plans.cells.has(c) and (c.y >= ys.x and c.y <= ys.y or Plans.is_earth(game.plans.cells[c])):
 				gone.append(c)
 		game.cursor.show_boxes([], gone, cells)
 		return
@@ -650,12 +1196,25 @@ func show_stroke(s: Dictionary) -> void:
 	for c: Vector3i in sorted.fit:
 		if not sorted.hanging.has(c):
 			good.append(c)
+	# The soil a dip under the figure is filled with shows as the figure does.
+	for c: Vector3i in sorted.get("fill", []):
+		good.append(c)
 	game.cursor.show_boxes(good, bad)
 
 
 ## The stroke ended: the server draws its ghost or takes it off; uneven ground is told.
 func end_stroke(s: Dictionary) -> void:
 	game.cursor.show_cells([], true)
+	if _ghost_tap(s):
+		# A tap on the ghost of a slope or stairs: nothing drawn; a second tap soon turns it.
+		game.cursor.show_boxes([], [])
+		_ghost_wait = {"cell": s.ghost, "ms": Time.get_ticks_msec()}
+		return
+	if replacing:
+		if replaced_cells(s).is_empty():
+			game.hud.toast("[nothing_to_replace_here_tap_a]")
+		game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, false, 0, false, true])
+		return
 	if not erasing and s.plan != "flatten":
 		var cells := stroke_cells(s)
 		if cells.is_empty():
@@ -666,10 +1225,26 @@ func end_stroke(s: Dictionary) -> void:
 			game.hud.toast("[a_blueprint_cant_be_drawn]")
 		elif not sorted.hanging.is_empty():
 			game.hud.toast("[uneven_ground_nothing_under_the]")
-	game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, erasing, form_of(s.first, s.last)])
+	game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, erasing, form_of(s.first, s.last),
+		levels()])
 
 
+## Whether a figure drawn levels the uneven ground under it (Plans.earthwork): the setting
+## «Земля под фигурой» (Settings `build_level`, levelled unless set to as it is; the user's
+## picks, 2026-11-26).
+func levels() -> bool:
+	return int(game.settings.values.get("build_level", 0)) == 0
+
+
+## The cells of stroke `s` sorted (Plans.sort) with its earthwork (Plans.earthwork):
+## {"fit", "blocked", "hanging", "fill" (the soil under it)}.
 func _sorted(s: Dictionary, cells: Array[Vector3i]) -> Dictionary:
 	var block := Mat.index(Items.get_item(chosen()).get("place", ""))
-	return game.plans.sort(game.actions, game.character, s.plan, s.first, cells, block,
-		Plans.hangs_by_shape(form_of(s.first, s.last)))
+	var form := form_of(s.first, s.last)
+	var work := {}
+	if levels() and block >= 0:
+		work = game.plans.earthwork(game.actions, game.character, s.plan, s.first, s.last, cells, form)
+	var out: Dictionary = game.plans.sort(game.actions, game.character, s.plan, s.first, cells, block,
+		Plans.hangs_by_shape(form), work)
+	out.fill = work.get("fill", [])
+	return out

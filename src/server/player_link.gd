@@ -4,7 +4,7 @@ extends RefCounted
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
 ## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE, FLOW; HEARD, the chat; NOTED, the server's notices to a host; TEAM and INVITES, the
 ## team, MATES, where its members are; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
-## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, PROP_MELT, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the rafts and boats
+## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, PROP_MELT, CHEST), of the blueprint (PLANS, PLAN_CELLS, GHOST_THING, GHOST_THING_GONE), of the rafts and boats
 ## (VESSELS, VESSEL, VESSEL_GONE), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
@@ -26,6 +26,7 @@ const Vessels := preload("res://src/shared/game/vessels.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 
 ## Chunks sent in one flush at most (each a few KB zstd).
 const CHUNKS_PER_FLUSH := 2
@@ -97,6 +98,8 @@ var _skills := true
 var _skills_now := false
 var _skills_sent := -1.0
 var _vitals: Array = []
+## The undo and redo counts the client was last told (Protocol.PLAN_HISTORY).
+var _history := [0, 0]
 ## On joining, every thing placed and every animal there is goes in one flush.
 var _all := true
 var _clock_sent := -1.0
@@ -144,6 +147,7 @@ func _init(s) -> void:
 	for e: Dictionary in placed.things:
 		_watch_chest(e)
 	session.plans.changed.connect(_on_plan)
+	session.plans.thing_changed.connect(_on_plan_thing)
 	var wild = session.wildlife
 	wild.born.connect(_on_born)
 	wild.gone.connect(_on_gone)
@@ -198,6 +202,7 @@ func leave() -> void:
 	session.territory.claims_changed.disconnect(_on_claims)
 	session.territory.squares_changed.disconnect(_on_squares)
 	session.plans.changed.disconnect(_on_plan)
+	session.plans.thing_changed.disconnect(_on_plan_thing)
 	for e: Dictionary in placed.things:
 		if e.items != null and e.items.changed.is_connected(_chest_call(e)):
 			e.items.changed.disconnect(_chest_call(e))
@@ -241,6 +246,9 @@ func rejoin() -> void:
 	# What piled up while the player was away is in the full flush; sent again after
 	# it, a thing placed meanwhile would be put twice.
 	outbox.clear()
+	# The client starts with nothing to undo: it is told the counts again.
+	if _history != [0, 0]:
+		_push(Protocol.PLAN_HISTORY, _history.duplicate())
 
 
 ## Takes message `bytes` from the client: the reply's bytes for a request, null for an
@@ -252,7 +260,13 @@ func handle(bytes: PackedByteArray) -> Variant:
 ## handle for a message already decoded (Protocol.decode), as the server has it.
 func handle_msg(msg: Array) -> Variant:
 	if msg.size() == 3:
-		return Protocol.encode(requests.handle(msg))
+		var reply := Protocol.encode(requests.handle(msg))
+		var h = requests.history
+		var counts := [h.undos.size(), h.redos.size()]
+		if counts != _history:
+			_history = counts
+			_push(Protocol.PLAN_HISTORY, counts)
+		return reply
 	if msg.size() == 2 and msg[0] is String and msg[0] == Protocol.INPUT and msg[1] is Array:
 		who.take_input(msg[1])
 	return null
@@ -768,6 +782,16 @@ func _on_opened(e: Dictionary) -> void:
 func _on_plan(cells: Array, item: String) -> void:
 	if not _all and not cells.is_empty():
 		_push(Protocol.PLAN_CELLS, [cells, item, session.plans.forms_of(cells) if item != "" else []])
+
+
+## A ghost thing of the blueprint was set or went (Plans.thing_changed).
+func _on_plan_thing(t: Dictionary, came: bool) -> void:
+	if _all:
+		return
+	if came:
+		_push(Protocol.GHOST_THING, [Plans.thing_record(t)])
+	else:
+		_push(Protocol.GHOST_THING_GONE, [t.cell])
 
 
 func _on_fuel(e: Dictionary) -> void:

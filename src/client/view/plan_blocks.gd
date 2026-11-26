@@ -27,6 +27,12 @@ const BUDGET := 1500
 const TINT := Color(0.5, 0.75, 1.0)
 const TINT_SHARE := 0.6
 const ALPHA := 0.7
+## How much its tint lights a ghost of its own (as emission).
+const GLOW := 0.15
+## The tint of the ghosts whose material or thing the bag has too little of for the
+## blueprint near (BuildMode.short_of): a soft warm red, milder than the red of what is to be
+## dug out (PlanGhost.CUT; the user's pick, 2026-11-26).
+const SHORT_TINT := Color(1.0, 0.5, 0.45)
 
 var game
 ## The blueprint's blocks in a world of their own, at their own cells.
@@ -39,6 +45,8 @@ var _job: ChunkMesher.Job
 var _job_key := Vector2i.ZERO
 var _depth: ShaderMaterial
 var _colour: ShaderMaterial
+## The materials tinted short now (BuildMode.short_blocks), as the shader's two words of bits.
+var _short := PackedInt32Array([0, 0])
 
 
 func _init(g) -> void:
@@ -59,9 +67,11 @@ static func ghost_shader() -> Shader:
 			"render_mode world_vertex_coords, cull_back, blend_mix, depth_draw_always;") \
 		.replace("stencil_mode write, compare_always, 1;", "") \
 		.replace("#include \"res://shaders/common.gdshaderinc\"\n", "#include \"res://shaders/common.gdshaderinc\"\n"
-			+ "uniform vec4 ghost_tint;\nuniform float ghost_alpha = 1.0;\n") \
-		.replace("\tCOMPAT_COLORS\n}", "\tALBEDO = mix(ALBEDO, ALBEDO * 0.4 + ghost_tint.rgb * 0.6, ghost_tint.a);\n"
-			+ "\tEMISSION = mix(EMISSION, ghost_tint.rgb * 0.15, ghost_tint.a);\n\tALPHA = ghost_alpha;\n\tCOMPAT_COLORS\n}")
+			+ "uniform vec4 ghost_tint;\nuniform vec4 ghost_short_tint;\nuniform int ghost_short[2];\n"
+			+ "uniform float ghost_alpha = 1.0;\nuniform float ghost_glow = 0.15;\n") \
+		.replace("\tCOMPAT_COLORS\n}", "\tvec4 gt = ((ghost_short[code / 32] >> (code % 32)) & 1) != 0 ? ghost_short_tint : ghost_tint;\n"
+			+ "\tALBEDO = mix(ALBEDO, ALBEDO * 0.4 + gt.rgb * 0.6, gt.a);\n"
+			+ "\tEMISSION = mix(EMISSION, gt.rgb * ghost_glow, gt.a);\n\tALPHA = ghost_alpha;\n\tCOMPAT_COLORS\n}")
 	return s
 
 
@@ -71,18 +81,30 @@ func _materials() -> bool:
 		return true
 	if game.world_mat == null:
 		return false
+	_depth = ghost_material(game.world_mat)
+	_colour = _depth.next_pass
+	return true
+
+
+## The blueprint's see-through look of what world material `world_mat` draws (its blocks
+## here, its ghost things in PlanThings): only into depth first, then its colour over that in
+## the next pass, tinted cold blue, `alpha` of it drawn and lit `glow` by its tint.
+static func ghost_material(world_mat: ShaderMaterial, alpha := ALPHA, glow := GLOW) -> ShaderMaterial:
 	var shader := ghost_shader()
-	_depth = ShaderMaterial.new()
-	_colour = ShaderMaterial.new()
-	for m: ShaderMaterial in [_depth, _colour]:
+	var depth := ShaderMaterial.new()
+	var colour := ShaderMaterial.new()
+	for m: ShaderMaterial in [depth, colour]:
 		m.shader = shader
 		for p in ["corner_shapes", "material_bits"]:
-			m.set_shader_parameter(p, game.world_mat.get_shader_parameter(p))
+			m.set_shader_parameter(p, world_mat.get_shader_parameter(p))
 		m.set_shader_parameter("ghost_tint", Color(TINT.r, TINT.g, TINT.b, TINT_SHARE))
-	_depth.set_shader_parameter("ghost_alpha", 0.0)
-	_colour.set_shader_parameter("ghost_alpha", ALPHA)
-	_depth.next_pass = _colour
-	return true
+		m.set_shader_parameter("ghost_short_tint", Color(SHORT_TINT.r, SHORT_TINT.g, SHORT_TINT.b, TINT_SHARE))
+		m.set_shader_parameter("ghost_short", PackedInt32Array([0, 0]))
+	depth.set_shader_parameter("ghost_alpha", 0.0)
+	colour.set_shader_parameter("ghost_alpha", alpha)
+	colour.set_shader_parameter("ghost_glow", glow)
+	depth.next_pass = colour
+	return depth
 
 
 ## The block blueprint cell `c` will be (Mat.AIR for none: ground to dig, a fence, a mark).
@@ -133,12 +155,24 @@ func _put(cells: Array) -> void:
 func _process(_delta: float) -> void:
 	if not visible or game.player == null or not _materials():
 		return
+	_show_short()
 	var at := WorldData.chunk_key(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL))
 	for key: Vector2i in _meshes:
 		_meshes[key].visible = absi(key.x - at.x) <= RADIUS and absi(key.y - at.y) <= RADIUS
 	var t0 := Time.get_ticks_usec()
 	while Time.get_ticks_usec() - t0 < BUDGET and _work(at):
 		pass
+
+
+## Tints the ghosts of the materials the bag has too little of (BuildMode.short_blocks).
+func _show_short() -> void:
+	var bits := PackedInt32Array([0, 0])
+	for m: int in (game.build.short_blocks() if game.build != null else []):
+		if m > 0 and m < 64:
+			bits[m / 32] |= 1 << (m % 32)
+	if bits != _short:
+		_short = bits
+		_colour.set_shader_parameter("ghost_short", bits)
 
 
 ## All the chunks round the player meshed now (tools/shot.gd before a picture).

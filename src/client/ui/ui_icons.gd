@@ -1046,6 +1046,27 @@ const ICONS := {
 		"wmmmmw..",
 		"wwwwww..",
 	],
+	# The build mode's undo and redo of the blueprint: a hooked arrow back and forth.
+	"undo": [
+		"..w.....",
+		".ww.....",
+		"wwwwww..",
+		".ww...w.",
+		"..w....w",
+		".......w",
+		"......w.",
+		"....ww..",
+	],
+	"redo": [
+		".....w..",
+		".....ww.",
+		"..wwwwww",
+		".w...ww.",
+		"w....w..",
+		"w.......",
+		".w......",
+		"..ww....",
+	],
 	# Drawing the blueprint (a pencil) and taking it off (an eraser).
 	"build_draw": [
 		"......ww",
@@ -1065,6 +1086,17 @@ const ICONS := {
 		"w..ww...",
 		"w..w....",
 		"wwww....",
+	],
+	# Replacing the material of what is built (BuildMode.replacing): a paint roller.
+	"build_replace": [
+		"wwwwww..",
+		"wbbbbww.",
+		"wwwwww.w",
+		".......w",
+		"...wwww.",
+		"...w....",
+		"..www...",
+		"..www...",
 	],
 	# The voxel editor's tools: a bucket pouring (fill a joined patch) and a dropper
 	# (take a voxel's colour).
@@ -1087,6 +1119,18 @@ const ICONS := {
 		"..w.w...",
 		".w.w....",
 		"w.......",
+	],
+	# The build mode's eyedropper (BuildMode.picking): a dropper, its bulb up right, the
+	# glass below it holding a drop of colour.
+	"build_pick": [
+		"......ww",
+		".....www",
+		"....wwww",
+		"...wwww.",
+		"..wbw...",
+		".wbw....",
+		"wbw.....",
+		"ww......",
 	],
 	# How high the walls are and how thick: arrows up and down, left and right.
 	"build_height": [

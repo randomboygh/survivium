@@ -214,6 +214,8 @@ var workshop: RemoteWorkshop
 var placed: RemotePlaced
 ## The client's copy of the blueprint's ghost cells (the server's is `session.plans`).
 var plans := Plans.new()
+## The blueprint drawn (PlanView): the build mode carries its ghost things (PlanView.things).
+var plan_view: PlanView
 var wildlife: RemoteWildlife
 var hands: HandsScript
 var cursor: CursorScript
@@ -1202,4 +1204,5 @@ func _build_scene() -> void:
 	cursor.world = world
 	world_root.add_child(cursor)
 	world_root.add_child(LandView.new(self))
-	world_root.add_child(PlanView.new(self))
+	plan_view = PlanView.new(self)
+	world_root.add_child(plan_view)

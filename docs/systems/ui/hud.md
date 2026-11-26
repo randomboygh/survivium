@@ -101,9 +101,10 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   the bag's blocks and things in one row, made as a hotbar without hands (the same cells, arrows, finger
   scrolling and width: up to 10 cells, in portrait up to 6; no filters yet; the same for farm mode), above it a
   panel in one row, buttons the size of ordinary ones: the figure in a circle (line → plane → square → cube) |
-  «level the ground»; the kind of block in a circle (block → slope from below → slope from above → steps) |
-  «turn»; the figure's height (1–6, its own for each: floor 1, walls 3, cube 5) | the walls' thickness (1–4,
-  a floor has none); draw/erase (erasing is red) | «clear blueprints» (a second touch within 3 s: the button
+  «level the ground»; the kind of block in a circle (block → slope from below → slope from above → steps; no
+  «turn» button since 2026-11-26: a double tap turns a lone slope's ghost, Y on PC); the figure's height (1–6, its own for each: floor 1, walls 3, cube 5) | the walls' thickness (1–4,
+  a floor has none); undo ↶ | redo ↷ of the blueprint (Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z on PC; dimmed when
+  there is nothing to undo or redo, 2026-11-26); draw/erase (erasing is red) | «clear blueprints» (a second touch within 3 s: the button
   turns red, a notification); exit (B) separately. On a narrow screen the kind of block goes in a separate row
   above the panel. Hands are not shown, the chosen cell is the hand at work; the bag's label is hidden (the
   palette counts blocks); the action button «Build» («Level» when levelling; always 88×88, words wrap inside)

@@ -57,8 +57,10 @@ const HOP := 0.35
 const RENEW_MS := 300
 ## Cells a thing dragged in the build mode is held up over its ground (BuildMode).
 const LIFT := 0.3
-## A thing landing this near the player (world units) is felt (Vibration "thud").
-const THUD_NEAR := 4.0
+## A thing landing this near the player (world units) is felt (Vibration "thud"): a little
+## past Tools.PLACE_REACH (10 cells, 5 units), so whatever the player sets down is felt as it
+## lands (the user's pick of 2026-11-26: a buzz as a thing is taken up and as it is set).
+const THUD_NEAR := 5.5
 
 var game
 ## Meshes of the things on the ground by model, their vertices one triangle after
@@ -595,8 +597,10 @@ func _rest(e: Dictionary) -> Vector3:
 
 
 ## Holds the model of thing `e` up over the north-west cell `corner`, turned `turn` (its own
-## when -1), while the build mode drags it (BuildMode); false when it has no model of its own.
-func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
+## when -1), moved `out` cells more (a door before the wall it would be cut into,
+## BuildMode.out_of_wall), while the build mode drags it (BuildMode); false when it has no
+## model of its own.
+func hold_at(e: Dictionary, corner: Vector3i, turn := -1, out := Vector3.ZERO) -> bool:
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node) or not node is MeshInstance3D:
 		return false
@@ -606,7 +610,7 @@ func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
 		_turn_light(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
 	else:
 		_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
-	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	node.position = (Vector3(corner) + out) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
 	if light:
 		node.position += Vector3(0.5, 0.0, 0.5) * CELL
 	node.extra_cull_margin = CULL_MARGIN
@@ -629,14 +633,32 @@ func _turn_model(node: MeshInstance3D, e: Dictionary, turn: int) -> void:
 	node.set_meta("turn", turn)
 
 
+## Whether thing `id` has a model of its own to show held up or as a ghost of the blueprint
+## (hold_new, model_mesh): not a campfire, not a light.
+static func ghostly(id: String) -> bool:
+	var probe := {"item": id, "cell": Vector3i.ZERO, "turn": 0, "lit": false}
+	return Items.get_item(id).get("prop", "none") != "none" and not Placed.is_light_item(id) \
+		and not (Placed.is_fire(probe) and not Placed.is_hearth(probe))
+
+
+## The mesh of the model of thing `id` turned `turn`, shut (a ghost thing of the blueprint,
+## PlanThings); null for one with no model of its own (ghostly).
+func model_mesh(id: String, turn: int) -> Mesh:
+	if not ghostly(id):
+		return null
+	return _model(Items.get_item(id).prop, posmod(turn, 4)).build_mesh()
+
+
 ## A thing new from the bag held up in the air by the build mode over the north-west cell
-## `corner`, turned `turn`, before it is set down (BuildMode); false for one with no model
-## of its own (a campfire, a light). One at a time: drop_new takes it away.
-func hold_new(id: String, corner: Vector3i, turn: int) -> bool:
+## `corner`, turned `turn`, before it is set down (BuildMode), moved `out` cells more (a door
+## or a window held into a wall, drawn before its face: BuildMode.out_of_wall), in material
+## `look` when given (the ghost of the blueprint's things, PlanThings.material: it goes into
+## the blueprint); false for one with no model of its own (a campfire, a light). One at a
+## time: drop_new takes it away.
+func hold_new(id: String, corner: Vector3i, turn: int, out := Vector3.ZERO, look: Material = null) -> bool:
 	var item := Items.get_item(id)
 	var kind: String = item.get("prop", "none")
-	var probe := {"item": id, "cell": corner, "turn": turn, "lit": false}
-	if kind == "none" or Placed.is_light_item(id) or Placed.is_fire(probe) and not Placed.is_hearth(probe):
+	if not ghostly(id):
 		drop_new()
 		return false
 	var key := "%s/%d" % [id, turn]
@@ -648,9 +670,12 @@ func hold_new(id: String, corner: Vector3i, turn: int) -> bool:
 		game.world_root.add_child(_held_new)
 	if _held_new.get_meta("key", "") != key:
 		_held_new.mesh = _model(kind, turn).build_mesh()
-		_held_new.material_override = game.low_mat if _held_new.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 		_held_new.set_meta("key", key)
-	_held_new.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	if look != null:
+		_held_new.material_override = look
+	else:
+		_held_new.material_override = game.low_mat if _held_new.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
+	_held_new.position = (Vector3(corner) + out) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
 	return true
 
 

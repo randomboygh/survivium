@@ -158,6 +158,14 @@ func unhandled_input(event: InputEvent) -> void:
 		var key: int = event.physical_keycode
 		if key >= KEY_1 and key < KEY_1 + Inventory.HOTBAR:
 			select_slot(key - KEY_1)
+		# Undo and redo of the blueprint in the build mode (Ctrl+Z; Ctrl+Y, Ctrl+Shift+Z); the
+		# plain keys keep their own work.
+		if game.build.on and event.is_command_or_control_pressed() and key in [KEY_Z, KEY_Y]:
+			if key == KEY_Z and not event.shift_pressed:
+				game.build.undo()
+			else:
+				game.build.redo()
+			return
 		match key:
 			KEY_Q, KEY_PAGEDOWN:
 				game.chunks.shift_cut(-1)
@@ -182,8 +190,9 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_B:
 				mode().leave()
 			KEY_Y:
-				if mode().on:
-					mode().turn()
+				# Turns the next lone slope or stairs drawn (the farming mode has none).
+				if game.build.on:
+					game.build.turn()
 			KEY_Z:
 				if game.session != null:
 					game.session.clock.next_season()
@@ -216,6 +225,10 @@ func unhandled_input(event: InputEvent) -> void:
 				tap(active if touch else 0, event.position, MOUSE_BUTTON_LEFT)
 			MOUSE_BUTTON_RIGHT:
 				tap(1, event.position, MOUSE_BUTTON_RIGHT)
+			MOUSE_BUTTON_MIDDLE:
+				# The build mode's eyedropper on a PC (BuildMode.pick_at).
+				if game.build.on and not game.hud.covers(event.position):
+					game.build.pick_at(event.position)
 			MOUSE_BUTTON_WHEEL_UP:
 				# From a hand not on the hotbar (-1), up goes to the last slot.
 				var at := _slot_index()
@@ -250,7 +263,7 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		_start_paint(button, pos)
 		return
 	if mode().on:
-		if _stroke.has("prop") or _stroke.has("put"):
+		if _thing_stroke(_stroke):
 			# A second press while a thing is dragged (another finger, or a press the
 			# browser or the phone adds to a long one) lets the thing go first: dropped
 			# unreleased, it stayed held up in the air.
@@ -318,7 +331,7 @@ func update(delta: float) -> void:
 	# Under a sign's window the world is not worked: a stroke ends, the action button
 	# held when it opened does nothing.
 	var covered: bool = game.hud != null and game.hud.sign_window != null
-	if _stroke.has("prop") or _stroke.has("put"):
+	if _thing_stroke(_stroke):
 		# A thing of the build mode dragged or held up (BuildMode.drag), or let go.
 		# On a touch screen it is let go with the last finger too (a lift the mouse's
 		# emulation missed).
@@ -373,10 +386,16 @@ func update(delta: float) -> void:
 		game.cursor.show_cells([], true)
 
 
-## The build mode's stroke on a thing now (a thing set down, "prop", or one new from the
-## bag, "put"; held, BuildMode.drag, or let go and not yet released), {} for none.
+## The build mode's stroke on a thing now (a thing set down, "prop", one new from the bag,
+## "put", or a ghost thing of the blueprint, "ghost_thing"; held, BuildMode.drag, or let go
+## and not yet released), {} for none.
 func dragging() -> Dictionary:
-	return _stroke if _stroke.has("prop") or _stroke.has("put") else {}
+	return _stroke if _thing_stroke(_stroke) else {}
+
+
+## Whether stroke `s` is the build mode's on a thing (see dragging).
+static func _thing_stroke(s: Dictionary) -> bool:
+	return s.has("prop") or s.has("put") or s.has("ghost_thing")
 
 
 
@@ -847,6 +866,55 @@ func ghost_at(pos: Vector2) -> Variant:
 	return best
 
 
+## pick with the blueprint's ghost blocks standing as blocks (BuildMode: a thing set down by
+## the blueprint goes onto, against or into them, Placed.ghost_spot): the nearer of what the
+## view meets and the ghost block the ray enters first (not above the cut), with the face it
+## enters by as the normal.
+func pick_planned(pos: Vector2) -> Dictionary:
+	var hit := pick(pos)
+	if game.plans.cells.is_empty():
+		return hit
+	var ray := _ray(pos)
+	var o: Vector3 = ray[0]
+	var d: Vector3 = ray[1]
+	var far := INF if hit.is_empty() else _enter(o, d, hit.cell)
+	var best: Variant = null
+	var top: int = game.chunks.cut_level
+	for c: Vector3i in game.plans.cells:
+		if c.y <= top and game.plans.block_at(c):
+			var t := _enter(o, d, c)
+			if t < far:
+				far = t
+				best = c
+	if best == null:
+		return hit
+	return {"cell": best, "normal": BuildMode.face_in(Vector3(best), o, d)}
+
+
+## The ghost thing of the blueprint (Plans.things) under screen point `pos`: one of its cells
+## the ray enters before (or in) the cell the view meets there, not above the cut; {} for none.
+func ghost_thing_at(pos: Vector2) -> Dictionary:
+	if game.plans.things.is_empty():
+		return {}
+	var ray := _ray(pos)
+	var o: Vector3 = ray[0]
+	var d: Vector3 = ray[1]
+	var hit := pick(pos)
+	var far := INF if hit.is_empty() else _enter(o, d, hit.cell)
+	var best := {}
+	var top: int = game.chunks.cut_level
+	for t: Dictionary in game.plans.things:
+		for c: Vector3i in t.cells:
+			if c.y > top:
+				continue
+			# A ghost door in a wall built fills the very cells the view meets.
+			var at := _enter(o, d, c)
+			if at <= far and at < INF:
+				far = at
+				best = t
+	return best
+
+
 ## How far along ray `o`, `d` (in cells) it enters cell `c`; INF when it misses it.
 static func _enter(o: Vector3, d: Vector3, c: Vector3i) -> float:
 	var t0 := -INF
@@ -1072,7 +1140,7 @@ func _front_preview() -> Array[Vector3i]:
 ## Frames what a tap at `screen_pos` would work on: the cells to dig, cut or fill, red
 ## when nothing can be done there.
 func _show_preview(screen_pos: Vector2, dig: bool) -> void:
-	if _stroke.has("prop"):
+	if _stroke.has("prop") or _stroke.has("ghost_thing"):
 		# A thing dragged frames where it goes itself (BuildMode.drag).
 		return
 	if _stroke.has("plan"):

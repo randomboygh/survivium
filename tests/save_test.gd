@@ -134,12 +134,31 @@ func _held_props(main: Node) -> void:
 	Input.parse_input_event(press)
 	main.controls.set_touch(was_touch)
 	await _hold_to_put(main)
+	_out_of_wall(main)
 	main.build.leave()
 	await _frames(2)
 
 
-## The build mode's hands with a thing (the user's picks of 2026-11-15): a tap on the ground
-## sets one from the bag down at once, a hold hangs it in the air until it is let go there;
+## A door or a window held up into blocks (an opening to cut into a wall) is drawn before
+## them, toward its front, or the blocks would hide it (BuildMode.out_of_wall, 2026-11-26);
+## in the air, and a thing that cuts nothing, where it goes.
+func _out_of_wall(main: Node) -> void:
+	var me := Vector3i((main.player.position / main.CELL).floor())
+	var under := me + Vector3i(0, -3, 0)
+	var b = main.build
+	_check(main.world.is_solid(under.x, under.y, under.z) and main.world.is_solid(under.x, under.y + 1, under.z),
+		"the ground under the player is solid")
+	_check(b.out_of_wall("tools:door", under, 0).is_equal_approx(Vector3(0.0, 0.0, b.WALL_OUT)),
+		"a door turned to the south held into blocks hangs before them to the south")
+	_check(b.out_of_wall("tools:door", under, 1).is_equal_approx(Vector3(-b.WALL_OUT, 0.0, 0.0)),
+		"turned to the west, before them to the west")
+	_check(b.out_of_wall("tools:door", me + Vector3i(0, 4, 0), 0) == Vector3.ZERO, "a door held in the air hangs where it goes")
+	_check(b.out_of_wall("tools:table", under, 0) == Vector3.ZERO, "a thing that cuts nothing hangs where it goes")
+
+
+## The build mode's hands with a thing (the user's picks of 2026-11-15): by blueprint (the
+## setting's default, 2026-11-26) a tap sets a ghost of it and a tap on the ghost takes it off;
+## at once, a tap on the ground sets one from the bag down, a hold hangs it in the air until it is let go there;
 ## a tap on a thing set down takes it back into the bag after the double tap's time, a hold hangs it in the air,
 ## the turn button turns it there, and letting go sets it down turned.
 func _hold_to_put(main: Node) -> void:
@@ -176,8 +195,28 @@ func _hold_to_put(main: Node) -> void:
 			"turn": 0, "kept": false, "spot": null, "shown": null}
 		main.controls._stroke = s
 		return s
-	# A tap: let go at once, set down where tapped.
+	# By blueprint (the setting's default, the user's picks of 2026-11-26, 2А): a tap sets a
+	# ghost of it into the blueprint and the bag keeps it; a tap on the ghost takes it off.
+	var ghosts: int = main.plans.things.size()
 	var s: Dictionary = put.call(0)
+	main.build.release(s)
+	main.controls._stroke = {}
+	await _wait_ms(300)
+	_check(count.call() == before and main.plans.things.size() == ghosts + 1 and not main.props.holding_new(),
+		"by blueprint, a tap sets a ghost of the thing and the bag keeps it")
+	if main.plans.things.size() == ghosts + 1:
+		var g: Dictionary = main.plans.things[ghosts]
+		var tap := {"button": MOUSE_BUTTON_MIDDLE, "dig": false, "pos": off, "held": true, "pending": false,
+			"ghost_thing": g, "from": off, "ms": Time.get_ticks_msec(), "moved": false, "to": null,
+			"turn": int(g.turn), "shown": null, "grab": Vector3.ZERO, "aim": g.cell, "face": -1}
+		main.build.release(tap)
+		await _wait_ms(main.build.DOUBLE_TAP_MS + 300)
+		_check(main.plans.things.size() == ghosts and count.call() == before, "a tap on a ghost thing takes it off the blueprint")
+	# At once (the setting's other step): the thing itself is set down.
+	var by_plan: int = int(main.settings.values.get("build_things", 0))
+	main.settings.values.build_things = 1
+	# A tap: let go at once, set down where tapped.
+	s = put.call(0)
 	main.build.release(s)
 	main.controls._stroke = {}
 	await _wait_ms(300)
@@ -259,9 +298,34 @@ func _hold_to_put(main: Node) -> void:
 		main.build._take(step.cell)
 	await _wait_ms(300)
 	_check(main.controls.held() == "tools:stairs", "a thing taken back has its slot chosen")
+	# The eyedropper: a tap on a thing set down takes its kind into the hand, its turn kept,
+	# and goes off; a block takes the item that builds its material.
+	inv.add("tools:chest", 1)
+	await _wait_ms(200)
+	main.build.kept_turns.erase("tools:chest")
+	main.build.set_picking(true)
+	main.build.start_stroke(MOUSE_BUTTON_LEFT, main.view.screen_of(Placed.center(last)))
+	await _frames(2)
+	_check(main.controls.held() == "tools:chest" and not main.build.picking
+		and main.build.kept_turns.get("tools:chest", -1) == int(last.get("turn", 0)),
+		"the eyedropper takes a thing set down into the hand, turned as it stands")
+	# None of it in the bag: the hand stays, and the eyedropper stays on for the next tap.
+	inv.remove("tools:chest", inv.count("tools:chest"))
+	await _wait_ms(200)
+	main.build.choose("tools:stairs")
+	main.build.set_picking(true)
+	await _frames(3)
+	main.build.pick_at(main.view.screen_of(Placed.center(last)))
+	await _frames(2)
+	_check(main.controls.held() == "tools:stairs" and main.build.picking,
+		"with none in the bag the eyedropper keeps the hand and stays on")
+	main.build.set_picking(false)
+	_check(main.build.block_item(Mat.AIR) == "" and main.build.builds_with(main.build.block_item(Mat.DIRT)),
+		"the eyedropper finds the item that builds a block")
 	main.build.kept_turns["tools:big_chest"] = 2
 	await _frames(3)
 	_check(not main.build.kept_turns.has("tools:big_chest"), "a kept turn is forgotten once the bag holds none of its kind")
+	main.settings.values.build_things = by_plan
 	press = press.duplicate()
 	press.pressed = false
 	Input.parse_input_event(press)

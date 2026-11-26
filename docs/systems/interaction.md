@@ -127,16 +127,58 @@ lies around. The rules are shared (the server checks them), input and hints are 
   whole height with floor and ceiling, not less than `MIN_ROOM` = 3), thickness 1–4 — for a line rows from the
   drawer, for a square inward; all figures except levelling are placed on top of the chosen surface), `sort`
   (which cells of the figure will stand, which are inside blocks or underground — not drawn, which lower ones
-  hang over a void — uneven ground; the client shows the same), `draw` (draws or, with `erase`, erases the
-  ghost in the whole box of the figure, `erase_box`), `clear` (erases the ghost nearby), `build` (one cell: the
+  hang over a void — uneven ground; the client shows the same), `earthwork` (with `level`, the setting
+  «Ground under a figure» = «level it», `build_level` 0, the default; item 11, the user's picks of 2026-11-26: a
+  figure of blocks on uneven ground levels it as «flatten» at its level — under its footprint, a line's columns
+  or the whole rectangle of a plane, a square or a cube, natural ground from its lowest level up to its top
+  (the user's pick 2Б: the ground over the top stays) is a `CUT` ghost, the figure's own cells in it stay its blocks and `build` digs them first when no block takes
+  their place at once (`_buried`, stone), dips under it are filled with soil when solid ground is at most
+  `FLAT_DOWN` levels down (a deeper one is left and the figure hangs there); a flight of slopes or stairs only
+  has its dips filled, a fence takes the ground as it lies; `sort` takes it so the cells in the ground fit and
+  those over soil do not hang), `draw` (draws or, with `erase`, erases the ghost in the whole box of the figure,
+  `erase_box`; with `level` the box reaches `FLAT_DOWN` under the figure but takes only the earth's ghost there, `is_earth`;
+  with `replace_it` — `replace`, idea 6 of 2026-11-26: in the box every block players built of another material,
+  `replaceable` — not natural, not a tree's, no thing in it, becomes a ghost of the block in the hand keeping its
+  form, and ghost blocks of another material there are repainted; `build` swaps such a block in one work, from
+  the bottom, only with the new block in the bag and a tool for the old one, `best_tool` and its wear, the old
+  block into the bag as dug, so no hole is left; soft built ground is taken in place as a floor's), `clear` (erases the ghost nearby), `build` (one cell: the
   lowest, then the nearest in reach, on any level — the view's slice does not stop one building a ceiling from
   inside a house; a block from the bag — first the one in the hand; a floor replaces soft earth and gives it
   to the bag; with no blocks — waits), `to_list` / `from_list` (saved with the world, `"plans"`; JSON keeps a cell as `"(x, y, z)"` and a form as a
   float, `cell_of` reads them back), `take` /
   `take_all` (the client's copy, `Protocol.PLANS`, `PLAN_CELLS`). It is held by the session (`session.plans`),
   the hands' rules ask it through `actions.plans`; `WorldActions` is passed to `draw` / `build` as a
-  parameter, with no reference cycle. Requests: `PLAN` [kind, from, to, height, thickness, erase],
-  `PLAN_CLEAR`, `BUILD` (the action button of build mode, whatever is in the hand).
+  parameter, with no reference cycle. `turn_form` turns the ghost of a lone slope or stairs a quarter: the
+  whole column of ghost cells with forms over and under the cell (`column_of`, `formed_at`), within
+  `PLAN_REACH` and by the right «build». Requests: `PLAN` [kind, from, to, height, thickness, erase, form, level, replace (both may be left out)],
+  `PLAN_TURN` [cell], `PLAN_CLEAR`, `BUILD` (the action button of build mode, whatever is in the hand).
+  Ghost things (the user's picks of 2026-11-26, 1А, 2А): doors, windows, hatches and furniture drawn into the
+  blueprint, `things` — records `{item, cell (north-west), turn, cells (each cell it fills,
+  `Placed.volume_of`), wall (an opening's: the ghost blocks it took the place of, offset → block)}`, at most
+  `MAX_THINGS`, indexed by cell (`thing_at`), told by the signal `thing_changed`; `put_thing` sets one of a
+  thing in the bag where it would be set down (`Placed.ghost_spot`: as `put_spot`, but ghost blocks hold and
+  back it as built ones do, other ghost things' cells are taken, an opening may stand in ghost blocks and takes
+  them off into its `wall`); `move_thing` moves it the same way (`Placed.ghost_move_spot`; an opening along its
+  wall, its own cell and turn + 2 turns it the other way round, `Placed.flip_spot`), `erase_thing` takes it
+  off (its ghost wall back), and erasing by a box and `clear` take ghost things too; `build` sets them only
+  when no block nearby can be built (`near_things`: the lowest, then the nearest; `_build_thing`,
+  `Placed.put_ghost` — at its very cell and turn, from the bag at that moment; a door
+  set into a ghost wall remembers the wall's blocks as its `cut`); a thing set down for real takes the ghost
+  things off its cells (`drop_things_in`). Saved in `to_list` as dictionaries (`thing_record`, `_read_thing`;
+  an older loader skips them), told to the copies by `GHOST_THING` / `GHOST_THING_GONE`. Requests
+  `PLAN_THING` [item, aim, view turn, kept, face], `PLAN_THING_MOVE` [cell, to, turn, face], `PLAN_THING_TAKE`
+  [cell].
+  Undo and redo (`plan_history.gd`, the user's picks of 2026-11-26, 1А 2А): each player's request that changes
+  the blueprint (`Requests.RECORDED`: `PLAN` drawing or erasing, `PLAN_TURN`, `PLAN_CLEAR`, `PLAN_THING`,
+  `PLAN_THING_MOVE`, `PLAN_THING_TAKE`) is one step of their own history (`Requests.history`, `begin` / `end`
+  round the request: the cells it touched, from the `changed` signal, with their item and form before and after,
+  and the ghost things that went and came, from `thing_changed`), `PlanHistory.MAX` 50 steps, a new step drops the
+  steps undone; building, farm marks and things set down at once are not in it. `PLAN_UNDO` / `PLAN_REDO` []
+  put a cell back only where it is still as the step left it (a ghost built or changed by someone else meanwhile
+  stays; no ghost goes on a block built meanwhile, `_fits`), only within `PLAN_REACH` and where the player may
+  build; a step with nothing within reach stays, with a line to the player (answer -1). The link tells the
+  client the counts (`PLAN_HISTORY` [undo, redo], `BuildMode.take_history`) to dim the bar's ↶ ↷. Kept while
+  the player is in the world (a reload keeps it), not saved.
   The same holds the farm mode's marking: the values of `cells` that are `is_mark` (`TILL`, `WATER`, `REAP`
   or the id of what is sown and planted) lie on the top ground cell (`surface` looks for it in the column ±
   `FARM_UP` / `FARM_DOWN` from the level of the touch); `farm_columns` — a line along the main direction or a
@@ -182,22 +224,56 @@ lies around. The rules are shared (the server checks them), input and hints are 
   «All» / «Materials» / «Interior» are in the code but not shown yet), the shape, the kind of block (`form`:
   block, slope from below, slope from above, steps, then the three as a band, `band`, `form_index`,
   `FORM_COUNT`; only for a line, a plane and a square, `forms_drawn` — the button is off for a room; a flight rises along the stroke, a stroke of one column away from the player,
-  `turns` — «turn», the key Y; `form_of` goes into `PLAN`), the height (its own for each figure, `heights`: floor 1, line and square 3,
+  the key Y turns the next ones a quarter (`turn`, `turns`: not kept, back to 0 on entering), a double tap on
+  the ghost of one drawn turns it (`_second_ghost_tap` within `GHOST_TAP_MS`, `PLAN_TURN`, `Plans.turn_form`;
+  no «turn» button since 2026-11-26); `form_of` goes into `PLAN`), the height (its own for each figure, `heights`: floor 1, line and square 3,
   cube 5 — floor, 3 rows of walls, ceiling), the thickness, draw/erase, clear; on the action button «Build» or,
   when levelling, «Level»;
+  the eyedropper (`picking`, `pick_at`, the user's picks of 2026-11-26: a panel button beside the eraser, on a
+  PC the middle mouse button): the next tap takes what is there into the hand as if chosen on the palette — a
+  thing set down or a ghost thing (its turn kept in `kept_turns`), else the nearest ghost block, else the block
+  hit, natural ones too (`block_item`: `Items.placed_by`, else `Items.dug`); once something is taken it goes
+  off, the eraser too; nothing there or none in the bag (`choose`'s nag) → it stays on for the next tap (6Б);
+  replacing the material (`replacing`, idea 6 of 2026-11-26): the third state of the draw/erase button,
+  `next_mode` — draw → erase → replace, a paint roller, no extra button so the panel stays one row on a phone; a
+  stroke begins at the block or ghost under the finger, `_replace_stroke`, takes the box of the figure (a plane
+  for «flatten»), lights the blocks it will mark, `replaced_cells`, and sends `PLAN` with the 9th flag;
   the stroke (`start_stroke`, `show_stroke` — light cells will stand, red ones are inside blocks or over a
   void, when erasing a red box and the ghost in it above blueprints; `end_stroke` — `PLAN`);
-  a thing (everything that is placed: `Items.is_interior`) from the bag is set down where tapped as the finger
-  lifts (a stroke with `put`; `PROP_PUT_AT`, `Placed.put_at`: a door or window pressed on the side of a wall
-  with no opening knocks the blocks out, they fall as if dug; blocks below the level of the player's feet are
-  not knocked out, so a door on the floor stands on the floor); held `HOLD_MS` (or moved `DRAG_SHARE` of the
-  screen) it hangs in the air (`Props.hold_new`) over the place under the finger (`Placed.put_spot`, as the
-  server will look for it), its cells shown red only where it does not fit (2026-11-23: no body over a thing that fits), and is set down where it is let go; a touch of a placed thing
+  a thing (everything that is placed: `Items.is_interior`) from the bag shows at once as the finger or the
+  mouse presses over a surface (2026-11-26), hanging in the air (`Props.hold_new`, `_drag_new`) over the place
+  aimed at (`Placed.put_spot`, as the server will look for it, turned best: a door or window in the plane of
+  its wall by the face pressed, `face_of`, furniture with its back to a wall), its cells shown red only where
+  it does not fit (2026-11-23: no body over a thing that fits; a door or a window held into a wall hangs
+  `WALL_OUT` before its face, toward its front, `out_of_wall`: in the wall the blocks it will cut would hide
+  it); it follows the finger and is set down where it
+  is let go (a stroke with `put`; `PROP_PUT_AT` with the face, `Placed.put_at`: a door or window pressed on the
+  side of a wall with no opening knocks the blocks out, they fall as if dug; blocks below the level of the
+  player's feet are not knocked out, so a door on the floor stands on the floor); with the setting «Things from
+  the bag» on «by blueprint» (`build_things` 0, the default; the user's pick of 2026-11-26, 2А) a door, a window,
+  a hatch or furniture (`Props.ghostly`, `_by_blueprint`) is not set down but drawn into the blueprint as a ghost
+  thing (`PLAN_THING`, `Plans.put_thing`): held, it hangs in the ghost look (`PlanThings.material`) over the
+  place found as the server will find it (`Placed.ghost_spot`; the finger aims at ghost blocks as at built
+  ones, `Controls.pick_planned`), «at once» sets it down as before; a ghost thing under the finger
+  (`Controls.ghost_thing_at`) tapped is taken off the blueprint after `DOUBLE_TAP_MS` (`PLAN_THING_TAKE`),
+  tapped twice is turned (`turn_ghost`: a quarter, a door or a window the other way round), held is carried as
+  a placed thing is (`_drag_ghost`, `PlanThings.hold`, `Placed.ghost_move_spot`) and let go moves there
+  (`_release_ghost`, `PLAN_THING_MOVE`); on a touch screen the place
+  aimed at is `FINGER_LIFT` over the finger (`_lifted`, `HudLayout.touch_px`: about 0.7 cm; no line is drawn
+  to it, the user's pick of 2026-11-26), and once held `HOLD_MS` (or moved `_slop`, a
+  `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing
   takes it back after `DOUBLE_TAP_MS` (`_tap_wait`; a second tap within that time turns it a quarter where it stands; only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
   furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
-  — the model is held up `Props.LIFT` over the free place nearest under the finger, `Placed.move_spot` as the
+  — the model is held up `Props.LIFT` over the free place nearest the place aimed at, on a touch screen
+  `FINGER_LIFT` over the finger with the «lift» buzz as for a new thing, `Placed.move_spot` as the
   server looks for it, its cells red where it does not fit; `release` — `PROP_MOVE`, `Placed.move`, or the model
-  drops back, `Props.settle`); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
+  drops back, `Props.settle`); a door, a window or a hatch held so (`Placed.is_opening`, movable since
+  2026-11-26) follows the wall under the finger as a new one does (`_drag_opening`: `_aimed`, `_aim`, `face_of`,
+  `Placed.opening_spot`, held `out_of_wall` before the wall by `Props.hold_at`'s `out`), and let go it moves
+  there by `PROP_MOVE` [cell, the wall's cell, turn, face]: the server cuts the new cells and walls the old ones
+  up with the blocks it had cut (`Placed.move_opening`, [crafting.md](crafting.md)); tapped it goes back into
+  the bag and leaves ghost blocks in its hole, and a double tap turns it the other way round in its wall
+  (`turn_thing`: turn + 2, its kind's turn not kept); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
   (`kept_turns`): the next ones are set down turned so (`PROP_PUT_AT` with `true`, `Placed.put_spot` `kept`)
   until the bag holds none; a thing one cell big tapped with one of its kind in the hand sets the next down
   beside it (`_beside_kind`, `_beside`: the cell under the finger, else past the face the ray goes in by,
@@ -222,7 +298,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   mode), its own row of buttons (`_make_panel`, `_show_panel`): work | figure, draw/erase | clear, «Work» (on PC
   only), exit.
 - `src/client/ui/build_bar.gd` — the mode's panel in place of the hotbar, in one row: buttons switched in a
-  circle (the figure — `next_kind`, next to it «level»; the kind of block — `next_form` and «turn»; the
+  circle (the figure — `next_kind`, next to it «level»; the kind of block — `next_form`, its hint telling that
+  a double tap turns a lone slope's ghost, no «turn» button since 2026-11-26; the
   figure's height and the walls' thickness — a plane has no thickness; draw/erase paired with «clear» — a
   second touch within 3 s), on PC the mode's action button (`_go`: an icon with no label, «Build» / «Work» in
   the hint, at work — paused and lit; calls `toggle_auto`, like F and the big action button on a touch
@@ -230,6 +307,13 @@ lies around. The rules are shared (the server checks them), input and hints are 
   same frame, 40 px cells, arrows and finger scrolling (`_input`), the width of the hotbar (up to 10 cells,
   in portrait up to 6: its 4 + 2 hands); the clock under its right edge (`right_edge`). There are no filters
   yet: on entering the mode `filter` = «all».
+  What the blueprint needs (2026-11-26, the building UX's PR 5): `BuildMode.need` counts the ghost cells (one
+  block of their item each, a slope too, digging none) and ghost things (one each) within `Plans.PLAN_REACH`
+  of the player (`count_need`, again when the blueprint changes or the player walks `NEED_STEP` cells, at most
+  every `CHECK_TIME`); the palette puts those items first, the most needed first, also the ones the bag has none
+  of (dimmed, ×0; a tap says they are not in the bag), with the need in the cell's top left (`HotbarSlot.tag`,
+  `tag_color`: cold blue, red when `short_of`: fewer in the bag; blocks are never short when building is free)
+  and the need and the bag's count in the tip.
 - `src/client/input/cursor.gd` — the frame around the cells over which work will happen; `show_boxes` — whole
   cells as see-through bodies over everything (light: white, red), merged with no faces between their cells and a
   light rim one pixel wide along their edges (`PlanGhost.bodies`, `plan_through.gdshader`), above the blueprint's
@@ -239,7 +323,12 @@ lies around. The rules are shared (the server checks them), input and hints are 
   `ChunkMesher` meshing it a chunk at a time, `COLUMNS` columns a frame, the chunks round the player drawn by a copy
   of `world.gdshader` made see-through and tinted cold blue, first only into depth so only the nearest faces show);
   the ground to dig out a red body seen through the ground (its green taken out by `plan_cut_mul.gdshader`, then
-  `plan_through.gdshader`) and a fence a plain blue body (`plan_ghost.gd`, `plan_ghost.gdshader`); the farm
+  `plan_through.gdshader`) and a fence a plain blue body (`plan_ghost.gd`, `plan_ghost.gdshader`); its ghost things
+  as their models in the blocks' look (`plan_things.gd`, `game.plan_view.things`: `Props.model_mesh`,
+  `PlanBlocks.ghost_material`; a door or a window to be cut into a built wall hangs before its face,
+  `BuildMode.out_of_wall`; `hold` / `settle` while the build mode carries one); the ghosts of what the bag is short
+  of for the blueprint near (`BuildMode.short_blocks`, `short_of`) tinted `PlanBlocks.SHORT_TINT`, a soft red milder
+  than the red of digging (the shader's `ghost_short` bits by material; things get a second material); the farm
   marking — a square on the cell's top face in the colour of the work and a sign inside (furrows, a sprout, a drop,
   a cross). The blueprint is seen only in build mode, the marking only in farm mode.
 
@@ -291,7 +380,8 @@ shore and into the bag, oars, saving, ice, death),
 `tests/unit/farming_test.gd` (a bed, sowing, watering, rain, growth, winter, harvest, saving),
 `tests/unit/actions_test.gd` (`felling`, `front_choice`, `snow_gathered`, `world_actions`, `stairs_placed`, `placed`,
 `start_camp`, `lights`, `drinking`, `furniture`, `openings`),
-`tests/unit/plans_test.gd` (the blueprint's shapes, building by cells from the bag, erasing, saving),
+`tests/unit/plans_test.gd` (the blueprint's shapes, building by cells from the bag, erasing, saving, ghost
+things: set, moved, turned, taken off, saved, built after the blocks, `_test_ghost_things`),
 `tests/unit/content_test.gd` (`tools`), `tests/progress_test.gd` (the whole way of the game from bare hands to
 all recipes through the same calls). After an edit of tools, materials, stations, recipes or hands —
 `progress_test` is a must.

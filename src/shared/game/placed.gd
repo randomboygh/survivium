@@ -27,6 +27,12 @@ extends RefCounted
 ## lies in a floor, solid shut, its lid swung up open. A ladder (`ladder`) is not solid:
 ## its cells are WorldData.ladders, where a body climbs (Body).
 ##
+## A door, a window or a hatch (is_opening) set into the blocks of a building cuts its
+## opening out of them (put_at) and remembers what it cut (`cut`, cut_of). In the build
+## mode it is moved along the wall (move: its new cells cut, its old ones filled again
+## with the blocks it took out, the user's pick, 2026-11-26) or taken back into the bag,
+## which leaves ghost blocks of the blueprint in its hole (take_up).
+##
 ## A sign (an item with `sign_lines`, decision 183) holds text (`text`, lines joined by
 ## "\n") whoever may build there writes (write) and those near read over it (SignLabels);
 ## one hung on a wall (`wall`, ON_WALL) rests by a solid cell beside it, its back to that
@@ -107,6 +113,9 @@ const FENCE_TOP := 2.0
 ## The steps to the sides a fence joins, by the bit of `join` (1 << i): north, east,
 ## south, west, as Placed.turn_voxels turns the north rail of its model.
 const SIDES: Array[Vector3i] = [Vector3i(0, 0, -1), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(-1, 0, 0)]
+## The cells round an opening whose blocks tell what its wall is made of (cut_of): its
+## sides and the one over it, not the floor under it.
+const AROUND: Array[Vector3i] = [Vector3i(0, 0, -1), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(-1, 0, 0), Vector3i(0, 1, 0)]
 ## How a thing set down rests (see _fits): on solid ground; anywhere, over air too, as
 ## blocks are laid (stairs); on the ground or on a ladder under it (a ladder); in a floor,
 ## a solid cell beside it (a hatch); against a wall, a solid cell beside it at its level
@@ -123,6 +132,9 @@ const GRAVE_REACH := 3
 ## The longest name a cross keeps, and the most counts of a life (Character.grave_of).
 const GRAVE_NAME := 32
 const GRAVE_COUNTS := 16
+## How far from its north-west cell (cells, each way) the blocks an opening remembers it
+## cut may lie (cut_from_list): the biggest door or window is three cells across.
+const CUT_REACH := 4
 
 ## Thing `e` (see things) was placed, as the save had it or anew.
 signal added(e: Dictionary)
@@ -164,7 +176,8 @@ var lights: Array = []
 ## for a fire put out, and for a fire "fuel": the seconds it has left to burn, "wet": the
 ## seconds it has stood in the rain}, for a rain catcher "water": what it holds, and "by": the number of the player who put it
 ## from their bag (Player.id, 0 in a single game; none for the start's camp), "text": what a
-## sign says (see write); a fire is a
+## sign says (see write), for an opening (is_opening) "cut": the blocks it took out (offset
+## from "cell" -> material id, see cut_of); a fire is a
 ## place its maker and their team come back to after death (Character.find_respawns).
 ## Saved with the world (to_list).
 var things: Array = []
@@ -190,6 +203,19 @@ var opened_boxes := {}
 var _fences := {}
 ## While a wicket or a gate is being set down (put_at): the fences in its way may go.
 var _swap_fences := false
+## The blueprint (Plans), set by the session: an opening taken out of a wall, or moved
+## off with too few blocks to fill its place, leaves ghost blocks there (take_up, move);
+## null on a client's copy.
+var plans
+## The opening being moved while its new place is looked for (opening_spot): standing
+## open, it is no doorway in its own way (_in_open_door).
+var _moving := {}
+## The blueprint (Plans) a ghost thing's place is looked for in (ghost_spot,
+## ghost_move_spot): the world as it will stand built, its ghost blocks solid (to stand on,
+## to have a back or a doorway against) and taken (but an opening takes their place), its
+## ghost things' cells taken (but `_ghost_self`'s, the one moved); null for a real thing.
+var _ghosts = null
+var _ghost_self := {}
 ## The cells a side of the square a thing of a prop kind takes (see read_footprints):
 ## kind -> n; 2 for a kind not read.
 static var sizes := {}
@@ -609,8 +635,9 @@ func stand_by(e: Dictionary) -> Vector3:
 ## Places thing `item` (an item with a `prop`) with its north-west cell at `cell`;
 ## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
 ## puts a fire there cold; `fuel` is the seconds a fire has left (below 0: a new one's
-## `fuel_start`); `grave` who died there for a cross (see put_grave).
-func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false, text := "", grave := {}, wreath := "") -> Dictionary:
+## `fuel_start`); `grave` who died there for a cross (see put_grave); `cut` the blocks an
+## opening took out of a wall (see cut_of; null: not known, an old save's).
+func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false, text := "", grave := {}, wreath := "", cut: Variant = {}) -> Dictionary:
 	var rec := Items.get_item(item)
 	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire, "turn": posmod(turn, 4)}
 	if rec.get("sign_lines", 0) > 0:
@@ -621,6 +648,10 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 		e.open = open
 		if wreath != "" and Items.has(wreath) and Items.get_item(wreath).get("wreath", false):
 			e.wreath = Items.get_item(wreath).id
+	if is_opening(item) and cut is Dictionary:
+		# What it cut out of a wall (put_at, _move_opening): none where it went into a gap;
+		# null for one of an old save, which takes the wall's blocks round it (cut_of).
+		e.cut = cut.duplicate()
 	if by is int:
 		e.by = by
 	if rec.get("rain_water", 0.0) > 0.0:
@@ -671,10 +702,12 @@ func from_list(list: Array) -> void:
 			if is_light_item(id):
 				put_light(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), float(d.get("burnt", 0.0)), posmod(int(d.get("turn", 0)), 4))
 				continue
+			# An opening of a save from before it remembered its blocks has no `cut` (cut_of).
 			var e := put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null,
 				int(d.get("turn", 0)), bool(d.get("open", false)), str(d.get("text", "")),
-				d.get("grave") if d.get("grave") is Dictionary else {}, str(d.get("wreath", "")))
+				d.get("grave") if d.get("grave") is Dictionary else {}, str(d.get("wreath", "")),
+				cut_from_list(d.cut) if d.get("cut") is Array else null)
 			if e.has("water") and (d.get("water") is float or d.get("water") is int):
 				e.water = clampf(float(d.water), 0.0, Items.get_item(id).rain_water)
 			if e.has("melt") and (d.get("melt") is float or d.get("melt") is int):
@@ -694,7 +727,8 @@ func to_list() -> Array:
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
 ## seconds a fire has left, "water" a rain catcher holds, "melt" how far a thing of snow has melted (0..1), "by" who put it from their bag, "turn" when it is turned,
-## "open" for a door open, "wreath" the wreath hung on a door, "text" for a sign written, "grave" for a cross}.
+## "open" for a door open, "wreath" the wreath hung on a door, "text" for a sign written, "grave" for a cross,
+## "cut" for an opening: the blocks it took out, see cut_from_list}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
@@ -725,7 +759,32 @@ static func record(e: Dictionary) -> Dictionary:
 		d.text = e.text
 	if e.has("grave"):
 		d.grave = e.grave.duplicate(true)
+	if e.has("cut"):
+		var cut: Array = []
+		for o: Vector3i in e.cut:
+			cut.append([o.x, o.y, o.z, e.cut[o]])
+		d.cut = cut
 	return d
+
+
+## The blocks an opening took out (`cut`, see record: [[x, y, z, material id], …]) as a
+## save or a copy keeps them: offset -> material id; those of materials no longer known,
+## or out of its cells' reach, left out.
+static func cut_from_list(list: Array) -> Dictionary:
+	var out := {}
+	for c in list:
+		if not (c is Array and c.size() == 4 and c[3] is String and Mat.index(c[3]) >= 0):
+			continue
+		var o := Vector3i.ZERO
+		var ok := true
+		for k in 3:
+			if (c[k] is int or c[k] is float and is_finite(c[k])) and absf(c[k]) <= CUT_REACH:
+				o[k] = int(c[k])
+			else:
+				ok = false
+		if ok:
+			out[o] = c[3]
+	return out
 
 
 ## Puts the camp of the start (Starts.START: the campfire, the chest when its bundle is
@@ -1142,20 +1201,33 @@ func _shape_of(item: String, turn: int) -> Dictionary:
 ## Where `who` setting thing `id` down at cell `aim` puts it (put_at): [its north-west
 ## corner, null where it has no room; its quarter turn]. `view` is the view's turn, taken
 ## by a thing that faces the camera (faces_view), or by any thing when `kept` (the turn the
-## player gave the last one of its kind, kept in the build mode). The build mode shows it
-## while a thing new from the bag is held up in the air.
-func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := false) -> Array:
+## player gave the last one of its kind, kept in the build mode). The best turn is taken by
+## itself where there is one (the user's pick, 2026-11-26, 4А): a door, a window, a wicket or
+## a gate in the plane of the wall or the fence it goes into or stands in (plane_turn; `face`,
+## the side of the face tapped, SIDES index, -1 none, settles a corner), and a thing that
+## faces the view or a ladder with its back to a wall when one is at hand (_backed); in the
+## open as before. The build mode shows it while a thing new from the bag is held up in the air.
+func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := false, face := -1) -> Array:
 	var item := Items.get_item(id)
 	var p: Vector3 = who.position / CELL
 	var turn := view if view >= 0 and (kept or faces_view(item.id)) else turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
 	var rest := rest_of(item.id)
+	var stacked := false
 	if rest == ON_LADDER:
 		# A ladder goes on with the one under it, turned as it is.
 		for dy in [1, 2]:
 			if world.ladders.has(aim - Vector3i(0, dy, 0)) and not world.ladders.has(aim - Vector3i(0, dy - 1, 0)):
 				turn = world.ladders[aim - Vector3i(0, dy, 0)]
-	var shape := _shape_of(item.id, turn)
+				stacked = true
 	var cuts: bool = item.get("door", false) or item.get("window", false)
+	var hatch: bool = item.get("hatch", false)
+	if cuts and not hatch:
+		turn = plane_turn(aim, turn, face, p)
+	elif not stacked and (rest == ON_LADDER or faces_view(item.id)):
+		var backed := _backed(who, item.id, aim, top, turn, rest)
+		if not backed.is_empty():
+			return backed
+	var shape := _shape_of(item.id, turn)
 	# An opening is cut from the level of their feet up: never into the floor they stand on;
 	# a hatch's into the floor or the ceiling tapped.
 	var cut_from: int = floori(p.y + 0.25) if cuts else NO_CUT
@@ -1167,12 +1239,82 @@ func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := fals
 	return [spot, turn]
 
 
-## The build mode (Протокол PROP_PUT_AT): `who` sets thing `id` from the bag down at cell
-## `aim` (the cell tapped, within the reach of placing), its front to them: on the free
+## The turn of a door, a window, a wicket or a gate set down at cell `aim` (the wall's cell
+## tapped, or the cell it stands in) by one at `p` (cells): in the plane of the wall (or
+## the fence) there, its front to them. The wall runs the way that has more solid cells or
+## fences beside `aim` (a doorway left in a wall, a wall's end the opening goes on from);
+## where both ways have as many (a corner, a pillar, the open), across the face tapped
+## (`face`, the SIDES index it looks toward; -1 for none), else `turn` (as they face it).
+func plane_turn(aim: Vector3i, turn: int, face: int, p: Vector3) -> int:
+	var along_x := 0
+	var along_z := 0
+	for i in SIDES.size():
+		var c: Vector3i = aim + SIDES[i]
+		if _solid(c) or _fences.has(c):
+			if i % 2 == 1:
+				along_x += 1
+			else:
+				along_z += 1
+	var flat_x: bool
+	if along_x != along_z:
+		flat_x = along_x > along_z
+	elif face >= 0 and face < SIDES.size():
+		# A face looking north or south is a wall running along x.
+		flat_x = face % 2 == 0
+	else:
+		return turn
+	# Turn 0 stands along the north edge of its cell, its front south (front_of).
+	if flat_x:
+		return 0 if p.z >= aim.z + 0.5 else 2
+	return 1 if p.x < aim.x + 0.5 else 3
+
+
+## [north-west cell, turn] of thing `id` set down at cell `aim` with its back to a wall
+## (put_spot): of the four turns (from `turn`, which wins a tie) the one whose spot has the
+## most solid cells right behind its back (SIDES[turn], as wall_turn has it), then the
+## fewest open ones, so a long thing lies along the wall; [] when no turn puts it against
+## one (it stands in the open: turned as before).
+func _backed(who, id: String, aim: Vector3i, top: int, turn: int, rest: int) -> Array:
+	var best: Array = []
+	var best_by := Vector2i.ZERO
+	var n := size_of(id)
+	for k in 4:
+		var t := (turn + k) % 4
+		var shape := _shape_of(id, t)
+		var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, rest, shape.high)
+		if spot == null:
+			continue
+		var by := _backing(spot, shape.offsets, t)
+		if by.x > 0 and (best.is_empty() or by.x > best_by.x or by.x == best_by.x and by.y > best_by.y):
+			best = [spot, t]
+			best_by = by
+	return best
+
+
+## How thing cells `offsets` from `spot` turned `turn` stand against a wall: (the solid
+## cells right behind its back edge, minus the open ones there).
+func _backing(spot: Vector3i, offsets: Array, turn: int) -> Vector2i:
+	var back: Vector3i = SIDES[posmod(turn, 4)]
+	var solid := 0
+	var open := 0
+	for o: Vector3i in offsets:
+		if offsets.has(o + back):
+			continue
+		var c: Vector3i = spot + o + back
+		if _solid(c):
+			solid += 1
+		else:
+			open += 1
+	return Vector2i(solid, -open)
+
+
+## The build mode (Protocol.PROP_PUT_AT): `who` sets thing `id` from the bag down at cell
+## `aim` (the cell tapped, within the reach of placing), its front to them or turned as
+## put_spot finds best (`face`: the side of the face tapped, -1 none): on the free
 ## cells nearest it at that level (or one up or down). A door or a window cuts its
 ## opening into a wall: the blocks put there (not natural ground) where it goes are taken
 ## out and fall as if dug. True if it was set down.
-func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false) -> bool:
+func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false, face := -1) -> bool:
 	var item := Items.get_item(id)
 	if item.get("prop", "none") == "none":
 		return false
@@ -1191,7 +1333,7 @@ func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false)
 	if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
 		who.nag("put", "[too_far]")
 		return false
-	var found := put_spot(who, item.id, aim, top, view, kept)
+	var found := put_spot(who, item.id, aim, top, view, kept, face)
 	var spot: Variant = found[0]
 	var turn: int = found[1]
 	var rest := rest_of(item.id)
@@ -1200,48 +1342,108 @@ func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false)
 	if spot == null:
 		who.nag("put", Lang.line("[no_room_here]", [Items.title(id)]))
 		return false
-	if item.get("door", false) and item.get("fence", false):
-		# A wicket or a gate set into a fence: the segments where it goes back into the bag.
-		for o: Vector3i in shape.offsets:
-			var f: Dictionary = _fences.get(spot + o, {})
-			if not f.is_empty() and is_fence(f):
-				if territory != null and not territory.may(who, f.cell, "build"):
-					return false
-				if who.give(f.item, 1) < 1:
-					who.nag("full", "[the_bag_is_full]")
-					return false
-				_remove(f)
+	if not _swap_out_fences(who, item, spot, shape.offsets):
+		return false
 	if rest == ON_WALL:
 		turn = wall_turn(spot, turn)
 	var opening: Array[Vector3i] = []
 	if cuts:
-		for o: Vector3i in shape.offsets:
-			for k in shape.high:
-				var c: Vector3i = spot + o + Vector3i(0, k, 0)
-				if territory != null and not territory.may(who, c, "build"):
-					return false
-				opening.append(c)
+		opening = _opening_at(item.id, spot, turn)
+	for c in opening:
+		if territory != null and not territory.may(who, c, "build"):
+			return false
 	return _set_down(who, item, slot, spot, turn, shape.offsets, opening)
 
 
-## Takes the block put in cell `c` out for an opening: it falls on the ground there as if dug.
-func _cut(c: Vector3i) -> void:
+## A wicket or a gate `item` set down at `spot` filling `offsets` into a fence: the segments
+## where it goes back into the bag of `who`. False when one may not be taken (the land's
+## rights, a full bag); true for anything else.
+func _swap_out_fences(who, item: Dictionary, spot: Vector3i, offsets: Array) -> bool:
+	if not (item.get("door", false) and item.get("fence", false)):
+		return true
+	for o: Vector3i in offsets:
+		var f: Dictionary = _fences.get(spot + o, {})
+		if not f.is_empty() and is_fence(f):
+			if territory != null and not territory.may(who, f.cell, "build"):
+				return false
+			if who.give(f.item, 1) < 1:
+				who.nag("full", "[the_bag_is_full]")
+				return false
+			_remove(f)
+	return true
+
+
+## A ghost thing `t` of the blueprint (Plans.things) set down for real from the bag of `who`
+## where it stands, turned as it is, when it fits there now (as put_at would set it: its
+## cells free but for the blocks an opening takes out, the ground under it ready, `who` not
+## in its way): Plans.build. A door or a window remembers the ghost blocks it took the
+## place of as cut (its `wall`), so moved or taken it walls its place up with them. 1 set
+## down, 0 not now (not in the bag, no tool, no room yet, not allowed), -1 the hands too tired.
+func put_ghost(who, t: Dictionary) -> int:
+	var item := Items.get_item(t.item)
+	var inv = who.inventory
+	var slot := -1
+	for i in inv.slots.size():
+		if slot < 0 and inv.slots[i] != null and inv.slots[i][0] == item.get("id", ""):
+			slot = i
+	if slot < 0 or item.get("prop", "none") == "none":
+		return 0
+	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
+		who.nag("put", Lang.line("[to_place_it_you_need]", [Items.tool_title(item.place_tool)]))
+		return 0
+	var spot: Vector3i = t.cell
+	var turn: int = posmod(int(t.turn), 4)
+	var shape := _shape_of(item.id, turn)
+	var cuts: bool = item.get("door", false) or item.get("window", false)
+	# Its own cells are cut, never the floor under it (a hatch: the floor it goes into).
+	_swap_fences = item.get("door", false) and item.get("fence", false)
+	var fits := _fits(who, spot, world.size_y, shape.offsets, rest_of(item.id), shape.high, spot.y if cuts else NO_CUT)
+	_swap_fences = false
+	if not fits:
+		return 0
+	var opening: Array[Vector3i] = []
+	if cuts:
+		opening = _opening_at(item.id, spot, turn)
+	for c in [spot] + opening:
+		if territory != null and not territory.may(who, c, "build"):
+			return 0
+	if item.claims and territory != null and not territory.can_claim(who, spot):
+		return 0
+	if not _swap_out_fences(who, item, spot, shape.offsets):
+		return 0
+	var had := {}
+	var wall: Dictionary = t.get("wall", {})
+	for o: Vector3i in wall:
+		var m := Mat.index(Items.get_item(wall[o]).get("place", ""))
+		if m > 0:
+			had[o] = Mat.IDS[m]
+	return 1 if _set_down(who, item, slot, spot, turn, shape.offsets, opening, had) else -1
+
+
+## Takes the block put in cell `c` out for an opening: it falls on the ground there as if
+## dug, or with `drop` false it is the caller's (_move_opening). The id of its material,
+## "" where there was none.
+func _cut(c: Vector3i, drop := true) -> String:
 	var m: int = world.get_cell(c.x, c.y, c.z)
 	if m == Mat.AIR or m == Mat.WATER:
-		return
+		return ""
 	var back: String = Mat.RECORDS[m].item
 	world.set_cell(c.x, c.y, c.z, Mat.AIR)
 	world.note_edit(c.x, c.z)
-	if back != "":
+	if drop and back != "":
 		world.heap_drop(back, (Vector3(c) + Vector3(0.5, 0.0, 0.5)) * CELL, 1)
 	cell_changed.emit(c)
+	return Mat.IDS[m]
 
 
 ## Sets thing `item` from bag slot `slot` of `who` down at north-west cell `spot`, turned
 ## `turn`, filling `offsets` from it, the blocks of `opening` taken out first (a door, a
-## window): the land's rights, the hands' stamina, the ground under it levelled. True if
-## it was set down.
-func _set_down(who, item: Dictionary, slot: int, spot: Vector3i, turn: int, offsets: Array, opening: Array[Vector3i] = []) -> bool:
+## window), remembered by it (`cut`; and the material of `had`, offset -> material id, in a
+## cell with none: a ghost door's ghost wall, put_ghost), the blueprint's ghost blocks and
+## ghost things in its cells taken off: the land's rights, the hands' stamina, the ground
+## under it levelled. True if it was set down.
+func _set_down(who, item: Dictionary, slot: int, spot: Vector3i, turn: int, offsets: Array, opening: Array[Vector3i] = [],
+		had := {}) -> bool:
 	var inv = who.inventory
 	if territory != null and not territory.may(who, spot, "build"):
 		return false
@@ -1249,8 +1451,13 @@ func _set_down(who, item: Dictionary, slot: int, spot: Vector3i, turn: int, offs
 		return false
 	if not who.act("place"):
 		return false
+	var cut := {}
 	for c in opening:
-		_cut(c)
+		var m := _cut(c)
+		if m != "":
+			cut[c - spot] = m
+		elif had.has(c - spot):
+			cut[c - spot] = had[c - spot]
 	var taken: Array = inv.take_slot(slot, 1)
 	for o: Vector3i in offsets:
 		if world.is_solid(spot.x + o.x, spot.y - 1, spot.z + o.z):
@@ -1258,7 +1465,14 @@ func _set_down(who, item: Dictionary, slot: int, spot: Vector3i, turn: int, offs
 		_remove_bush(spot + o)
 	var by: Variant = who.get("id")
 	# A sign taken up with words on it says them again (Inventory.text_of).
-	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null, true, -1.0, by if by is int else 0, turn, false, Inventory.text_of(taken))
+	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null, true, -1.0, by if by is int else 0, turn, false,
+		Inventory.text_of(taken), {}, "", cut)
+	if plans != null:
+		# Set into a hole the blueprint was to wall up (one left by an opening taken out),
+		# it takes the ghost blocks' place; where ghost things stood it takes theirs.
+		if is_opening(item.id):
+			plans.drop_ghosts(_opening_at(item.id, spot, turn))
+		plans.drop_things_in(_opening_at(item.id, spot, turn))
 	world.note_edit(spot.x, spot.z)
 	if item.claims and territory != null:
 		territory.add_claim(who.get("id") if who.get("id") != null else 0, e, str(who.get("player_name") if who.get("player_name") != null else ""))
@@ -1266,7 +1480,8 @@ func _set_down(who, item: Dictionary, slot: int, spot: Vector3i, turn: int, offs
 
 
 ## `who` takes placed thing `e` back into the bag, a thing that stores with what it holds
-## (its weight and theirs go to the bag), a sign with its words; not a campfire (see put_out and destroy), and a
+## (its weight and theirs go to the bag), a sign with its words, an opening leaving ghost
+## blocks in its hole; not a campfire (see put_out and destroy), and a
 ## fireplace only put out (is_hearth). True if it was taken.
 func take_up(who, e: Dictionary) -> bool:
 	if territory != null and not territory.may(who, e.cell, "build"):
@@ -1297,17 +1512,22 @@ func take_up(who, e: Dictionary) -> bool:
 		who.say(Lang.line("[1_with_things]", [Items.title(e.item)]))
 	if e.get("wreath", "") != "":
 		who.give(e.wreath, 1)
+	# A door or a window taken out of a wall leaves ghost blocks of the wall's in its hole
+	# (the user's pick, 2026-11-26, 6А): built by the action button, the wall is whole again.
+	var hole := cut_of(e) if is_opening(e.item) else {}
 	_remove(e)
+	_leave_ghosts(hole)
 	return true
 
 
 ## True for a thing moved and turned where it stands in the build mode (move): a station,
-## a chest, furniture, a sign, a fireplace, a light set down; not what is set into a building (a door, a
-## window, a hatch, stairs, a fence, a ladder), a campfire, a cross or a boundary post.
+## a chest, furniture, a sign, a fireplace, a light set down, and a door, a window or a
+## hatch along its wall (is_opening); not stairs, a fence, a wicket, a gate, a ladder, a
+## campfire, a cross or a boundary post.
 static func movable(e: Dictionary) -> bool:
 	if e.is_empty() or is_grave(e) or is_fire(e) and not is_hearth(e):
 		return false
-	if is_light(e):
+	if is_light(e) or is_opening(e.item):
 		return true
 	var item := Items.get_item(e.item)
 	for flag in ["door", "window", "steps", "fence", "ladder", "claims"]:
@@ -1330,9 +1550,9 @@ static func faces_view(id: String) -> bool:
 
 ## The north-west cell where thing `e` would stand moved to `corner` turned `turn` (see
 ## move): that cell, or the free one nearest to it at its level, one down or one up, its
-## own cells counted free; null when there is none.
+## own cells counted free; null when there is none (and for an opening: opening_spot).
 func move_spot(who, e: Dictionary, corner: Vector3i, turn: int) -> Variant:
-	if not movable(e):
+	if not movable(e) or is_opening(e.item):
 		return null
 	var shape := _shape_of(e.item, posmod(turn, 4))
 	var offsets: Array[Vector3i] = shape.offsets
@@ -1350,10 +1570,15 @@ func move_spot(who, e: Dictionary, corner: Vector3i, turn: int) -> Variant:
 ## `who` moves thing `e` to `corner` (see move_spot) turned `turn` (the same cell and a
 ## quarter more: turned where it stands), within their reach of placing and where the land
 ## lets them build at both ends; what it holds, burns or says goes with it, and every copy
-## hears of it as of a thing taken and placed (removed, added). True if it moved.
+## hears of it as of a thing taken and placed (removed, added). An opening is only turned
+## the other way round where it stands here (its own cell, its turn + 2); it goes along
+## its wall by move_opening. True if it moved.
 func move(who, e: Dictionary, corner: Vector3i, turn: int) -> bool:
 	if is_light(e):
 		return _move_light(who, e, corner, posmod(turn, 4))
+	if is_opening(e.item):
+		turn = posmod(turn, 4)
+		return corner == e.cell and turn == (int(e.get("turn", 0)) + 2) % 4 and _move_opening(who, e, corner, turn, -1)
 	if not movable(e) or territory != null and not territory.may(who, e.cell, "build"):
 		return false
 	turn = posmod(turn, 4)
@@ -1382,8 +1607,274 @@ func move(who, e: Dictionary, corner: Vector3i, turn: int) -> bool:
 	var moved := put(e.item, spot, items, e.lit, e.get("fuel", -1.0), e.get("by"), turn, false, e.get("text", ""), e.get("grave", {}))
 	if e.has("water"):
 		moved.water = e.water
+	if plans != null:
+		plans.drop_things_in(_opening_at(e.item, spot, turn))
 	world.note_edit(spot.x, spot.z)
 	return true
+
+
+## The build mode (Protocol.PROP_MOVE with a face): `who` moves opening `e` (a door, a
+## window, a hatch) along its wall to the wall's cell `aim` pressed, `face` the side of
+## that face (-1 none), its old place walled up again (_move_opening). True if it moved.
+func move_opening(who, e: Dictionary, aim: Vector3i, face := -1) -> bool:
+	return is_opening(e.get("item", "")) and _move_opening(who, e, aim, -1, face)
+
+
+## True for item `id` set into the blocks of a building, which cuts its opening out of
+## them (put_at) and remembers what it cut (`cut`, cut_of): a door, a window, a hatch; not
+## a wicket or a gate (set into a fence).
+static func is_opening(id: String) -> bool:
+	var item := Items.get_item(id)
+	return (item.get("door", false) or item.get("window", false)) and not item.get("fence", false)
+
+
+## The cells opening `e` takes out of the blocks it is set into (put_at), shut.
+func opening_cells(e: Dictionary) -> Array[Vector3i]:
+	return _opening_at(e.item, e.cell, int(e.get("turn", 0)))
+
+
+## Every cell thing `item` turned `turn` with its north-west cell at `spot` fills, as high
+## as it stands (a ghost thing's, Plans.things).
+func volume_of(item: String, spot: Vector3i, turn: int) -> Array[Vector3i]:
+	return _opening_at(item, spot, turn)
+
+
+## Where a ghost of thing `id` set down at cell `aim` by `who` goes in blueprint `ghosts`
+## (Plans.put_thing): as put_spot finds it (turned best, `view`, `kept`, `face` alike), but in
+## the world as the blueprint will stand built (_ghosts) and with no body in the way.
+func ghost_spot(who, ghosts, id: String, aim: Vector3i, view := -1, kept := false, face := -1) -> Array:
+	_ghosts = ghosts
+	var found := put_spot(who, id, aim, world.size_y, view, kept, face)
+	_ghosts = null
+	return found
+
+
+## Where ghost thing `t` of blueprint `ghosts` moved to north-west cell `corner` turned `turn`
+## goes (Plans.move_thing), its own cells counted free: as move_spot finds a place for a
+## thing set down; a door, a window or a hatch by the wall's cell `corner` pressed and the
+## side of its face `face`, as opening_spot does. [north-west cell or null, turn].
+func ghost_move_spot(who, ghosts, t: Dictionary, corner: Vector3i, turn: int, face := -1) -> Array:
+	_ghosts = ghosts
+	_ghost_self = t
+	var found: Array
+	if is_opening(t.item):
+		found = put_spot(who, t.item, corner, world.size_y, -1, false, face)
+	else:
+		turn = posmod(turn, 4)
+		var shape := _shape_of(t.item, turn)
+		var offsets: Array[Vector3i] = shape.offsets
+		var mid := Vector2.ZERO
+		for o: Vector3i in offsets:
+			mid += Vector2(o.x, o.z) + Vector2(0.5, 0.5)
+		mid /= maxi(offsets.size(), 1)
+		found = [_spot_at(who, Vector2(corner.x, corner.z) + mid, corner.y, world.size_y, size_of(t.item), offsets,
+			rest_of(t.item), shape.high), turn]
+	_ghosts = null
+	_ghost_self = {}
+	return found
+
+
+## Whether cell `c` is solid: a block of the world, or of the blueprint while a ghost thing's
+## place is looked for (_ghosts).
+func _solid(c: Vector3i) -> bool:
+	return world.is_solid(c.x, c.y, c.z) or _ghosts != null and _ghosts.block_at(c)
+
+
+## Whether a ghost thing (not the one moved) fills cell `c` while a ghost thing's place is
+## looked for (_ghosts).
+func _ghost_taken(c: Vector3i) -> bool:
+	if _ghosts == null:
+		return false
+	var t: Dictionary = _ghosts.thing_at(c)
+	return not t.is_empty() and not is_same(t, _ghost_self)
+
+
+## The cells thing `item` turned `turn` with its north-west cell at `spot` takes out of
+## blocks as an opening: those it fills, as high as it stands.
+func _opening_at(item: String, spot: Vector3i, turn: int) -> Array[Vector3i]:
+	var shape := _shape_of(item, turn)
+	var out: Array[Vector3i] = []
+	for o: Vector3i in shape.offsets:
+		for k in shape.high:
+			out.append(spot + o + Vector3i(0, k, 0))
+	return out
+
+
+## The blocks opening `e` took out of the wall it is set into, which fill its cells again
+## when it leaves them (_move_opening, take_up): world cell -> material id. One set down
+## before openings remembered them (a save without `cut`) took those of the wall round
+## it: the material most of the blocks put beside and over its cells are of, in each of
+## its cells; none in the open.
+func cut_of(e: Dictionary) -> Dictionary:
+	var out := {}
+	if e.has("cut"):
+		for o: Vector3i in e.cut:
+			out[e.cell + o] = e.cut[o]
+		return out
+	var cells := opening_cells(e)
+	var count := {}
+	for c in cells:
+		for d: Vector3i in AROUND:
+			var n: Vector3i = c + d
+			var m: int = world.get_cell(n.x, n.y, n.z)
+			if cells.has(n) or m == Mat.AIR or m == Mat.WATER or world.is_natural(n.x, n.y, n.z):
+				continue
+			count[m] = count.get(m, 0) + 1
+	var best := -1
+	for m: int in count:
+		if best < 0 or count[m] > count[best]:
+			best = m
+	if best >= 0:
+		for c in cells:
+			out[c] = Mat.IDS[best]
+	return out
+
+
+## Where opening `e` moved by `who` to cell `aim` would go (_move_opening): [its north-west
+## cell, null where it has no room; its turn], looked for as for a new one set down there
+## (put_spot: into the wall pressed, `face` the side of its face, in the wall's plane, its
+## front to them), its own cells counted free. The build mode shows it so while it is held.
+func opening_spot(who, e: Dictionary, aim: Vector3i, face := -1) -> Array:
+	_unblock(e)
+	_moving = e
+	var found := put_spot(who, e.item, aim, world.size_y, -1, false, face)
+	_moving = {}
+	_block(e)
+	return found
+
+
+## The north-west cell from which opening `e` turned `turn` fills the very cells it fills
+## now (turned the other way round where it stands), or null.
+func flip_spot(e: Dictionary, turn: int) -> Variant:
+	var now := opening_cells(e)
+	now.sort()
+	var n := size_of(e.item)
+	for dz in range(-n, n + 1):
+		for dx in range(-n, n + 1):
+			var c: Vector3i = e.cell + Vector3i(dx, 0, dz)
+			var cells := _opening_at(e.item, c, turn)
+			cells.sort()
+			if cells == now:
+				return c
+	return null
+
+
+## `who` moves opening `e` (a door, a window, a hatch) to the wall's cell `aim` pressed
+## (move; `face` the side of its face, -1 none): set into the wall there as a new one is
+## (opening_spot), within their reach of placing. The blocks of its new cells are cut, and
+## those it had cut (cut_of) fill its old cells again, the user's pick (2026-11-26, 5А):
+## the blocks just cut pay for them first, then those in the bag; a cell none is left for,
+## or one they stand in, becomes a ghost block of the blueprint (plans). What was cut and
+## is not put back goes to the bag, or on the ground at their feet when it is full; ghost
+## blocks in its new cells are taken off the blueprint. `aim`
+## its own cell and `turn` the other way round (move; -1 for none): turned where it
+## stands, its front to the other side. One swing; the land's rights at both ends. True
+## if it moved.
+func _move_opening(who, e: Dictionary, aim: Vector3i, turn: int, face: int) -> bool:
+	if territory != null and not territory.may(who, e.cell, "build"):
+		return false
+	var was_turn := int(e.get("turn", 0))
+	var spot: Variant = null
+	if aim == e.cell and turn == (was_turn + 2) % 4:
+		spot = flip_spot(e, turn)
+	else:
+		var p: Vector3 = who.position / CELL
+		if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
+			who.nag("put", "[too_far]")
+			return false
+		var found := opening_spot(who, e, aim, face)
+		spot = found[0]
+		turn = found[1]
+	if spot == null:
+		who.nag("put", Lang.line("[no_room_here]", [Items.title(e.item)]))
+		return false
+	if spot == e.cell and turn == was_turn:
+		return false
+	var old := opening_cells(e)
+	var cells := _opening_at(e.item, spot, turn)
+	for c in cells:
+		if territory != null and not territory.may(who, c, "build"):
+			return false
+	if not who.act("place"):
+		return false
+	var was := cut_of(e)
+	var cut := {}
+	# The blocks just cut and not yet put back, by material id.
+	var spare := {}
+	for c in cells:
+		if old.has(c):
+			if was.has(c):
+				cut[c - spot] = was[c]
+			continue
+		var m := _cut(c, false)
+		if m != "":
+			cut[c - spot] = m
+			spare[m] = spare.get(m, 0) + 1
+	_remove(e)
+	var ghosts := {}
+	for c in old:
+		if cells.has(c) or not was.has(c) or world.get_cell(c.x, c.y, c.z) != Mat.AIR:
+			continue
+		var id: String = was[c]
+		var m := Mat.index(id)
+		if m < 0:
+			continue
+		var item: String = Mat.RECORDS[m].item
+		if who.overlaps_cell(c):
+			ghosts[c] = id
+		elif spare.get(id, 0) > 0:
+			spare[id] -= 1
+			_mend(c, m)
+		elif item != "" and who.inventory.remove(item, 1) == 1:
+			_mend(c, m)
+		else:
+			ghosts[c] = id
+	put(e.item, spot, null, true, -1.0, e.get("by"), turn, false, "", {}, e.get("wreath", ""), cut)
+	if plans != null:
+		plans.drop_ghosts(cells)
+		plans.drop_things_in(cells)
+	world.note_edit(spot.x, spot.z)
+	for id: String in spare:
+		var item: String = Mat.RECORDS[Mat.index(id)].item
+		var n: int = spare[id]
+		if n > 0 and item != "":
+			n -= who.give(item, n)
+			if n > 0:
+				world.heap_drop(item, who.position, n)
+	_leave_ghosts(ghosts)
+	return true
+
+
+## Puts material `m` back into cell `c` as a block a player built, a cube (an opening's
+## old place filled, _move_opening).
+func _mend(c: Vector3i, m: int) -> void:
+	world.set_cell(c.x, c.y, c.z, m)
+	world.set_form(c.x, c.y, c.z, 0)
+	world.note_edit(c.x, c.z)
+	cell_changed.emit(c)
+
+
+## Leaves ghost blocks of the blueprint (plans) in the cells of `hole` (cell -> material
+## id) that stand empty, of each material a block in a bag builds (_placer).
+func _leave_ghosts(hole: Dictionary) -> void:
+	if plans == null or hole.is_empty():
+		return
+	var ghosts := {}
+	for c: Vector3i in hole:
+		var item := _placer(hole[c])
+		if item != "" and world.get_cell(c.x, c.y, c.z) == Mat.AIR:
+			ghosts[c] = item
+	plans.put_ghosts(ghosts)
+
+
+## The item that builds material `id` (the material's `item`, when that places it), ""
+## for none.
+static func _placer(id: String) -> String:
+	var m := Mat.index(id)
+	if m < 0:
+		return ""
+	var item: String = Mat.RECORDS[m].item
+	return item if item != "" and Mat.index(Items.get_item(item).get("place", "")) == m else ""
 
 
 ## Puts out campfire `e`: it no longer burns, warms or lets anything be made at it.
@@ -1578,12 +2069,14 @@ func _fits(who, corner: Vector3i, top: int, offsets: Array[Vector3i] = [], rest 
 		offsets = [Vector3i(0, 0, 0), Vector3i(1, 0, 0), Vector3i(0, 0, 1), Vector3i(1, 0, 1)]
 	for o: Vector3i in offsets:
 		var c := corner + o
+		# A ghost thing (_ghosts) may stand where a body is now.
 		if not _open(c, cut_from) or not _rests(c, rest) \
-				or who.overlaps_cell(c) or c.y > top or world.blockers.has(c) and not _swappable(c) or world.ladders.has(c) \
-				or not light_at(c).is_empty() or _in_open_door(c):
+				or _ghosts == null and who.overlaps_cell(c) or c.y > top or world.blockers.has(c) and not _swappable(c) \
+				or world.ladders.has(c) or not light_at(c).is_empty() or _in_open_door(c) or _ghost_taken(c):
 			return false
 		for k in range(1, high):
-			if not _open(c + Vector3i(0, k, 0), cut_from) or world.blockers.has(c + Vector3i(0, k, 0)):
+			var up := c + Vector3i(0, k, 0)
+			if not _open(up, cut_from) or world.blockers.has(up) or _ghost_taken(up):
 				return false
 	return true
 
@@ -1601,18 +2094,25 @@ func _rests(c: Vector3i, rest: int) -> bool:
 		ANYWHERE:
 			return true
 		ON_LADDER:
-			return world.is_solid(c.x, c.y - 1, c.z) or world.ladders.has(c + Vector3i.DOWN)
+			if _solid(c + Vector3i.DOWN) or world.ladders.has(c + Vector3i.DOWN):
+				return true
+			# On a ghost ladder, while a ghost one's place is looked for.
+			var under: Dictionary = _ghosts.thing_at(c + Vector3i.DOWN) if _ghosts != null else {}
+			return not under.is_empty() and is_ladder(under)
 		IN_FLOOR, ON_WALL:
 			for d: Vector3i in SIDES:
-				if world.is_solid(c.x + d.x, c.y, c.z + d.z):
+				if _solid(c + d):
 					return true
 			return false
-	return world.is_solid(c.x, c.y - 1, c.z)
+	return _solid(c + Vector3i.DOWN)
 
 
 ## Whether cell `c` is air, or a block put there that an opening takes out (at level
 ## `cut_from` or higher: an opening is cut into walls, not into the floor under it).
 func _open(c: Vector3i, cut_from: int) -> bool:
+	if _ghosts != null and _ghosts.block_at(c):
+		# A ghost block: taken, but a ghost door or window takes its place.
+		return c.y >= cut_from
 	var m: int = world.get_cell(c.x, c.y, c.z)
 	return m == Mat.AIR or c.y >= cut_from and m != Mat.WATER and not world.is_natural(c.x, c.y, c.z)
 
@@ -1621,7 +2121,7 @@ func _open(c: Vector3i, cut_from: int) -> bool:
 ## while open, see opened_boxes): nothing is set down in a doorway.
 func _in_open_door(c: Vector3i) -> bool:
 	for e: Dictionary in things:
-		if e.get("open", false) and e.cell.y == c.y:
+		if e.get("open", false) and e.cell.y == c.y and not is_same(e, _moving):
 			var shut := e.duplicate()
 			shut.open = false
 			if cells_of(shut).has(c):

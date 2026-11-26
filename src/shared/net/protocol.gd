@@ -91,11 +91,16 @@ const LIGHT_PUT := "light_put"
 const PROP_TAKE := "prop_take"
 ## The build mode sets a thing from the bag down at the cell tapped: [item id, cell, (the
 ## camera's turn 0..3, as for PROP_PUT), (true: the turn is the one kept for its kind,
-## taken by any thing)]
+## taken by any thing), (the side of the wall's face tapped, Placed.SIDES index, -1 for
+## none: a door or a window goes in the plane of that wall, Placed.plane_turn)]
 ## (Placed.put_at; a door or a window cuts its opening into a wall).
 const PROP_PUT_AT := "prop_put_at"
 ## The build mode moves a thing placed, or turns it where it stands: [its cell, the
 ## north-west cell it goes to, its turn 0..3] (Placed.move; what it holds goes with it).
+## A door, a window or a hatch goes along its wall: [its cell, the wall's cell pressed,
+## its turn (the server finds it again), the side of the face pressed (-1 for none)], its
+## old place filled with the blocks it had cut (Placed.move_opening); [its cell, its cell,
+## its turn + 2] turns it the other way round where it stands, and nothing else of three.
 const PROP_MOVE := "prop_move"
 ## Puts out a campfire, or lights it again or feeds it one piece of fuel: [cell, on]
 ## (Placed.put_out, Placed.feed).
@@ -112,12 +117,33 @@ const SIGN_TURN := "sign_turn"
 ## Makes a gesture: [name] (Gestures.LIST; "" stops the one going, Gestures.make).
 const GESTURE := "gesture"
 ## Draws a shape of the blueprint with the block held, or takes the ghost off the box
-## round it: [kind, from, to, height, thickness, erase, form] (Plans.draw; the form of
-## the blocks, WorldData.forms: a cube, a slope or stairs and the side they rise toward,
-## and Plans.BAND for a band one block thick).
+## round it: [kind, from, to, height, thickness, erase, form, level] (Plans.draw; the form
+## of the blocks, WorldData.forms: a cube, a slope or stairs and the side they rise toward,
+## and Plans.BAND for a band one block thick; `level`, which may be left out: the uneven
+## ground under the figure is levelled with it, Plans.earthwork).
 const PLAN := "plan"
 ## Takes the blueprint's ghost off every cell near the player: [] (Plans.clear).
 const PLAN_CLEAR := "plan_clear"
+## Turns the slopes and stairs of the ghost column at a cell a quarter (the build mode's
+## double tap on a ghost slope): [cell] (Plans.turn_form).
+const PLAN_TURN := "plan_turn"
+## Sets the ghost of a thing of the bag into the blueprint where it would be set down (the
+## build mode with things set down by the blueprint, the user's picks of 2026-11-26): [item,
+## cell, the view's turn 0..3, kept, the side of the face -1..3], as PROP_PUT_AT
+## (Plans.put_thing).
+const PLAN_THING := "plan_thing"
+## Moves the ghost thing filling a cell: [cell, to, turn 0..3, face -1..3] (Plans.move_thing:
+## to a north-west cell turned so, its own and a quarter more turned where it stands; a door,
+## a window or a hatch by the wall's cell pressed and the side of its face, or its own cell
+## and its turn + 2: the other way round).
+const PLAN_THING_MOVE := "plan_thing_move"
+## Takes the ghost thing filling a cell off the blueprint: [cell] (Plans.erase_thing).
+const PLAN_THING_TAKE := "plan_thing_take"
+## Undoes the player's last change of the blueprint (the build mode's ↶, Ctrl+Z): []
+## (PlanHistory.undo: how many cells and things changed back, -1 none within reach).
+const PLAN_UNDO := "plan_undo"
+## Does the last change undone again (↷, Ctrl+Y): [] (PlanHistory.redo).
+const PLAN_REDO := "plan_redo"
 ## The build mode's action button: builds one ghost cell of the blueprint near the player,
 ## whatever the hand holds: [] (Plans.build).
 const BUILD := "build"
@@ -307,11 +333,19 @@ const PROP_FUEL := "prop_fuel"
 const PROP_WATER := "prop_water"
 ## How far a thing of snow has melted: [cell, melt 0..1], at each new stage (Placed.melt_changed).
 const PROP_MELT := "prop_melt"
-## Every ghost cell of the blueprint, on joining: [list] (as Plans.to_list gives it).
+## Every ghost cell of the blueprint, on joining: [list] (as Plans.to_list gives it, its
+## ghost things too).
 const PLANS := "plans"
 ## Ghost cells of the blueprint came with a block, or went: [cells, item ("" gone), the
 ## forms of the cells that came (Plans.forms_of)].
 const PLAN_CELLS := "plan_cells"
+## How many changes of the blueprint the player can undo and redo now: [undo, redo]
+## (PlanHistory; the build mode's ↶ ↷ are dimmed at 0), to that player only.
+const PLAN_HISTORY := "plan_history"
+## A ghost thing of the blueprint was set or moved there: [Plans.thing_record].
+const GHOST_THING := "ghost_thing"
+## The ghost thing at a north-west cell went (built, moved, taken off): [cell].
+const GHOST_THING_GONE := "ghost_thing_gone"
 ## What a thing that stores holds changed: [cell, Inventory.to_dict()].
 const CHEST := "chest"
 ## The time, the season and the weather: [Clock.snapshot()], on joining and then a few
