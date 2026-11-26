@@ -27,6 +27,11 @@ var tag := "":
 	set(v):
 		tag = v
 		queue_redraw()
+## The tag's colour (the build palette's «need» of the blueprint: cold, or red when short).
+var tag_color := UiStyle.ACCENT:
+	set(v):
+		tag_color = v
+		queue_redraw()
 var number := "":
 	set(v):
 		number = v
@@ -166,7 +171,7 @@ func _draw() -> void:
 		draw_rect(r.grow(1.0), UiStyle.EDGE)
 		draw_rect(Rect2(r.position, Vector2(maxf(1.0, roundf(w * fill)), r.size.y)), fill_color if fill_color.a > 0.0 else (UiStyle.DANGER if fill < 0.25 else UiStyle.ACCENT))
 	if tag != "":
-		_text(font, Lang.t(tag), Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
+		_text(font, Lang.t(tag), Vector2(4, 3 + font.get_ascent(fs)), tag_color)
 	if key != "":
 		# The slot's number is a quiet mark: dim and without the outline.
 		var kw := UiStyle.text_width(key, fs, font)

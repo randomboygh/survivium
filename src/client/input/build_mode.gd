@@ -27,6 +27,7 @@ extends "res://src/client/input/work_mode.gd"
 ## `game` is the Main node.
 
 const Items := preload("res://src/shared/content/items.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
@@ -65,6 +66,11 @@ const GHOST_TAP_MS := 400
 ## How many cells a door or a window held up into a wall is drawn out of it, toward its
 ## front (out_of_wall): in the wall the blocks it will cut would hide it.
 const WALL_OUT := 1.15
+## How far round the player the palette counts what the blueprint needs (need): its ghost
+## cells and things within reach of drawing (Plans.PLAN_REACH; the user's pick, 2026-11-26),
+## counted again when it changes or the player has gone NEED_STEP cells, at most every
+## CHECK_TIME.
+const NEED_STEP := 4
 
 ## The shape drawn (one of Plans.KINDS), how high its walls are (levels) and how thick
 ## (cells). Kept with the player.
@@ -99,6 +105,13 @@ var kept_turns := {}
 ## The thing dragged now (see drag), {} for none; the ghost thing of the blueprint dragged.
 var _dragged := {}
 var _dragged_ghost := {}
+## What the blueprint near needs, item id -> how many (need), the cell it was counted from,
+## whether the blueprint changed since, and the blueprint watched.
+var _need := {}
+var _need_from := Vector3i.ZERO
+var _need_due := true
+var _need_clock := 0.0
+var _need_of = null
 
 
 func to_dict() -> Dictionary:
@@ -147,6 +160,26 @@ func _in_palette(id: String) -> bool:
 	return passes(id, filter)
 
 
+## What the blueprint near needs (need) first, the most needed first, the bag's ones and
+## the ones it has none of (shown dimmed with what is short; the user's pick, 2026-11-26),
+## then the rest of the bag's items.
+func palette() -> Array[String]:
+	var bag := super()
+	var needed: Array = []
+	for id: String in _need:
+		if _in_palette(id):
+			needed.append(id)
+	needed.sort_custom(func(x: String, y: String) -> bool:
+		return _need[x] > _need[y] if _need[x] != _need[y] else x < y)
+	var out: Array[String] = []
+	for id: String in needed:
+		out.append(id)
+	for id in bag:
+		if not _need.has(id):
+			out.append(id)
+	return out
+
+
 func _show(shown: bool) -> void:
 	game.hud.show_build(shown)
 
@@ -173,6 +206,10 @@ func enter(id: String) -> void:
 
 ## Item `id` of the palette into the hand in use.
 func choose(id: String) -> void:
+	if game.character.inventory.count(id) <= 0:
+		# Shown only for what the blueprint needs: there is none to take in hand.
+		game.character.nag("no_block", Lang.line("[not_in_the_bag]", [Items.title(id)]))
+		return
 	game.controls.put_in_hand(id, -1, false)
 	changed.emit()
 
@@ -334,6 +371,7 @@ func update(delta: float) -> void:
 		game.cursor.show_boxes([], [])
 		game.props.settle(_dragged)
 		_dragged = {}
+	_count_need(delta)
 	if not on or not auto:
 		return
 	_check_clock -= delta
@@ -350,6 +388,68 @@ func update(delta: float) -> void:
 			changed.emit()
 			return
 	game.controls.build_step()
+
+
+## What the blueprint within PLAN_REACH of the player needs, item id -> how many: one block
+## of its item for each ghost cell (a slope or stairs too; digging out takes none), one
+## thing for each ghost thing. The palette shows it beside what the bag has.
+func need() -> Dictionary:
+	return _need
+
+
+## Whether the bag holds less of item `id` than the blueprint near needs (`need`): blocks
+## are never short when building is free, things always come from the bag.
+func short_of(id: String) -> bool:
+	if game.rules.free_build and not Items.is_interior(id):
+		return false
+	return int(_need.get(id, 0)) > game.character.inventory.count(id)
+
+
+## Counts the blueprint near again (need) when it changed or the player went NEED_STEP
+## cells, at most every CHECK_TIME while the mode is on; the bar is told when it differs.
+func _count_need(delta: float) -> void:
+	if not on:
+		return
+	if _need_of != game.plans:
+		_need_of = game.plans
+		_need_of.changed.connect(_on_plans_changed)
+		_need_of.thing_changed.connect(_on_plans_changed)
+		_need_due = true
+	_need_clock -= delta
+	if _need_clock > 0.0:
+		return
+	var at := Vector3i((game.player.position / Plans.CELL).floor())
+	if not _need_due and maxi(absi(at.x - _need_from.x), maxi(absi(at.y - _need_from.y), absi(at.z - _need_from.z))) < NEED_STEP:
+		return
+	_need_clock = CHECK_TIME
+	_need_due = false
+	_need_from = at
+	var now := count_need(game.plans, game.player.position / Plans.CELL)
+	if now != _need:
+		_need = now
+		changed.emit()
+
+
+func _on_plans_changed(_a = null, _b = null) -> void:
+	_need_due = true
+
+
+## What blueprint `plans` needs within PLAN_REACH of point `p` (in cells), item id -> how
+## many (see need).
+static func count_need(plans, p: Vector3) -> Dictionary:
+	var out := {}
+	var r := float(Plans.PLAN_REACH)
+	for c: Vector3i in plans.cells:
+		var item: String = plans.cells[c]
+		if item == Plans.CUT or Plans.is_mark(item):
+			continue
+		if absf(c.y - p.y) <= r and Vector2(c.x + 0.5 - p.x, c.z + 0.5 - p.z).length() <= r:
+			out[item] = int(out.get(item, 0)) + 1
+	for t: Dictionary in plans.things:
+		var c: Vector3i = t.cell
+		if absf(c.y - p.y) <= r and Vector2(c.x + 0.5 - p.x, c.z + 0.5 - p.z).length() <= r:
+			out[t.item] = int(out.get(t.item, 0)) + 1
+	return out
 
 
 ## Whether the bag holds a block for some ghost cell (or building is free), or a thing for

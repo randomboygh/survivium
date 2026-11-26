@@ -321,6 +321,7 @@
 "[undo_ctrl_z]": "Отменить (Ctrl+Z)"
 "[redo_ctrl_y]": "Повторить (Ctrl+Y)"
 "[come_closer_to_undo_that]": "Подойдите ближе, чтобы это отменить"
+"[the_blueprint_near_needs_the_bag_has]": "Чертежу рядом нужно %s, в сумке %s"
 "[leave_build_mode_b]": "Выйти из режима строительства (B)"
 "[build_the_whole_blueprint_nearby]": "Построить весь чертёж рядом (F)"
 "[stop_f]": "Остановить (F)"

@@ -362,6 +362,10 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "undo": "undone"},
 	"build-undo-redone": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "undo": "redone"},
+	# What the blueprint near needs (2026-11-26, the building UX's PR 5): need top left of the
+	# palette's cells (cold, red when short), the table needed and none in the bag dimmed.
+	"build-need": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "need": true},
 	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

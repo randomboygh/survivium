@@ -1365,6 +1365,8 @@ func _run() -> void:
 				await _ghost_things(shot.ghosts, feet)
 			if shot.has("undo"):
 				await _undo_wall(shot.undo, feet)
+			if shot.has("need"):
+				await _need_wall(feet)
 			if shot.has("press"):
 				# A finger pressed on a touch screen with a thing of the bag chosen (2026-11-26):
 				# [item, the world point aimed at from the feet, in cells]. The finger goes
@@ -1391,7 +1393,7 @@ func _run() -> void:
 					held.get("aim"), held.get("spot"), held.get("shown"), held.get("face")])
 			if shot.has("opening"):
 				await _move_opening(shot.opening, feet)
-			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts") or shot.has("undo"):
+			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts") or shot.has("undo") or shot.has("need"):
 				# The toasts of the recipes the things put into the bag taught, off the view.
 				main.hud._toasts.clear()
 				for i in 3:
@@ -2426,6 +2428,25 @@ func _undo_wall(mode: String, feet: Vector3i) -> void:
 		for i in 20:
 			await process_frame
 	print("undo: %s, %d ghost cells, can undo %d, redo %d" % [mode, main.plans.cells.size(), main.build.undos, main.build.redos])
+
+
+## What the blueprint needs on the palette (the building UX's PR 5): over the ghosts of
+## _ghost_things, a ghost wall of cut stone 6 long and 3 high with only 10 in the bag (short),
+## and the table taken out of the bag (needed, none: dimmed).
+func _need_wall(feet: Vector3i) -> void:
+	await _ghost_things("drawn", feet)
+	var hp = main.host.player
+	hp.inventory.remove("tools:table", hp.inventory.count("tools:table"))
+	hp.inventory.remove("materials:cut_stone", hp.inventory.count("materials:cut_stone"))
+	hp.inventory.add("materials:cut_stone", 10)
+	for i in 10:
+		await process_frame
+	main.build.choose("materials:cut_stone")
+	for i in 10:
+		await process_frame
+	var r = main.net.request(load("res://src/shared/net/protocol.gd").PLAN, ["line", feet + Vector3i(1, 0, -6), feet + Vector3i(6, 0, -6), 3, 1, false, 0])
+	await _wait_ms(1200)
+	print("need: wall drawn %s, need %s, palette %s" % [r.value, main.build.need(), main.build.palette().slice(0, 6)])
 
 
 func _ghost_things(mode: String, feet: Vector3i) -> void:
