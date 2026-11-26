@@ -1181,6 +1181,11 @@ const SHOTS := {
 	# A fibre tunic chosen with dyes in the bag: the «Краситель» row, its own colours and each dye's, black picked.
 	"craft-dye": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:fiber_tunic",
 		"dyes": ["plants:dye_black", "plants:dye_yellow", "plants:dye_pink", "plants:dye_violet", "plants:dye_brown"], "dye": "plants:dye_pink"},
+	# All twelve dyes in the bag: the «Краситель» squares wrap onto a second line.
+	"craft-dye-all": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:fiber_tunic",
+		"dyes": ["plants:dye_white", "plants:dye_grey", "plants:dye_black", "plants:dye_yellow", "plants:dye_green",
+		"plants:dye_pink", "plants:dye_violet", "plants:dye_brown", "plants:dye_ochre", "plants:dye_red",
+		"plants:dye_blue", "plants:dye_purple"], "dye": "plants:dye_blue", "room": 9},
 	# A dye vat opened with things to dye anew, dyes and ash in the bag (the tunic dyed pink).
 	"vat": {"time": 0.42, "season": 1, "touch": true, "vat": true},
 	"vat-world": {"time": 0.42, "season": 1, "touch": true, "vat": true, "shut": true},
