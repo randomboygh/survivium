@@ -98,6 +98,13 @@ slice, to free the far meshes.
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not
   whole, `covers_side`; the cells at the shapes are candidates, `_take_forms`).
 - `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.
+- Stumps and the fall (trees PR 5): a felled pictured tree always leaves its foot's log (`Felling.fell`; struck
+  again, `Felling.uproot` takes it for one log in half the blows), drawn by `TreeSprites` as a picture too
+  (`Growth.stump_look`; TreeLooks `stumps`, `stump_frames`, `wood`: the approved stump at 3 sizes, 8 turns, summer
+  and winter with snow on the cut; instance colour alpha `STUMP` / `STUMP_SNOW`, `tree.gdshader` `stump_colour`:
+  bark as the trees', cut wood, snow and its outline 3 bits a sun); the chunk mesher leaves its log cell undrawn.
+  A standing tree that is a stump after a chunk's rebuild falls (`TreeHits.fall`, `tree.gdshader` `falls`): its
+  picture turns over about the stump's top away from the last blow in a second, bounces and fades out.
 - `src/client/world/tree_sprites.gd`, `shaders/tree.gdshader` — standing trees of species drawn as pictures
   (`Growth.standing_look`): one upright picture per tree in the chunk's `trees` MultiMesh (the last of the
   plant parts), the frame of the side the camera rests at plus the tree's own turn, from one atlas of all

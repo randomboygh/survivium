@@ -16,6 +16,7 @@ func run() -> void:
 	_test_trees()
 	_test_regrow()
 	_test_pictured()
+	_test_stumps()
 	_test_pictured_shadow()
 	_test_bushes()
 	_test_custom_plants()
@@ -537,6 +538,28 @@ func _test_pictured() -> void:
 				if Growth.standing_look(w, col) >= 0:
 					bad.append([s.id, i, "stump %d" % looks[j].trunk])
 	_check(bad.is_empty(), "every look grows standing, a stump is no smaller tree: %s" % [bad])
+
+
+func _test_stumps() -> void:
+	# A pictured tree felled at its foot leaves a stump of one log drawn as a picture
+	# (Growth.stump_look); the stump felled again is uprooted: no log left, one lies by it.
+	var bad := []
+	for species in Trees.SPECIES.size():
+		var s: Dictionary = Trees.SPECIES[species]
+		if not Felling.keeps_stump(s):
+			continue
+		var col := Vector2i(25, 25)
+		var w := _pictured_ground(col)
+		Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+		Felling.fell(w, Vector3i(col.x, 1, col.y), Vector2(1, 0))
+		if w.get_cell(col.x, 1, col.y) != Mat.LOG or w.get_cell(col.x, 2, col.y) == Mat.LOG \
+				or Growth.stump_look(w, col) < 0 or Growth.standing_look(w, col) >= 0:
+			bad.append([s.id, "stump"])
+			continue
+		var gone := Felling.fell(w, Vector3i(col.x, 1, col.y), Vector2(1, 0))
+		if gone.size() != 1 or w.log_col(col.x, col.y) != 0 or Growth.stump_look(w, col) >= 0:
+			bad.append([s.id, "uproot"])
+	_check(bad.is_empty(), "a felled tree leaves a stump, the stump is uprooted: %s" % [bad])
 
 
 func _test_pictured_shadow() -> void:
