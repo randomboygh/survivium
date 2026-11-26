@@ -1429,12 +1429,13 @@ func _run() -> void:
 					print("pick: chosen %s, picking %s" % [main.build.chosen(), main.build.picking])
 			if shot.has("replace"):
 				await _replace_wall(shot.replace, s)
+			if shot.has("tap_thing"):
+				await _tap_thing(shot.tap_thing, feet)
 			if shot.has("press"):
 				# A finger pressed on a touch screen with a thing of the bag chosen (2026-11-26):
-				# [item, the world point aimed at from the feet, in cells]. The finger goes
-				# BuildMode.FINGER_LIFT under that point, so the thing shows there as in the
-				# game, over the finger (BuildMode.start_stroke, _drag_new); it is let go after
-				# the shot without setting it down.
+				# [item, the world point aimed at from the feet, in cells]. The finger presses
+				# there and the thing shows there (BuildMode.start_stroke, _drag_new); it is
+				# let go after the shot without setting it down.
 				if inv.count(shot.press[0]) == 0:
 					if inv.room_for(shot.press[0]) == 0:
 						# A slot for it: the bag of a run of shots is full by now.
@@ -1447,7 +1448,7 @@ func _run() -> void:
 				for i in 3:
 					await process_frame
 				var aim: Vector2 = main.view.screen_of((Vector3(feet) + shot.press[1]) * CELL)
-				_finger(true, aim + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT)))
+				_finger(true, aim)
 				for i in 20:
 					await process_frame
 				var held: Dictionary = main.controls._stroke
@@ -1456,7 +1457,7 @@ func _run() -> void:
 			if shot.has("opening"):
 				await _move_opening(shot.opening, feet)
 			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts") or shot.has("undo") or shot.has("need") \
-					or shot.has("pick") or shot.has("replace"):
+					or shot.has("pick") or shot.has("replace") or shot.has("tap_thing"):
 				# The toasts of the recipes the things put into the bag taught, off the view.
 				main.hud._toasts.clear()
 				for i in 3:
@@ -2395,6 +2396,43 @@ func _finger(down: bool, pos: Vector2) -> void:
 	print("finger %s at %s" % ["down" if down else "up", pos])
 
 
+## A thing of the bag tapped by a finger on a phone (2026-11-26, doors into walls): `o` =
+## [item, the world point tapped from the feet in cells, a ghost wall drawn first (bool)];
+## the finger goes down and up at once there, as a player taps; prints where it went.
+func _tap_thing(o: Array, feet: Vector3i) -> void:
+	var plans = main.session.plans
+	var acts = main.session.actions
+	var hp = main.host.player
+	plans.erase(acts, hp, plans.cells.keys())
+	for t: Dictionary in plans.things.duplicate():
+		plans.drop_thing(t)
+	for k in range(hp.inventory.slots.size() - 3, hp.inventory.slots.size()):
+		hp.inventory.take_slot(k, 9999)
+	hp.inventory.add(o[0], 1)
+	hp.inventory.add("materials:planks", 40)
+	if o.size() > 2 and o[2]:
+		hp.hands = ["materials:planks", ""]
+		hp.active = 0
+		if o[2] is String and o[2] == "room":
+			# A ghost room round the player, the door set into its wall south, before them.
+			plans.draw(acts, hp, "square", feet + Vector3i(-4, 0, -5), feet + Vector3i(1, 0, 1), 3)
+		else:
+			plans.draw(acts, hp, "line", feet + Vector3i(-7, 0, -4), feet + Vector3i(-1, 0, -4), 3)
+	for i in 30:
+		await process_frame
+	main.build.choose(o[0])
+	for i in 3:
+		await process_frame
+	var on: Vector2 = main.view.screen_of((Vector3(feet) + o[1]) * CELL)
+	_finger(true, on)
+	for i in 3:
+		await process_frame
+	_finger(false, on)
+	for i in 40:
+		await process_frame
+	print("tap_thing: %s" % [plans.things.map(func(t: Dictionary) -> Array: return [t.item, t.cell - feet, t.turn])])
+
+
 ## The blueprint's forms of the ghost cells of the column at `c` and the two over it.
 func _forms_over(c: Vector3i) -> Array:
 	var out := []
@@ -2426,9 +2464,26 @@ func _move_opening(o: Array, feet: Vector3i) -> void:
 		await process_frame
 	var e: Dictionary = main.placed.things[-1] if not main.placed.things.is_empty() else {}
 	print("opening: put %s, %s" % [put, e])
-	if o[3] == "before" or e.is_empty():
+	if o[3] is String and o[3] == "before" or e.is_empty():
 		return
 	var on: Vector2 = main.view.screen_of(Placed.center(e))
+	if o[3] is Array:
+		# Points beside the door (from the feet, in cells): what a finger there would take.
+		for pt: Vector3 in o[3]:
+			var by: Vector2 = main.view.screen_of((Vector3(feet) + pt) * CELL)
+			print("opening: at %s (%d px): by radius %s, by cells %s" % [pt, roundi(by.distance_to(on)),
+				main.gathering.target_at(by).has("prop"), main.controls.placed_at(by).has("prop")])
+		return
+	if o[3] is Vector3:
+		# A tap beside the door (a point from the feet in cells, user 2026-11-26): the door stays.
+		var by: Vector2 = main.view.screen_of((Vector3(feet) + o[3]) * CELL)
+		_finger(true, by)
+		for i in 3:
+			await process_frame
+		_finger(false, by)
+		await _wait_ms(main.build.DOUBLE_TAP_MS + 400)
+		print("opening: tapped beside, %d px from it; door still there: %s" % [roundi(by.distance_to(on)), not main.session.placed.at(e.cell).is_empty()])
+		return
 	if o[3] == "taken":
 		_finger(true, on)
 		for i in 3:
@@ -2440,7 +2495,7 @@ func _move_opening(o: Array, feet: Vector3i) -> void:
 	_finger(true, on)
 	await _wait_ms(main.build.HOLD_MS + 200)
 	var to: Vector3 = Vector3(feet + o[2]) + Vector3(0.5, 0.6, 1.02)
-	var end: Vector2 = main.view.screen_of(to * CELL) + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT))
+	var end: Vector2 = main.view.screen_of(to * CELL)
 	for k in range(1, 9):
 		_finger_move(on.lerp(end, k / 8.0))
 		for i in 3:
@@ -2582,7 +2637,7 @@ func _ghost_things(mode: String, feet: Vector3i) -> void:
 			_finger(true, on)
 			await _wait_ms(main.build.HOLD_MS + 200)
 			var to: Vector3 = Vector3(t.cell + Vector3i(3, 0, 0)) + Vector3(0.5, 0.0, 0.5)
-			var end: Vector2 = main.view.screen_of(to * CELL) + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT))
+			var end: Vector2 = main.view.screen_of(to * CELL)
 			for k in range(1, 9):
 				_finger_move(on.lerp(end, k / 8.0))
 				for i in 3:

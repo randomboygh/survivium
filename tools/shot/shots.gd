@@ -314,7 +314,7 @@ const SHOTS := {
 	"build-hold-bad": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false,
 		"hold_new": ["tools:table", Vector3i(2, 0, 2), false]},
 	# A finger pressed on a phone in a room's corner (places.build_room) with a thing of the
-	# bag chosen (2026-11-26): the thing shows at once, held BuildMode.FINGER_LIFT over the
+	# bag chosen (2026-11-26): the thing shows at once under the
 	# finger; a door and a window pressed on a wall from aside
 	# stand in its plane, a bed and a chair pressed by a wall have their backs to it.
 	"build-lift-table": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
@@ -346,6 +346,15 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:window_3x2", Vector3i(-5, 1, -7), Vector3i(-4, 1, -7), "before"]},
 	"build-move-window": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:window_3x2", Vector3i(-5, 1, -7), Vector3i(-4, 1, -7), "moved"]},
+	"build-tap-by-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), Vector3(-4.75, 0.6, -6.98)]},
+	"build-tap-by-door-floor": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), Vector3(-5.5, 0.0, -6.3)]},
+	"build-tap-by-door-points": {"time": 0.4, "season": 1, "build_room": true, "offset": Vector3(-2.0, 0.0, -2.0), "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7),
+		[Vector3(-5.5, 0.6, -6.98), Vector3(-5.5, 1.5, -6.98), Vector3(-4.7, 0.6, -6.98), Vector3(-4.3, 0.6, -6.98), Vector3(-3.8, 0.6, -6.98),
+		Vector3(-6.3, 0.6, -6.98), Vector3(-6.8, 0.6, -6.98), Vector3(-5.5, 2.5, -6.98), Vector3(-5.5, 3.0, -7.5),
+		Vector3(-5.5, 0.0, -5.7), Vector3(-5.5, 0.0, -5.2), Vector3(-4.5, 0.0, -5.7)]]},
 	"build-take-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "taken"]},
 	# Things set down by the blueprint (2026-11-26, the building UX's PR 3): a ghost wall across
@@ -408,6 +417,17 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2], "double_tap": true},
+	# A door tapped on a wall by a finger (2026-11-26): on the brick wall north, on a ghost wall.
+	"build-tap-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-4.75, 0.6, -6.98)]},
+	"build-tap-door-ghost": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-4.5, 0.6, -3.98), true]},
+	"build-tap-door-room": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-1.5, 0.6, 1.98), "room"]},
+	"build-tap-door-room-ground": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-1.5, 0.0, 2.6), "room"]},
+	"build-tap-window": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:window", Vector3(-3.5, 1.5, -6.98)]},
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
 	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube"},
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},

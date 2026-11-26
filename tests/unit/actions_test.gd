@@ -1365,6 +1365,19 @@ func _test_best_turn() -> void:
 	_check(Placed.turn_facing(Tools.step_of(Vector2(13.5 - 18.5, 21.5 - 22.5))) == 3
 		and placed.put_at(who, "tools:ladder", Vector3i(13, 1, 21), 40) and w.ladders.get(Vector3i(13, 1, 21)) == 0,
 		"a ladder by the wall leans on it whatever side the player stands: %s" % [w.ladders])
+	# Aimed over the wall's top or at the ground before it (a finger a little off, user
+	# 2026-11-26): it sticks to the nearest wall, a door down to the floor.
+	who.inventory.add("tools:door", 2)
+	who.inventory.add("tools:window", 1)
+	_check(placed.put_at(who, "tools:door", Vector3i(22, 4, 20), 40) and placed.things[-1].cell == Vector3i(22, 1, 20)
+		and placed.things[-1].turn == 0 and w.get_cell(22, 3, 20) == Mat.STONE,
+		"a door aimed over the wall's top goes into the wall, on the floor: %s" % [placed.things[-1]])
+	_check(placed.put_at(who, "tools:door", Vector3i(16, 1, 21), 40) and placed.at(Vector3i(16, 1, 20)).get("turn") == 0,
+		"a door aimed at the ground before the wall goes into it: %s" % [placed.things.map(func(e: Dictionary) -> Array: return [e.item, e.cell])])
+	_check(placed.put_at(who, "tools:window", Vector3i(12, 4, 20), 40), "a window aimed over the wall's top is set")
+	var window: Dictionary = placed.things.filter(func(e: Dictionary) -> bool: return e.item == "tools:window").back()
+	_check(placed.cells_of(window).all(func(c: Vector3i) -> bool: return c.z == 20 and c.y <= 3 and absi(c.x - 12) <= 1),
+		"it goes into the wall under the cell aimed at: %s" % [window])
 
 
 ## The build mode moves a door or a window along its wall (the user's picks, 2026-11-26,

@@ -17,9 +17,9 @@ extends "res://src/client/input/work_mode.gd"
 ## bag holds one; a single tap takes it once the double tap's time is over. A thing new from the bag
 ## shows at once where the finger or the mouse presses, follows it while held, and is set
 ## down where it is let go (the user's picks, 2026-11-26), turned as Placed.put_spot finds
-## best (a door in the plane of its wall, furniture with its back to one). On a touch
-## screen a thing is held FINGER_LIFT over the finger, so the finger does not hide it (no
-## line drawn to it: the user's pick, 2026-11-26); a short buzz tells it is taken up
+## best (a door in the plane of its wall, furniture with its back to one). It is aimed
+## right under the finger, raised only a little over the surface (Props.LIFT; the lift over
+## the finger was taken off, user 2026-11-26); a short buzz tells it is taken up
 ## (Vibration "lift").
 ## A slope or stairs drawn in one column rise away from the player; a double tap on the
 ## ghost of one turns it (Plans.turn_form; the panel has no turn button since 2026-11-26,
@@ -55,11 +55,6 @@ const HOLD_MS := 280
 ## How far a finger or the mouse goes before a thing is taken up sooner than HOLD_MS, a
 ## share of the screen's shorter side.
 const DRAG_SHARE := 0.025
-## How far over the finger a thing is held on a touch screen, in UI pixels at the size of
-## the touch controls (HudLayout.touch_px: a phone's shorter side is 400 of them, so 40 are
-## about 0.7 cm; the user's picks, 2026-11-26: a little under 1.3 cm, then less than 1 cm).
-## A mouse points at the place itself.
-const FINGER_LIFT := 40.0
 ## A second tap on the ghost of a slope or stairs within this many ms of the first turns
 ## them (Plans.turn_form); a single tap there draws nothing.
 const GHOST_TAP_MS := 400
@@ -71,6 +66,9 @@ const WALL_OUT := 1.15
 ## counted again when it changes or the player has gone NEED_STEP cells, at most every
 ## CHECK_TIME.
 const NEED_STEP := 4
+## How long the blueprint and the bag must stay as they are before they are counted (the news
+## of a block built come apart: the cell, the bag).
+const NEED_SETTLE := 0.15
 
 ## The shape drawn (one of Plans.KINDS), how high its walls are (levels) and how thick
 ## (cells). Kept with the player.
@@ -112,13 +110,19 @@ var replacing := false
 ## The thing dragged now (see drag), {} for none; the ghost thing of the blueprint dragged.
 var _dragged := {}
 var _dragged_ghost := {}
-## What the blueprint near needs, item id -> how many (need), the cell it was counted from,
-## whether the blueprint changed since, and the blueprint watched.
+## What the blueprint near needs, item id -> how many (need), what the bag held of them then
+## (short_of compares the two counted together: a block built takes one from the bag and one
+## from the blueprint, and the ghosts must not blink red between the two news, user
+## 2026-11-26), the cell it was counted from, whether the blueprint or the bag changed since
+## (and how long ago: counted once both have settled), the blueprint and the bag watched.
 var _need := {}
+var _have := {}
 var _need_from := Vector3i.ZERO
 var _need_due := true
 var _need_clock := 0.0
+var _need_settle := 0.0
 var _need_of = null
+var _need_bag = null
 
 
 func to_dict() -> Dictionary:
@@ -276,7 +280,7 @@ func pick_at(pos: Vector2) -> void:
 ## What the eyedropper finds at screen point `pos`: {"item", and "turn" for a thing}, {} for
 ## nothing to take.
 func picked_at(pos: Vector2) -> Dictionary:
-	var target: Dictionary = game.gathering.target_at(pos)
+	var target: Dictionary = game.controls.placed_at(pos)
 	if target.has("prop"):
 		return {"item": target.prop.item, "turn": int(target.prop.get("turn", 0))}
 	var thing: Dictionary = game.controls.ghost_thing_at(pos)
@@ -487,7 +491,7 @@ func need() -> Dictionary:
 func short_of(id: String) -> bool:
 	if game.rules.free_build and not Items.is_interior(id):
 		return false
-	return int(_need.get(id, 0)) > game.character.inventory.count(id)
+	return int(_need.get(id, 0)) > int(_have.get(id, game.character.inventory.count(id)))
 
 
 ## The world materials of the ghost blocks the bag has too little of (short_of), for
@@ -513,8 +517,13 @@ func _count_need(delta: float) -> void:
 		_need_of.changed.connect(_on_plans_changed)
 		_need_of.thing_changed.connect(_on_plans_changed)
 		_need_due = true
+	if _need_bag != game.character.inventory:
+		_need_bag = game.character.inventory
+		_need_bag.changed.connect(_on_plans_changed)
+		_need_due = true
 	_need_clock -= delta
-	if _need_clock > 0.0:
+	_need_settle -= delta
+	if _need_clock > 0.0 or _need_due and _need_settle > 0.0:
 		return
 	var at := Vector3i((game.player.position / Plans.CELL).floor())
 	if not _need_due and maxi(absi(at.x - _need_from.x), maxi(absi(at.y - _need_from.y), absi(at.z - _need_from.z))) < NEED_STEP:
@@ -523,13 +532,19 @@ func _count_need(delta: float) -> void:
 	_need_due = false
 	_need_from = at
 	var now := count_need(game.plans, game.player.position / Plans.CELL)
-	if now != _need:
+	var have := {}
+	for id: String in now:
+		have[id] = game.character.inventory.count(id)
+	if now != _need or have != _have:
 		_need = now
+		_have = have
 		changed.emit()
 
 
+## The blueprint or the bag changed: counted again once nothing more came for NEED_SETTLE.
 func _on_plans_changed(_a = null, _b = null) -> void:
 	_need_due = true
+	_need_settle = NEED_SETTLE
 
 
 ## What blueprint `plans` needs within PLAN_REACH of point `p` (in cells), item id -> how
@@ -586,7 +601,7 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		return {}
 	if replacing:
 		return _replace_stroke(button, pos)
-	var target: Dictionary = game.gathering.target_at(pos)
+	var target: Dictionary = game.controls.placed_at(pos)
 	var item := Items.get_item(chosen())
 	if target.has("prop") and not erasing and item.get("ladder", false) and Placed.is_ladder(target.prop):
 		# A ladder tapped with a ladder goes on up from its top.
@@ -739,16 +754,11 @@ func _ghost_tap(s: Dictionary) -> bool:
 
 
 ## What a thing new from the bag is aimed at for a finger or the mouse at screen point
-## `pos` (VoxelRaycast.cast's hit): on a touch screen the place FINGER_LIFT over the finger
-## (_lifted), so the finger does not hide the thing, or the place under it where there the
-## ray finds nothing; under the mouse. With `planned` the blueprint's ghost blocks are met
-## as blocks (Controls.pick_planned: a ghost thing goes onto, against or into them).
+## `pos` (VoxelRaycast.cast's hit): the place right under it (user 2026-11-26: no lift over
+## the finger). With `planned` the blueprint's ghost blocks are met as blocks
+## (Controls.pick_planned: a ghost thing goes onto, against or into them).
 func _aimed(pos: Vector2, planned := false) -> Dictionary:
-	var at := _lifted(pos)
-	var hit: Dictionary = game.controls.pick_planned(at) if planned else game.controls.pick(at)
-	if hit.is_empty() and at != pos:
-		hit = game.controls.pick_planned(pos) if planned else game.controls.pick(pos)
-	return hit
+	return game.controls.pick_planned(pos) if planned else game.controls.pick(pos)
 
 
 ## Whether thing `id` new from the bag goes into the blueprint as a ghost thing, built after
@@ -757,14 +767,6 @@ func _aimed(pos: Vector2, planned := false) -> Dictionary:
 ## model of its own (Props.ghostly; a campfire is set down at once).
 func _by_blueprint(id: String) -> bool:
 	return int(game.settings.values.get("build_things", 0)) == 0 and Props.ghostly(id)
-
-
-## Screen point `pos` of a finger moved FINGER_LIFT up (not past the screen's top) on a
-## touch screen, `pos` itself for the mouse.
-func _lifted(pos: Vector2) -> Vector2:
-	if not game.controls.touch:
-		return pos
-	return Vector2(pos.x, maxf(0.0, pos.y - game.hud.touch_px(FINGER_LIFT)))
 
 
 ## The side (Placed.SIDES index) the face of hit `hit` (VoxelRaycast.cast) looks toward: a
@@ -919,7 +921,7 @@ func drag(s: Dictionary) -> void:
 	if Placed.is_opening(e.item):
 		_drag_opening(s, e)
 		return
-	var on_it: Variant = game.controls.on_plane(_lifted(s.pos), e.cell, Vector3i.UP)
+	var on_it: Variant = game.controls.on_plane(s.pos, e.cell, Vector3i.UP)
 	if on_it == null:
 		return
 	var corner: Vector3i = on_it - s.grab
@@ -999,7 +1001,7 @@ func _drag_ghost(s: Dictionary) -> void:
 		at = _aim(hit, Items.get_item(t.item))
 		face = face_of(hit)
 	else:
-		var on_it: Variant = game.controls.on_plane(_lifted(s.pos), t.cell, Vector3i.UP)
+		var on_it: Variant = game.controls.on_plane(s.pos, t.cell, Vector3i.UP)
 		if on_it == null:
 			return
 		at = on_it - s.grab
@@ -1044,8 +1046,8 @@ func _drag_opening(s: Dictionary, e: Dictionary) -> void:
 
 ## Where a door or a window `id` held up at north-west cell `at` turned `turn` is drawn
 ## from there, in cells: where it goes into blocks (an opening to cut into a wall) they
-## would hide it, so it hangs WALL_OUT before them, toward its front (Placed.front_of: the
-## side it was pressed from); else where it goes (Props.hold_new).
+## would hide it, so it hangs WALL_OUT before them, on the side of the wall the camera sees;
+## else where it goes (Props.hold_new).
 func out_of_wall(id: String, at: Vector3i, turn: int) -> Vector3:
 	var item := Items.get_item(id)
 	if not (item.get("door", false) or item.get("window", false)) or item.get("hatch", false):
@@ -1054,7 +1056,14 @@ func out_of_wall(id: String, at: Vector3i, turn: int) -> Vector3:
 		var c: Vector3i = at + o
 		if game.world.is_solid(c.x, c.y, c.z):
 			var f := Placed.front_of({"turn": turn})
-			return Vector3(f.x, 0.0, f.y) * WALL_OUT
+			var out := Vector3(f.x, 0.0, f.y)
+			# On the wall's side the camera sees (user 2026-11-26: it showed behind the wall).
+			var cam: Camera3D = game.get_viewport().get_camera_3d()
+			if cam != null:
+				var to_cam: Vector3 = cam.global_position - (Vector3(c) + Vector3(0.5, 0.5, 0.5)) * Placed.CELL
+				if out.dot(Vector3(to_cam.x, 0.0, to_cam.z)) < 0.0:
+					out = -out
+			return out * WALL_OUT
 	return Vector3.ZERO
 
 

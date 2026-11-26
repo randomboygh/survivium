@@ -98,6 +98,11 @@ func _test_build() -> void:
 	for i in range(1, built.size()):
 		lowest = lowest and built[i].y >= built[i - 1].y
 	_check(lowest and w.get_cell(12, 3, 12) == Mat.index("materials:planks"), "lower cells before higher, the wall stands")
+	var in_turn := true
+	for i in range(1, built.size()):
+		if built[i].y == built[i - 1].y:
+			in_turn = in_turn and Vector3(built[i]).distance_to(built[i - 1]) <= 1.01
+	_check(in_turn, "on a level one cell after another, each beside the one before (2026-11-26): %s" % [built])
 	# Erasing, a stroke takes the ghost off.
 	plans.draw(actions, who, "line", Vector3i(20, 2, 8), Vector3i(24, 2, 8), 1)
 	_check(plans.draw(actions, who, "line", Vector3i(22, 2, 8), Vector3i(24, 2, 8), 1, 1, true) == 3 and plans.cells.size() == 2,

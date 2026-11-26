@@ -142,7 +142,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   form, and ghost blocks of another material there are repainted; `build` swaps such a block in one work, from
   the bottom, only with the new block in the bag and a tool for the old one, `best_tool` and its wear, the old
   block into the bag as dug, so no hole is left; soft built ground is taken in place as a floor's), `clear` (erases the ghost nearby), `build` (one cell: the
-  lowest, then the nearest in reach, on any level — the view's slice does not stop one building a ceiling from
+  lowest, then on a level one after another, 2026-11-26: the end of a row first, the fewest ghost cells beside it,
+  then the nearest the cell this builder built last, `_last_built`, else the builder; on any level — the view's slice does not stop one building a ceiling from
   inside a house; a block from the bag — first the one in the hand; a floor replaces soft earth and gives it
   to the bag; with no blocks — waits), `to_list` / `from_list` (saved with the world, `"plans"`; JSON keeps a cell as `"(x, y, z)"` and a form as a
   float, `cell_of` reads them back), `take` /
@@ -243,9 +244,12 @@ lies around. The rules are shared (the server checks them), input and hints are 
   a thing (everything that is placed: `Items.is_interior`) from the bag shows at once as the finger or the
   mouse presses over a surface (2026-11-26), hanging in the air (`Props.hold_new`, `_drag_new`) over the place
   aimed at (`Placed.put_spot`, as the server will look for it, turned best: a door or window in the plane of
-  its wall by the face pressed, `face_of`, furniture with its back to a wall), its cells shown red only where
+  its wall by the face pressed, `face_of`, furniture with its back to a wall; a door or a window aimed over a
+  wall's top, before its face or by it sticks to the nearest wall cell, `Placed._wall_near`, `WALL_SNAP` cells
+  round, a door down to the floor, and of the spots there the one with most cells in the wall, `_wall_spot`,
+  2026-11-26; a gap in a wall, `_in_gap`, keeps the cell aimed at), its cells shown red only where
   it does not fit (2026-11-23: no body over a thing that fits; a door or a window held into a wall hangs
-  `WALL_OUT` before its face, toward its front, `out_of_wall`: in the wall the blocks it will cut would hide
+  `WALL_OUT` before its face, on the side the camera sees, `out_of_wall`: in the wall the blocks it will cut would hide
   it); it follows the finger and is set down where it
   is let go (a stroke with `put`; `PROP_PUT_AT` with the face, `Placed.put_at`: a door or window pressed on the
   side of a wall with no opening knocks the blocks out, they fall as if dug; blocks below the level of the
@@ -258,14 +262,16 @@ lies around. The rules are shared (the server checks them), input and hints are 
   (`Controls.ghost_thing_at`) tapped is taken off the blueprint after `DOUBLE_TAP_MS` (`PLAN_THING_TAKE`),
   tapped twice is turned (`turn_ghost`: a quarter, a door or a window the other way round), held is carried as
   a placed thing is (`_drag_ghost`, `PlanThings.hold`, `Placed.ghost_move_spot`) and let go moves there
-  (`_release_ghost`, `PLAN_THING_MOVE`); on a touch screen the place
-  aimed at is `FINGER_LIFT` over the finger (`_lifted`, `HudLayout.touch_px`: about 0.7 cm; no line is drawn
-  to it, the user's pick of 2026-11-26), and once held `HOLD_MS` (or moved `_slop`, a
-  `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing
+  (`_release_ghost`, `PLAN_THING_MOVE`); a thing is aimed right under the finger, raised only `Props.LIFT` over the surface
+  (2026-11-26: the lift over the finger, `FINGER_LIFT`, was taken off: a tap set things down over a wall's
+  top or behind it), and once held `HOLD_MS` (or moved `_slop`, a
+  `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing (found by
+  the cells it fills under the finger, `Controls.placed_at`, not by a finger's radius on the screen as
+  gathering finds it: a tap beside a door does not take the door, 2026-11-26)
   takes it back after `DOUBLE_TAP_MS` (`_tap_wait`; a second tap within that time turns it a quarter where it stands; only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
   furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
-  — the model is held up `Props.LIFT` over the free place nearest the place aimed at, on a touch screen
-  `FINGER_LIFT` over the finger with the «lift» buzz as for a new thing, `Placed.move_spot` as the
+  — the model is held up `Props.LIFT` over the free place nearest the place under the finger, with the «lift»
+  buzz as for a new thing, `Placed.move_spot` as the
   server looks for it, its cells red where it does not fit; `release` — `PROP_MOVE`, `Placed.move`, or the model
   drops back, `Props.settle`); a door, a window or a hatch held so (`Placed.is_opening`, movable since
   2026-11-26) follows the wall under the finger as a new one does (`_drag_opening`: `_aimed`, `_aim`, `face_of`,
@@ -310,9 +316,11 @@ lies around. The rules are shared (the server checks them), input and hints are 
   What the blueprint needs (2026-11-26, the building UX's PR 5): `BuildMode.need` counts the ghost cells (one
   block of their item each, a slope too, digging none) and ghost things (one each) within `Plans.PLAN_REACH`
   of the player (`count_need`, again when the blueprint changes or the player walks `NEED_STEP` cells, at most
-  every `CHECK_TIME`); the palette puts those items first, the most needed first, also the ones the bag has none
+  every `CHECK_TIME`, once the blueprint and the bag have stayed `NEED_SETTLE` as they are; `short_of` compares
+  the need with the bag's count taken with it, `_have`, so the ghosts do not blink red between the news of a cell
+  built and of the bag, 2026-11-26); the palette puts those items first, the most needed first, also the ones the bag has none
   of (dimmed, ×0; a tap says they are not in the bag), with the need in the cell's top left (`HotbarSlot.tag`,
-  `tag_color`: cold blue, red when `short_of`: fewer in the bag; blocks are never short when building is free)
+  `tag_color`: always pale as the bag's count, 2026-11-26; a shortage, `short_of`, tints the ghosts red; blocks are never short when building is free)
   and the need and the bag's count in the tip.
 - `src/client/input/cursor.gd` — the frame around the cells over which work will happen; `show_boxes` — whole
   cells as see-through bodies over everything (light: white, red), merged with no faces between their cells and a
