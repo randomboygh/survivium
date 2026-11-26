@@ -391,7 +391,7 @@ func _test_flatten() -> void:
 ## A figure drawn on uneven ground with `level` levels it as «выровнять» would (the user's
 ## item 11 and picks, 2026-11-26): the natural bump in its footprint over its level is dug
 ## out (the figure's own cells in it are dug, then built), a dip under it down to solid
-## ground (FLAT_DOWN at most) filled with soil, so it does not hang; a deeper dip is left;
+## ground (FLAT_DOWN at most) filled with soil; ground over the figure's top stays (2Б), so it does not hang; a deeper dip is left;
 ## a flight only has its dips filled; the eraser takes the earth's ghost with the figure.
 func _test_earthwork() -> void:
 	var w := WorldData.new(40, Vector2i(48, 48))
@@ -422,10 +422,12 @@ func _test_earthwork() -> void:
 	_check(as_is.blocked.has(Vector3i(11, 2, 10)) and as_is.hanging.has(Vector3i(13, 2, 10)),
 		"without levelling the bump blocks the wall and it hangs over the dip")
 	var n := plans.draw(actions, who, "line", a, b, 1, 1, false, 0, true)
-	_check(plans.cells.get(Vector3i(11, 2, 10)) == PLANKS and plans.cells.get(Vector3i(11, 3, 10)) == Plans.CUT
+	_check(plans.cells.get(Vector3i(11, 2, 10)) == PLANKS and not plans.cells.has(Vector3i(11, 3, 10))
 		and plans.cells.get(Vector3i(13, 1, 10)) == soil and plans.cells.get(Vector3i(13, 2, 10)) == PLANKS
-		and not plans.cells.has(Vector3i(15, 1, 10)) and not plans.cells.has(Vector3i(15, 0, 10)) and n == 8,
-		"the bump over the wall is cut, its cell in the bump drawn, the dip filled, the deep hole left: %s" % [plans.cells])
+		and not plans.cells.has(Vector3i(15, 1, 10)) and not plans.cells.has(Vector3i(15, 0, 10)) and n == 7,
+		"the wall's cell in the bump is drawn, the bump over the wall's top left (2Б), the dip filled, the deep hole left: %s" % [plans.cells])
+	var tall := plans.earthwork(actions, who, "line", a, b, Plans.shape("line", a, b, 2))
+	_check(tall.dig.has(Vector3i(11, 3, 10)) and tall.cut.is_empty(), "a wall two high digs the bump to its top")
 	var work := plans.earthwork(actions, who, "line", a, b, Plans.shape("line", a, b, 1))
 	var sorted := plans.sort(actions, who, "line", a, Plans.shape("line", a, b, 1), Mat.index(PLANKS), false, work)
 	_check(sorted.hanging.size() == 0 and sorted.blocked.size() == 0,
@@ -435,9 +437,9 @@ func _test_earthwork() -> void:
 	who.inventory.add("tools:stone_pickaxe", 1)
 	for i in 20:
 		plans.build(actions, who)
-	_check(w.get_cell(11, 3, 10) == Mat.AIR and w.get_cell(11, 2, 10) == Mat.index(PLANKS)
+	_check(w.get_cell(11, 3, 10) == Mat.STONE and w.get_cell(11, 2, 10) == Mat.index(PLANKS)
 		and w.get_cell(13, 1, 10) == Mat.DIRT and w.get_cell(13, 2, 10) == Mat.index(PLANKS),
-		"building digs the bump, the wall's cell in it, fills the dip and sets the wall")
+		"building digs the wall's cell in the bump, fills the dip and sets the wall")
 	_check(plans.cells.keys().all(func(c: Vector3i) -> bool: return c == Vector3i(15, 2, 10)),
 		"all is built but, maybe, the cell over the deep hole: %s" % [plans.cells])
 	# A square levels the ground inside its walls too; the eraser takes the earth's ghost.

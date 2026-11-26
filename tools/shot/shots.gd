@@ -366,6 +366,15 @@ const SHOTS := {
 	# palette's cells (cold, red when short), the table needed and none in the bag dimmed.
 	"build-need": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "need": true},
+	# A room and walls drawn on uneven ground (2026-11-26, the building UX's PR 6): as it
+	# lies (bumps block, dips hang red) and levelled (Plans.earthwork: bumps to dig, dips
+	# filled with soil).
+	"build-level-off": {"time": 0.4, "season": 1, "uneven": false, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"]},
+	"build-level-on": {"time": 0.4, "season": 1, "uneven": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"]},
+	"build-level-built": {"time": 0.4, "season": 1, "uneven": true, "built": true, "build_mode": "draw",
+		"stroke": false, "touch": true, "hide": ["chunks: grass"]},
 	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

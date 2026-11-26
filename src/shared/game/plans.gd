@@ -251,7 +251,7 @@ static func _in_ring(x: int, z: int, lo: Vector2i, hi: Vector2i, thick: int) -> 
 ## The cells a stroke from `a` to `b` takes the ghost off: every cell of the box round
 ## shape `kind` (see shape), whatever ghost lies there.
 ## With `level` (a figure drawn with its earthwork) it reaches as far as that would:
-## FLAT_DOWN levels under the figure's bottom, FLAT_UP over it.
+## FLAT_DOWN levels under the figure's bottom.
 static func erase_box(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1,
 		level := false) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
@@ -267,7 +267,6 @@ static func erase_box(kind: String, a: Vector3i, b: Vector3i, height: int, near 
 		lo.y -= FLAT_DOWN - 1
 		hi.y += FLAT_UP
 	elif level:
-		hi.y = maxi(hi.y, lo.y + FLAT_UP - 1)
 		lo.y -= FLAT_DOWN
 	for x in range(lo.x, hi.x + 1):
 		for z in range(lo.z, hi.z + 1):
@@ -326,8 +325,8 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 		var box: Array = []
 		var things_gone := 0
 		var near := Vector2(p.x, p.z)
-		# With `level` the box reaches over and under the figure as far as its earthwork, but
-		# there takes only the ghost of the earth (CUT, soil): a floor drawn above stays.
+		# With `level` the box reaches under the figure as far as its earthwork, but there
+		# takes only the ghost of the earth (soil): a floor drawn below stays.
 		var figure := erase_box(kind, a, b, height, near, thick)
 		var ys := Vector2i(figure[0].y, figure[-1].y) if not figure.is_empty() else Vector2i.ZERO
 		for c in erase_box(kind, a, b, height, near, thick, level):
@@ -421,8 +420,8 @@ static func is_earth(v: String) -> bool:
 ## The earthwork under figure `kind` drawn from `a` to `b` (its cells `all`, of `form`: see
 ## shape, flight) on uneven ground, as «выровнять» would do at the figure's level (the
 ## user's item 11 and picks, 2026-11-26): under its footprint (a line's columns, the whole
-## rectangle of a plane, a square, a box) the natural ground over its lowest level, FLAT_UP
-## levels high, is dug out, and the dips under it filled with soil down to solid ground
+## rectangle of a plane, a square, a box) the natural ground from its lowest level up to
+## its top (2Б: the ground over the top stays) is dug out, and the dips under it filled with soil down to solid ground
 ## when it is at most FLAT_DOWN levels down (a deeper one is left and the figure hangs
 ## there). A flight of slopes or stairs only has its dips filled, under each column's lowest
 ## cell: a flight up a hill stays on the hill. Trees, what players built and ghost cells
@@ -436,10 +435,13 @@ func earthwork(actions, who, kind: String, a: Vector3i, b: Vector3i, all: Array[
 	var w = actions.world
 	var flight_of := form & 3 != 0 and kind in FLIGHTS
 	var mine := {}
-	# Each column's level: the lowest cell of the figure there.
+	# Each column's level: the lowest cell of the figure there; the ground is cut as high as
+	# the figure's top (the user's pick 2Б: what is over it stays).
 	var cols := {}
+	var top: int = all[0].y
 	for c in all:
 		mine[c] = true
+		top = maxi(top, c.y)
 		var col := Vector2i(c.x, c.z)
 		cols[col] = mini(cols.get(col, c.y), c.y)
 	if not flight_of and kind in ["plane", "square", "cube"]:
@@ -452,7 +454,7 @@ func earthwork(actions, who, kind: String, a: Vector3i, b: Vector3i, all: Array[
 	for col: Vector2i in cols:
 		var base: int = cols[col]
 		if not flight_of:
-			for y in range(base, mini(base + FLAT_UP, w.size_y)):
+			for y in range(base, mini(top + 1, w.size_y)):
 				var up := Vector3i(col.x, y, col.y)
 				if not _natural_ground(actions, up) or cells.has(up) \
 						or not actions.territory_allows(who, up, "build"):

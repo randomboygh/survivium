@@ -1605,3 +1605,55 @@ func steep(w, at: Vector3) -> Vector3:
 	main.chunks.build_around()
 	return main.player.position
 
+
+## Uneven ground for a figure drawn with its earthwork (Plans.earthwork; the building UX's
+## PR 6, 2026-11-26): on a flat near `at`, bumps of natural dirt one and two levels high and
+## dips one and two deep where a room and walls are drawn north of the feet by the server,
+## with the ground levelled under them when `level`, and built at once when `built`. Where
+## the player stands.
+func uneven(w, at: Vector3, level: bool, built: bool) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var dirt := Mat.DIRT
+	var bumps := [[Vector3i(-3, 0, -8), 2], [Vector3i(-2, 0, -8), 1], [Vector3i(-3, 0, -7), 1], [Vector3i(0, 0, -6), 1],
+		[Vector3i(1, 0, -6), 2], [Vector3i(1, 0, -5), 1], [Vector3i(-4, 0, -4), 1], [Vector3i(4, 0, -9), 2], [Vector3i(4, 0, -8), 1],
+		[Vector3i(5, 0, -9), 1]]
+	for bump: Array in bumps:
+		for y in bump[1]:
+			var c: Vector3i = spot + bump[0] + Vector3i(0, y, 0)
+			w.set_cell(c.x, c.y, c.z, dirt)
+			w.set_natural(c.x, c.y, c.z, true)
+	var dips := [[Vector3i(-1, 0, -9), 1], [Vector3i(-1, 0, -8), 2], [Vector3i(0, 0, -9), 1], [Vector3i(-4, 0, -6), 1],
+		[Vector3i(2, 0, -4), 1], [Vector3i(6, 0, -6), 2], [Vector3i(6, 0, -5), 1]]
+	for dip: Array in dips:
+		for y in dip[1]:
+			var c: Vector3i = spot + dip[0] - Vector3i(0, y + 1, 0)
+			w.set_cell(c.x, c.y, c.z, Mat.AIR)
+	var keys := {}
+	for d: Array in bumps + dips:
+		var c: Vector3i = spot + d[0]
+		keys[WorldData.chunk_key(c.x, c.z)] = true
+	for key: Vector2i in keys:
+		main.chunks.remesh_chunk(key)
+	var hp = main.host.player
+	hp.hands = ["materials:planks", ""]
+	hp.active = 0
+	hp.position = (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
+	var plans = main.session.plans
+	plans.draw(main.session.actions, hp, "line", spot + Vector3i(4, 0, -9), spot + Vector3i(6, 0, -9), 2, 1, false, 0, level)
+	plans.draw(main.session.actions, hp, "line", spot + Vector3i(6, 0, -8), spot + Vector3i(6, 0, -4), 1, 1, false, 0, level)
+	plans.draw(main.session.actions, hp, "square", spot + Vector3i(-4, 0, -9), spot + Vector3i(2, 0, -4), 2, 1, false, 0, level)
+	if built:
+		# Built at once as the action button would: the earth dug and filled, the blocks set.
+		var cells: Array = plans.cells.keys()
+		cells.sort_custom(func(x: Vector3i, y: Vector3i) -> bool: return x.y < y.y)
+		for c: Vector3i in cells:
+			var item: String = plans.cells[c]
+			if item == Plans.CUT:
+				w.set_cell(c.x, c.y, c.z, Mat.AIR)
+			else:
+				main.session.actions.build_cell(c, Mat.index(Plans.Items.get_item(item).place), 0)
+				w.set_natural(c.x, c.y, c.z, item == Plans.soil_item())
+		plans.erase(main.session.actions, hp, cells)
+		for key: Vector2i in keys:
+			main.chunks.remesh_chunk(key)
+	return Vector3(spot.x + 0.5, spot.y, spot.z + 0.5) * CELL
