@@ -984,7 +984,8 @@ func _place_torn(view: Vector2, sky) -> void:
 	var toward: Vector2 = _torn_up * TORN_FRONT
 	var rise := TORN_FRONT * PixelView.squash / maxf(PixelView.slope, 0.1)
 	for col: Vector2i in _torn_found:
-		var sp: int = world.trees[col]
+		# Felled or gone since it was found (the search runs over several frames).
+		var sp: int = world.trees.get(col, -1)
 		if sp < 0 or sp >= Trees.SPECIES.size() or Trees.SPECIES[sp].dead:
 			continue
 		# The crown's cells round the trunk (a pictured tree's crown may leave its own column).
