@@ -10,6 +10,7 @@ extends SceneTree
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
 
+const Felling := preload("res://src/shared/game/felling.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -148,6 +149,10 @@ func _run() -> void:
 		var shot: Dictionary = Shots.SHOTS[shot_name] if Shots.SHOTS.has(shot_name) else Shots.pictured(shot_name)
 		if shot.is_empty():
 			shot = Shots.wood(shot_name)
+		if shot.is_empty():
+			shot = Shots.stumps(shot_name)
+		if shot.is_empty():
+			shot = Shots.pieces(shot_name)
 		main.session.clock.time_speed = 0.0
 		main.session.clock.season = shot.season
 		# The day, where it matters (the sea glows on some nights only, Sky.glowing_night).
@@ -297,10 +302,18 @@ func _run() -> void:
 			places.orchard(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, 48))
 			# A long row is shot in parts: the player steps `pan` cells east along it.
 			main.player.position.x += shot.get("pan", 0) * CELL
+		if shot.has("stumps"):
+			# North-west of the spawn, as the pictured trees.
+			main.player.position = places.stumps(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
+				shot.stumps, shot.has("fell_after"))
+		if shot.has("pieces"):
+			# North-west of the spawn, as the stumps.
+			main.player.position = places.pieces(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
+				shot.pieces, shot.piece_kind, shot.piece_turn)
 		if shot.has("pictured"):
 			# North-west of the spawn, away from the others.
 			main.player.position = places.pictured(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
-				shot.pictured, shot.get("variant", -1), shot.get("own_turn", -1))
+				shot.pictured, shot.get("variant", -1), shot.get("own_turn", -1), shot.get("dry", -1))
 			if shot.has("approach"):
 				# Three cells off the thick trunk that way, walking up to it until it stops them.
 				var a: float = shot.approach * PI / 4.0
@@ -531,6 +544,27 @@ func _run() -> void:
 					who.burning[held] = [Items.burns(held) * float(shot.burnt)]
 		if shot.has("chop_tree"):
 			await _chop_tree(int(shot.chop_tree), float(shot.get("slow", 1.0)))
+		if shot.has("fell_after"):
+			# The thick trees fall now, felled from the south (TreeHits.fall): `fell_after` pictures
+			# (<name>-s01.png and on) 0.2 s of the fall apart, however slowly the frames are drawn here.
+			var hits = main.effects.trees
+			for c: Vector3i in places.felling_at:
+				Felling.fell(main.world, c + Vector3i(0, 1, 0), Vector2(0.3, -1.0))
+				main.chunks.on_cell_changed(c)
+			hits.set_process(false)
+			for i in 600:
+				if not hits._falling.is_empty():
+					break
+				await process_frame
+			for i in int(shot.fell_after):
+				for j in 3:
+					for f: Array in hits._falling:
+						f[3] = 0.2 * i
+					hits._process_falls(0.0)
+					await process_frame
+				if not keys_only:
+					root.get_texture().get_image().save_png(out_dir.path_join("%s-s%02d.png" % [shot_name, i + 1]))
+			hits.set_process(true)
 		if shot.has("strike_animal"):
 			await _strike_animal(str(shot.strike_animal), shot.get("kill", false))
 		if shot.has("cast"):

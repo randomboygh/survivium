@@ -118,7 +118,9 @@ folder lacks, the game looks for in the mod's `common/`.
   (`textures/<bark>.png`, 48×16 like a material's: end, bark, bottom); the cell stays the same (a log),
   so it is chopped and yields the same. Bark is not a material: materials together with barks can be no
   more than 21 (room in the atlas; a species with a shared bark from `common/` takes no room), the validator checks it.
-- What the crown looks like is also the species' data: `shape` — the form (round, of caps, column, weeping,
+- A grown tree is drawn from its pictures: `picture` (required) — the bundle's `tree/look.yaml` with the frames made from
+  the approved drawings (`survivium-builds/trees-redraw`, see `docs/systems/world-generation.md`). What a young tree
+  grown from a sapling looks like is still the species' data: `shape` — the form (round, of caps, column, weeping,
   an umbrella on a bare trunk, a cone in tiers, palm), `leaf` — the pattern of the foliage (pointed leaves, curly balls,
   big round overlapping leaves, needles), `blossom` — the spring bloom colour, `dead` — a dead tree.
   The fields are described in `oak/data/trees.yaml`. The crown's shadow falls as a patch from each cap, a dead tree has no shadow.

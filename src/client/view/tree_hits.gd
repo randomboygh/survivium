@@ -43,6 +43,16 @@ const LEAF_CURVE := 0.8
 const LEAF_EMITTERS := 3
 ## How far round its trunk a crown is looked for (cells, each way).
 const CROWN_REACH := 6
+## A felled tree drawn as a picture falls (decision 4А of the trees' redraw: away from the
+## one who felled it, in about a second): turning over faster and faster to FALL_ANGLE in
+## FALL_TIME, a little bounce of FALL_BOUNCE back up and down in BOUNCE_TIME, then fading out
+## in FADE_TIME (the logs and twigs lie where it fell). FALLS at once (tree.gdshader `falls`).
+const FALLS := 4
+const FALL_TIME := 1.0
+const FALL_ANGLE := PI / 2.0
+const FALL_BOUNCE := 0.06
+const BOUNCE_TIME := 0.25
+const FADE_TIME := 0.4
 
 var game
 var fx
@@ -53,6 +63,10 @@ var _shaking := []
 ## Whether the material was last left with a shake on it.
 var _set := false
 var _emitters: Array[CPUParticles3D] = []
+## [node, foot, way (x, z), seconds since] of the trees falling.
+var _falling := []
+## Column -> where the last blow on its trunk was struck from (the way it falls, `fall`).
+var _struck := {}
 var _next := 0
 
 
@@ -70,7 +84,76 @@ func hit(at: Vector3, delay: float, from: Vector3) -> void:
 	_waiting.append([delay, Vector3i((at / CELL).floor()), from])
 
 
+## The pictured tree of column `col` was felled: its picture (`data`, TreeSprites.build's
+## instance: 20 floats) falls away from where the last blow came (from the player's own
+## place when none was seen).
+func fall(col: Vector2i, data: PackedFloat32Array) -> void:
+	if game.get("tree_mat") == null or data.size() < 20:
+		return
+	if _falling.size() >= FALLS:
+		_end_fall(0)
+	var foot := Vector3(data[3], data[7], data[11])
+	var from: Vector3 = _struck.get(col, game.player.position if game.get("player") != null else foot)
+	_struck.erase(col)
+	var way := Vector2(foot.x - from.x, foot.z - from.z)
+	if way.length() < 0.01:
+		way = Vector2.from_angle(float(hash(col) % 628) / 100.0)
+	var node := Foliage.multimesh(game.tree_mesh, game.tree_mat, true, true)
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	node.multimesh.instance_count = 1
+	node.multimesh.buffer = data
+	# Lying, it reaches as far as it stood high.
+	var r := 16.0
+	node.custom_aabb = AABB(foot + Vector3(-r, -1.0, -r), Vector3(2.0 * r, r, 2.0 * r))
+	game.world_root.add_child(node)
+	_falling.append([node, foot, way.normalized(), 0.0])
+
+
+## The fall's turn (radians) and fade (0..1) `t` seconds after it began.
+static func fall_at(t: float) -> Vector2:
+	if t < FALL_TIME:
+		var k := t / FALL_TIME
+		return Vector2(FALL_ANGLE * k * k, 0.0)
+	t -= FALL_TIME
+	if t < BOUNCE_TIME:
+		return Vector2(FALL_ANGLE - FALL_BOUNCE * sin(PI * t / BOUNCE_TIME), 0.0)
+	return Vector2(FALL_ANGLE, clampf((t - BOUNCE_TIME) / FADE_TIME, 0.0, 1.0))
+
+
+func _end_fall(i: int) -> void:
+	var f: Array = _falling[i]
+	f[0].queue_free()
+	_falling.remove_at(i)
+
+
+func _process_falls(delta: float) -> void:
+	if _falling.is_empty() and game.get("tree_mat") == null:
+		return
+	var falls := PackedVector4Array()
+	var ways := PackedVector4Array()
+	falls.resize(FALLS)
+	ways.resize(FALLS)
+	for i in range(_falling.size() - 1, -1, -1):
+		_falling[i][3] += delta
+		if _falling[i][3] >= FALL_TIME + BOUNCE_TIME + FADE_TIME:
+			_end_fall(i)
+	for i in _falling.size():
+		var f: Array = _falling[i]
+		var at := fall_at(f[3])
+		falls[i] = Vector4(f[1].x, f[1].y, f[1].z, at.x)
+		ways[i] = Vector4(f[2].x, f[2].y, 0.0, at.y)
+	if game.tree_mat != null and (not _falling.is_empty() or _fall_set):
+		game.tree_mat.set_shader_parameter("falls", falls)
+		game.tree_mat.set_shader_parameter("fall_ways", ways)
+		game.tree_mat.set_shader_parameter("fall_count", _falling.size())
+	_fall_set = not _falling.is_empty()
+
+
+var _fall_set := false
+
+
 func _process(delta: float) -> void:
+	_process_falls(delta)
 	for i in range(_waiting.size() - 1, -1, -1):
 		var w: Array = _waiting[i]
 		w[0] -= delta
@@ -117,6 +200,9 @@ func _land(cell: Vector3i, from: Vector3) -> void:
 	if tree.is_empty():
 		return
 	var col: Vector2i = tree[0]
+	if _struck.size() > 64:
+		_struck.clear()
+	_struck[col] = from
 	var logs: int = game.world.log_col(col.x, col.y)
 	var foot := Vector3(col.x + 0.5, WorldData.level_of(logs & -logs), col.y + 0.5) * CELL
 	# The crown leans first away from the axe, along the screen.
