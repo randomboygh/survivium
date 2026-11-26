@@ -390,6 +390,10 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/view_test.gd`: The client view: the pixel view, sprite sheets, tracks, the level cut, sound and the camera's smooth turn.
 - `tests/unit/wildlife_test.gd`: The animals: who fears whom, how they come, wander, flee and hunt, flocks and birds.
 
+## tools/_tmp
+
+- `tools/_tmp/needle_prev.gd`: (no description)
+
 ## tools/art
 
 - `tools/art/bear_art.gd`: The bear, from the reference the user gave (the project library's survivium-builds/animals/anim/bear/: bear-reference.gif, a sheet of four directions with the idle, the attack, the run and the death…

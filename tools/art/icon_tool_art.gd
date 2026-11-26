@@ -310,6 +310,22 @@ const ART := {
 		".ba.........",
 		"............",
 	]],
+	# A metal needle (copper; the others are its VARIANTS): thinner than the bone one, a
+	# pixel wide, with its eye open at the blunt end.
+	"copper_needle": [["copper"], [
+		"............",
+		".........dc.",
+		"........c,b.",
+		"........cb..",
+		".......d....",
+		"......c.....",
+		".....c......",
+		"....c.......",
+		"...c........",
+		"..b.........",
+		".b..........",
+		"............",
+	]],
 	"sling_stone": [["stone"], [
 		"............",
 		"............",
@@ -423,6 +439,9 @@ const VARIANTS := {
 	"bronze_knife": ["flint_knife", {"flint": "bronze", "cord": "bronze"}],
 	"iron_knife": ["flint_knife", {"flint": "iron", "cord": "iron"}],
 	"steel_knife": ["flint_knife", {"flint": "steel", "cord": "steel"}],
+	"bronze_needle": ["copper_needle", {"copper": "bronze"}],
+	"iron_needle": ["copper_needle", {"copper": "iron"}],
+	"steel_needle": ["copper_needle", {"copper": "steel"}],
 	"bronze_spear": ["flint_spear", {"flint": "bronze"}],
 	"iron_spear": ["flint_spear", {"flint": "iron"}],
 	"sword": ["iron_sword", {"iron": "planks"}],

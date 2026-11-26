@@ -7,6 +7,15 @@
 # content/tools/needle/data/items.yaml
 "[tools.items.bone_needle]": "Костяная игла"
 "[tools.items.bone_needle.about]": "Шьёт кожу. Лежит в сумке, пока шьёшь."
+"[tools.items.copper_needle]": "Медная игла"
+"[tools.items.metal_needle.about]": "Шьёт кожу и ткань, служит много дольше костяной. Лежит в сумке, пока шьёшь."
+"[tools.items.bronze_needle]": "Бронзовая игла"
+"[tools.items.iron_needle]": "Железная игла"
+"[tools.items.steel_needle]": "Стальная игла"
 
 # content/tools/needle/data/recipes.yaml
 "[tools.recipes.bone_needle]": "Костяная игла"
+"[tools.recipes.copper_needle]": "Медная игла"
+"[tools.recipes.bronze_needle]": "Бронзовая игла"
+"[tools.recipes.iron_needle]": "Железная игла"
+"[tools.recipes.steel_needle]": "Стальная игла"

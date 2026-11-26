@@ -10,3 +10,45 @@
   icon: bone_needle
   tool: needle
   durability: 120
+# Metal needles: the same work as the bone one, only they last longer and are mended with
+# their metal at a station that mends tools.
+- id: copper_needle
+  title: "[tools.items.copper_needle]"
+  description: "[tools.items.metal_needle.about]"
+  weight: 0.02
+  stack: 1
+  model: copper_needle
+  icon: copper_needle
+  tool: needle
+  durability: 500
+  repair: {materials:copper_bar: 1}
+- id: bronze_needle
+  title: "[tools.items.bronze_needle]"
+  description: "[tools.items.metal_needle.about]"
+  weight: 0.02
+  stack: 1
+  model: bronze_needle
+  icon: bronze_needle
+  tool: needle
+  durability: 800
+  repair: {materials:bronze_bar: 1}
+- id: iron_needle
+  title: "[tools.items.iron_needle]"
+  description: "[tools.items.metal_needle.about]"
+  weight: 0.02
+  stack: 1
+  model: iron_needle
+  icon: iron_needle
+  tool: needle
+  durability: 1200
+  repair: {materials:iron_bar: 1}
+- id: steel_needle
+  title: "[tools.items.steel_needle]"
+  description: "[tools.items.metal_needle.about]"
+  weight: 0.02
+  stack: 1
+  model: steel_needle
+  icon: steel_needle
+  tool: needle
+  durability: 1800
+  repair: {materials:steel_bar: 1}

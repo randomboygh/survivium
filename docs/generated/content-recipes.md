@@ -16,7 +16,7 @@
 
 | Процесс | Рецептов | Где делают |
 |---|---|---|
-| [crafting] (`craft`) | 164 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
+| [crafting] (`craft`) | 168 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
 | Переработка (`refine`) | 12 | руки, [tools.items.workbench], [tools.items.drying_rack], [tools.items.loom] |
 | Плавка и обжиг (`smelt`) | 15 | [tools.items.forge], [tools.items.bloomery], [tools.items.kiln] |
 | Готовка (`cook`) | 29 | [core.items.campfire], [tools.items.kiln] |
@@ -124,7 +124,6 @@
 | [tools.recipes.iron_safe] `tools:iron_safe` | [tools.items.iron_safe] ×1 | [materials.items.iron_bar] ×10 | — | [tools.items.anvil] | — | 16 с | 14 | 5. [core.eras.iron] | — |
 | [tools.recipes.brick_stove] `tools:brick_stove` | [tools.items.brick_stove] ×1 | [materials.items.brick] ×12, [materials.items.iron_bar] ×1, [resources.items.clay] ×2 | — | [tools.items.workbench] | — | 12 с | 13 | 5. [core.eras.iron] | — |
 | [tools.recipes.door_wreath] `tools:door_wreath` | [tools.items.door_wreath] ×1 | [resources.items.branch] ×3, [materials.items.cord] ×1 | — | руки | — | 3 с | 2 | 1. [core.eras.primitive] | — |
-| [tools.recipes.bone_needle] `tools:bone_needle` | [tools.items.bone_needle] ×1 | [animals.items.bone] ×1 | — | руки | [tool.knife] (износ 1) | 3 с | 3 | 1. [core.eras.primitive] | — |
 | [tools.recipes.potters_wheel] `tools:potters_wheel` | [tools.items.potters_wheel] ×1 | [materials.items.planks] ×4, [resources.items.stone] ×4, [resources.items.branch] ×2 | — | [tools.items.workbench] | — | 8 с | 5 | 1. [core.eras.primitive] | — |
 | [tools.recipes.raw_pot] `tools:raw_pot` | [tools.items.raw_pot] ×1 | [resources.items.clay] ×3 | — | [tools.items.potters_wheel] | — | 5 с | 6 | 1. [core.eras.primitive] | — |
 | [materials.recipes.raw_crucible] `materials:raw_crucible` | [materials.items.raw_crucible] ×1 | [resources.items.clay] ×3, [resources.items.sand] ×1 | — | [tools.items.potters_wheel] | — | 5 с | 6 | 1. [core.eras.primitive] | — |
@@ -146,6 +145,11 @@
 | [tools.recipes.iron_knife] `tools:iron_knife` | [tools.items.iron_knife] ×1 | [materials.items.iron_bar] ×1, [materials.items.planks] ×1 | — | [tools.items.anvil] | — | 5 с | 14 | 5. [core.eras.iron] | — |
 | [tools.recipes.steel_knife] `tools:steel_knife` | [tools.items.steel_knife] ×1 | [materials.items.steel_bar] ×1, [materials.items.planks] ×1 | — | [tools.items.anvil] | — | 5 с | 14 | 6. [core.eras.steel] | — |
 | [tools.recipes.lantern] `tools:lantern` | [tools.items.lantern] ×1 | [materials.items.glass] ×2, [materials.items.copper_bar] ×1, [materials.items.tar] ×1 | — | [tools.items.workbench] | — | 8 с | 9 | 3. [core.eras.bronze] | — |
+| [tools.recipes.bone_needle] `tools:bone_needle` | [tools.items.bone_needle] ×1 | [animals.items.bone] ×1 | — | руки | [tool.knife] (износ 1) | 3 с | 3 | 1. [core.eras.primitive] | — |
+| [tools.recipes.copper_needle] `tools:copper_needle` | [tools.items.copper_needle] ×4 | [materials.items.copper_bar] ×1 | — | [tools.items.workbench] | — | 4 с | 7 | 3. [core.eras.bronze] | — |
+| [tools.recipes.bronze_needle] `tools:bronze_needle` | [tools.items.bronze_needle] ×4 | [materials.items.bronze_bar] ×1 | — | [tools.items.workbench] | — | 4 с | 10 | 4. [core.eras.alloy] | — |
+| [tools.recipes.iron_needle] `tools:iron_needle` | [tools.items.iron_needle] ×4 | [materials.items.iron_bar] ×1 | — | [tools.items.anvil] | — | 4 с | 14 | 5. [core.eras.iron] | — |
+| [tools.recipes.steel_needle] `tools:steel_needle` | [tools.items.steel_needle] ×4 | [materials.items.steel_bar] ×1 | — | [tools.items.anvil] | — | 4 с | 14 | 6. [core.eras.steel] | — |
 | [tools.recipes.stone_pickaxe] `tools:stone_pickaxe` | [tools.items.stone_pickaxe] ×1 | [resources.items.flint] ×2, [resources.items.branch] ×2, [materials.items.cord] ×1 | — | [tools.items.workbench] | — | 6 с | 3 | 1. [core.eras.primitive] | — |
 | [tools.recipes.wooden_pickaxe] `tools:wooden_pickaxe` | [tools.items.wooden_pickaxe] ×1 | [resources.items.branch] ×3, [materials.items.cord] ×1 | — | руки | — | 4 с | 2 | 1. [core.eras.primitive] | — |
 | [tools.recipes.copper_pickaxe] `tools:copper_pickaxe` | [tools.items.copper_pickaxe] ×1 | [materials.items.copper_bar] ×3, [materials.items.planks] ×1 | — | [tools.items.workbench] | — | 7 с | 7 | 3. [core.eras.bronze] | — |

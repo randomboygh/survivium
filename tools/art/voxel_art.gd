@@ -207,6 +207,8 @@ static func drop(model: String) -> VoxelModel:
 			return _meat(Color(0.4, 0.16, 0.12), Color(0.55, 0.3, 0.2))
 		"bone_needle":
 			return _needle()
+		"copper_needle", "bronze_needle", "iron_needle", "steel_needle":
+			return _metal_needle(_head(model))
 		"bone_glue":
 			return _heap(Color(0.82, 0.62, 0.3))
 		"tallow_candle":
@@ -1298,6 +1300,17 @@ static func _needle() -> VoxelModel:
 	m.set_voxel(Vector3i(-4, 0, -1), white * 0.9)
 	m.set_voxel(Vector3i(-4, 0, 1), white * 0.9)
 	m.set_voxel(Vector3i(-5, 0, 0), white * 0.9)
+	return m
+
+
+## A metal needle: a thin shaft of `metal` along x, sharp at one end, with an open eye
+## (a ring round an empty voxel) at its blunt end.
+static func _metal_needle(metal: Color) -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-3, 5):
+		m.set_voxel(Vector3i(x, 0, 0), metal * (0.8 if x == 4 else 1.0))
+	for v in [Vector3i(-4, 0, -1), Vector3i(-4, 0, 1), Vector3i(-5, 0, -1), Vector3i(-5, 0, 1), Vector3i(-6, 0, 0)]:
+		m.set_voxel(v, metal * 0.9)
 	return m
 
 

@@ -7,6 +7,15 @@
 # content/tools/needle/data/items.yaml
 "[tools.items.bone_needle]": "Agulha de osso"
 "[tools.items.bone_needle.about]": "Costura couro. Fica na bolsa enquanto você costura."
+"[tools.items.copper_needle]": "Agulha de cobre"
+"[tools.items.metal_needle.about]": "Costura couro e tecido e dura muito mais que uma de osso. Fica na bolsa enquanto você costura."
+"[tools.items.bronze_needle]": "Agulha de bronze"
+"[tools.items.iron_needle]": "Agulha de ferro"
+"[tools.items.steel_needle]": "Agulha de aço"
 
 # content/tools/needle/data/recipes.yaml
 "[tools.recipes.bone_needle]": "Agulha de osso"
+"[tools.recipes.copper_needle]": "Agulha de cobre"
+"[tools.recipes.bronze_needle]": "Agulha de bronze"
+"[tools.recipes.iron_needle]": "Agulha de ferro"
+"[tools.recipes.steel_needle]": "Agulha de aço"
