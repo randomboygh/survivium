@@ -107,6 +107,27 @@ uniform int shake_count = 0;
 // pixels the picture is widened by while it shakes, so the crown may lean past its cell.
 const float SHAKE_RISE = 4.0;
 const float SHAKE_ROOM = 4.0;
+// The wind sways a standing tree's crown in whole pixels, as leaves.gdshader's cards: by
+// SWAY_PX plus SWAY_WIND a unit of wind (the global `wind`) to and fro, and a steady lean
+// of SWAY_LEAN a unit of the wind across the screen; nothing under SWAY_FROM over the foot,
+// in full from SWAY_FROM + SWAY_RISE up (world units), the swing running up the crown by
+// SWAY_WAVE a unit of height. The picture is widened by SWAY_ROOM pixels each side for it.
+const float SWAY_PX = 0.3;
+const float SWAY_WIND = 1.4;
+const float SWAY_LEAN = 0.6;
+const float SWAY_FROM = 1.0;
+const float SWAY_RISE = 6.0;
+const float SWAY_WAVE = 0.25;
+const float SWAY_ROOM = 4.0;
+// Two trees whose feet are as far from the camera (in one row across the screen) draw at
+// one depth where they overlap: the depth test then takes rows of either crown in turn
+// (stripes). Each tree is drawn up to DEPTH_TIE world units nearer the camera by its foot's
+// hash, so one crown is wholly over the other; much less than the depth between rows of
+// cells.
+const float DEPTH_TIE = 0.04;
+// The bark's outline is left off a picture's lower edge (where the trunk and the roots meet
+// the ground) up to BASE_RISE pixels over the foot's row: such a texel takes the bark over it.
+const float BASE_RISE = 16.0;
 
 // Trees falling, felled (TreeHits.fall: up to 4): the foot of the trunk (xyz) and how far
 // the tree has turned over (w, radians), the way it falls (x, z) and how far it has faded
@@ -124,6 +145,8 @@ varying flat float fading;
 varying flat vec2 info;
 // How far this tree's top leans now (pixels), and its foot's row in the picture.
 varying flat vec2 shake;
+// The phase of this tree's sway (radians), -1 for one not swaying (a stump, a falling tree).
+varying flat float sway_phase;
 varying vec3 world_pos;
 varying vec3 foot_pos;
 varying vec2 light_xz;
@@ -178,7 +201,9 @@ void vertex() {
 		}
 	}
 	fading = fall >= 0 ? fall_ways[fall].w : -1.0;
-	float room = lean != 0.0 ? SHAKE_ROOM : 0.0;
+	bool sways = COLOR.a > -0.5 && fall < 0;
+	sway_phase = sways ? hash12(foot.xz * 1.7) * 6.2832 : -1.0;
+	float room = (lean != 0.0 ? SHAKE_ROOM : 0.0) + (sways ? SWAY_ROOM : 0.0);
 	// The foot on the middle of a pixel, so the picture's texels are the screen's.
 	vec2 right = vec2(-view_up.y, view_up.x);
 	vec2 sp = screen_plane(foot) * TEXELS;
@@ -216,6 +241,9 @@ void vertex() {
 		VERTEX = shear(p);
 	}
 	light_xz = VERTEX.xz;
+	vec4 seen = VIEW_MATRIX * vec4(VERTEX, 1.0);
+	seen.z += DEPTH_TIE * (0.1 + 0.9 * hash12(foot.xz * 3.7 + 11.0));
+	POSITION = PROJECTION_MATRIX * seen;
 }
 
 vec3 unocta(vec2 e) {
@@ -475,14 +503,21 @@ ivec2 side(int i) {
 // half a step darker, so each step steps down to the next through a halftone. A texel on the
 // picture's edge with bark inside it (across from the empty side, not an edge itself) is its
 // outline: one tone all round, OUTLINE_LOW halves up from the darkest step, whatever the
-// light (a twig all outline keeps its drawn steps).
+// light (a twig all outline keeps its drawn steps). `base`: the texel is low on the picture
+// (BASE_RISE): its lower edge takes no outline (the user's ask, 2026-11-26: none where the
+// tree meets the ground): the drawn outline there, empty under it, is not drawn (`bits` -1).
 const int OUTLINE_LOW = 1;
-ivec2 bark_look(ivec2 t, bool bare, int bits, ivec2 lo, ivec2 hi) {
+ivec2 bark_look(ivec2 t, bool bare, inout int bits, ivec2 lo, ivec2 hi, bool base) {
 	int n[4];
 	bool edge = false;
 	for (int i = 0; i < 4; i++) {
 		n[i] = bark_bits(t + side(i), bare, lo, hi);
 		edge = edge || n[i] == -2;
+	}
+	if (base && n[2] == -2 && n[3] >= 0) {
+		// Empty under it: the drawn outline of the bottom edge, left out (bits -1).
+		bits = -1;
+		return ivec2(0);
 	}
 	if (!edge) {
 		int halves = 0;
@@ -613,6 +648,15 @@ void fragment() {
 		// A shaken tree leans in whole pixels, the more the higher (as leaves.gdshader's crowns).
 		at.x -= round(shake.x * clamp((shake.y - px.y) / (SHAKE_RISE * TEXELS), 0.0, 1.0));
 	}
+	if (sway_phase >= 0.0) {
+		// Swayed by the wind in whole pixels, the more the higher, the swing running up.
+		float h = (shake.y - px.y) / TEXELS;
+		float bend = clamp((h - SWAY_FROM) / SWAY_RISE, 0.0, 1.0);
+		vec2 across = vec2(-view_up.y, view_up.x);
+		float swing = sin(TIME * 1.1 + sway_phase - h * SWAY_WAVE) * (SWAY_PX + length(wind) * SWAY_WIND)
+			+ dot(wind, across) * SWAY_LEAN;
+		at.x -= round(clamp(swing, -SWAY_ROOM, SWAY_ROOM) * bend * bend);
+	}
 	if (at.x < 0.0 || at.y < 0.0 || at.x >= cell.z || at.y >= cell.w) {
 		discard;
 	}
@@ -670,7 +714,11 @@ void fragment() {
 		if (a == 2 || a == 3) {
 			int bits = int(round(g.r * 255.0)) | (int(round(g.g * 255.0)) << 8);
 			ivec2 lo = ivec2(cell.xy);
-			col = wood_colour(k, g, g, bark_look(t, false, bits, lo, lo + ivec2(cell.zw)), L, shade);
+			ivec2 look = bark_look(t, false, bits, lo, lo + ivec2(cell.zw), info.y > -2.5 && at.y > shake.y - BASE_RISE);
+			if (bits < 0) {
+				discard;
+			}
+			col = wood_colour(k, g, g, look, L, shade);
 			if (a == 3) {
 				col = mix(col, ramp(k, 7.0), 0.5);
 				shade = mix(shade, ramp(k, 7.0), 0.5);
@@ -726,7 +774,11 @@ void fragment() {
 			}
 			int bits = int(round(g.r * 255.0)) | (int(round(g.g * 255.0)) << 8);
 			ivec2 lo = ivec2(cell.xy);
-			col = wood_colour(k, g, open, bark_look(t, from_bare, bits, lo, lo + ivec2(cell.zw)), L, shade);
+			ivec2 look = bark_look(t, from_bare, bits, lo, lo + ivec2(cell.zw), at.y > shake.y - BASE_RISE);
+			if (bits < 0) {
+				discard;
+			}
+			col = wood_colour(k, g, open, look, L, shade);
 			if (soft) {
 				col = mix(col, ramp(k, 7.0), 0.5);
 				shade = mix(shade, ramp(k, 7.0), 0.5);
