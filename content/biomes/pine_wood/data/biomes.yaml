@@ -4,7 +4,7 @@
 # of role beach), clay (role bank), snow, peat, salt (the materials of those roles); stone_below / clay_above — the soil noise threshold (-1..1), below/above
 # which stone/clay shows through (instead of clay, the ground of field clay_as); dunes — by how many cells dunes raise the ground (dune noise).
 # trees — shares of species on the tree grid (the rest is empty), tree_chance — the chance of a tree at a grid node,
-# groves — the chance in groves (where forest noise is high); bushes — shares of bushes, bush_sparsity — one attempt
+# groves — the chance in groves (where forest noise is high); pieces — the chances of a log, a fallen trunk, a broken trunk lying in an 8x8 square of the woods; bushes — shares of bushes, bush_sparsity — one attempt
 # of a bush per that many cells (0 — none). spawn — the game can start here; sandstorms — instead of rain
 # sandstorms. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
 # for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
@@ -19,6 +19,7 @@
   stone_below: -0.55
   trees: {plants:pine: 0.8, plants:birch: 0.1, plants:deadwood: 0.05}
   tree_chance: 0.13
+  pieces: [0.035, 0.035, 0.03]
   bushes: {plants:blueberry: 0.6, plants:shrub: 0.4}
   bush_sparsity: 140
   tints: {water: "#58968c"}

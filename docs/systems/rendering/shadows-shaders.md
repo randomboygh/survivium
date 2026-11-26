@@ -33,9 +33,12 @@ Part of [The picture](../rendering.md). Files: fire and sun shadows, the atlas, 
   pictures and their shadows on the ground and on each other, see [chunks.md](../chunks.md)), `sprite` (people, animals, tumbleweeds; under
   the sun and the moon it casts its shadow as it is drawn, facing the camera, so the light lays the picture
   on the ground skewed, each row moved away from the light by its height, and it falls on slopes and walls
-  like any real shadow; lit along the picture's width it leans back, `lean_shadow`, so the shadow is never
-  thinner across the view than `LEAN_DEPTH` of the height; a fire's light still finds it turned to face
-  the fire), `sprite_water`, `sprite_xray`,
+  like any real shadow, always from the feet; when the shadow of its height falls along the picture's width
+  (the camera turned east or west, the sun about south) the width turns the shorter way about the middle
+  column, `side_spread`, so the columns never fall on one line (`SIDE_SPREAD`, the least sine kept), and the
+  turned card slides along the light to lie flat a pixel over the foot (`lay_flat`, `CARD_LIFT`), so the
+  picture takes none of its own shadow (it no longer climbs a wall then); a fire's light still finds it
+  turned to face the fire), `sprite_water`, `sprite_xray`,
   `particle`, `track`, `fire_shadow`, `sun_rays`, `grade` (colour correction), `map_ground` (the map),
   `cursor` (and the blueprint's ghost), `land` (the plots' borders).
 - `project.godot`, the section `[shader_globals]`: the global parameters the code changes (`cut_height`,

@@ -12,16 +12,17 @@ const Trees := preload("res://src/shared/content/trees.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 
-## Tiers of lobes of an umbrella crown (pine), see _lobed.
-const UMBRELLA_TIERS := 3
-## How high over the crown's middle an umbrella's top lobe stands, in its heights.
-const UMBRELLA_TOP := 1.65
-## The lowest a crown point of a broad-leaved tree sits above its trunk's foot, in cells.
-const LOWEST_POINT := 3
-## How much narrower the levels between the layers of a broad crown are than the layers.
-const INSET := 0.72
 ## A crown point belongs to the nearest trunk within this many cells.
 const TREE_REACH := 8
+## The pieces of wood lying in the woods (WorldData.tree_pieces, TreeLooks.PIECES): a log,
+## a fallen trunk with its limbs, a broken trunk with a sprout. A piece is one log cell on
+## the ground in its column, noted as a tree of its species; its picture (TreeSprites) lies
+## along piece_dir from there.
+const PIECE_LOG := 0
+const PIECE_FALLEN := 1
+const PIECE_BROKEN := 2
+## The woods have at most one piece in each square of this many cells (WorldGen._pieces).
+const PIECE_BLOCK := 8
 ## How thick the stem of a young tree (place_young) is, in texels.
 const YOUNG_GIRTH := 2
 
@@ -55,25 +56,15 @@ static func trunk_box(species: int, col: Vector2i, k: int, young := false) -> Re
 ## Most cells a tree of `species` grown at `scale` takes above the ground it stands on.
 static func height(species: int, scale := 1.0) -> int:
 	var s: Dictionary = Trees.SPECIES[species]
-	if not s.pictures.is_empty():
-		# Its largest look the scale allows, the crown's top level filled a cell over (a
-		# crown of no point gets one over the trunk, see _offsets).
-		var top := 0
-		var size := _size_of(scale)
-		var looks: Array = s.pictures.looks
-		for i in looks.size():
-			if i / TreeLooks.VARIANTS == size:
-				top = maxi(top, maxi(looks[i].trunk + 2, looks[i].crown[3] + 1))
-		return top
-	if s.tiers:
-		return hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
-	if s.shape == "palm":
-		# The trunk up to the tuft, the tuft a point (three cells) over it.
-		return roundi(s.trunk[1] * scale) + 6
-	if s.shape == "umbrella":
-		# Tiers up from just over the trunk to the top lobe (see _lobed).
-		return roundi(s.trunk[1] * scale) + 2 * ceili(UMBRELLA_TOP * (s.crown[1] + 0.2) * scale + 0.6) + 5
-	return roundi(s.trunk[1] * scale) + 2 * floori((s.crown[1] + 0.3) * scale * 1.1) + 4
+	# Its largest look the scale allows, the crown's top level filled a cell over (a crown
+	# of no point gets one over the trunk, see _offsets).
+	var top := 0
+	var size := _size_of(scale)
+	var looks: Array = s.pictures.get("looks", [])
+	for i in looks.size():
+		if i / TreeLooks.VARIANTS == size:
+			top = maxi(top, maxi(looks[i].trunk + 2, looks[i].crown[3] + 1))
+	return top
 
 
 ## The largest scale up to 1 at which a tree of `species` fits under `room` cells, or 0
@@ -90,8 +81,8 @@ static func fit(species: int, room: int) -> float:
 ## Grows a tree of `species` with its trunk on cell x, y, z (x and z odd, y the first
 ## cell above the ground). `scale` makes it smaller or larger than usual, about 0.6..1.3,
 ## for stunted or old trees.
-static func place(w, x: int, y: int, z: int, species: int, rng: RandomNumberGenerator, scale := 1.0) -> void:
-	var crown := grow(w, x, y, z, species, rng, scale)
+static func place(w, x: int, y: int, z: int, species: int, scale := 1.0) -> void:
+	var crown := grow(w, x, y, z, species, scale)
 	fill(w, crown, 0, crown.size())
 
 
@@ -113,19 +104,13 @@ static func place_young(w, x: int, y: int, z: int, species: int) -> int:
 
 ## Notes the tree and grows its trunk, as `place` does, and gives the points of its
 ## crown for `fill`: the world generator fills a big crown over several steps.
-static func grow(w, x: int, y: int, z: int, species: int, rng: RandomNumberGenerator, scale := 1.0) -> Array[Vector3i]:
+static func grow(w, x: int, y: int, z: int, species: int, scale := 1.0) -> Array[Vector3i]:
 	var s: Dictionary = Trees.SPECIES[species]
 	w.add_tree(x, z, species)
-	if not s.pictures.is_empty():
-		return _pictured(w, x, y, z, s, scale)
-	match s.shape:
-		"cone":
-			return _conifer(w, x, y, z, s, rng, scale)
-		"lobed", "umbrella":
-			return _lobed(w, x, y, z, s, rng, scale)
-		"palm":
-			return _palm(w, x, y, z, s, rng, scale)
-	return _broadleaf(w, x, y, z, s, rng, scale)
+	# Every species is drawn as pictures (Trees.check); one that is not grows nothing.
+	if s.pictures.is_empty():
+		return []
+	return _pictured(w, x, y, z, s, scale)
 
 
 ## A species drawn as pictures (Trees: `pictures`): the index of the look (TreeLooks) a tree
@@ -199,6 +184,74 @@ static func standing_look(w, col: Vector2i, foot: Array = []) -> int:
 	return -1
 
 
+## The stump a felled pictured tree left in column `col` (TreeLooks `stumps`), -1 for none:
+## a species drawn as pictures with stumps, one cell of log on its foot with nothing over it
+## (Felling leaves that much; a taller stump, cut before stumps were drawn, stays in cells),
+## the foot's level in `foot`. Its size is the one the column's tree came to (look_index at
+## the full scale: a stunted tree's stump may come out a size larger).
+static func stump_look(w, col: Vector2i, foot: Array = []) -> int:
+	var species: int = w.trees.get(col, -1)
+	if species < 0 or species >= Trees.SPECIES.size():
+		return -1
+	var p: Dictionary = Trees.SPECIES[species].pictures
+	if p.is_empty() or p.get("stumps", []).is_empty() or w.tree_pieces.has(col):
+		return -1
+	var bits: int = w.log_col(col.x, col.y)
+	if bits == 0 or bits & (bits - 1) != 0:
+		return -1
+	var y0: int = w.level_of(bits)
+	if young_at(w, col.x, y0, col.y):
+		return -1
+	if foot.size() == 0:
+		foot.append(y0)
+	else:
+		foot[0] = y0
+	return mini(look_index(Trees.SPECIES[species], col, 1.0) / TreeLooks.VARIANTS, p.stumps.size() - 1)
+
+
+## The piece of wood lying in column `col` (PIECE_LOG, PIECE_FALLEN, PIECE_BROKEN), -1 for
+## none: noted so (WorldData.tree_pieces), a species with that piece drawn, its one log cell
+## there with nothing over it; the level of that cell in `foot`.
+static func piece_look(w, col: Vector2i, foot: Array = []) -> int:
+	var kind: int = w.tree_pieces.get(col, -1)
+	var species: int = w.trees.get(col, -1)
+	if kind < 0 or kind >= TreeLooks.PIECES.size() or species < 0 or species >= Trees.SPECIES.size():
+		return -1
+	if not Trees.SPECIES[species].pictures.get("pieces", {}).has(TreeLooks.PIECES[kind]):
+		return -1
+	var bits: int = w.log_col(col.x, col.y)
+	if bits == 0 or bits & (bits - 1) != 0:
+		return -1
+	if foot.size() == 0:
+		foot.append(w.level_of(bits))
+	else:
+		foot[0] = w.level_of(bits)
+	return kind
+
+
+## Lays a piece of wood `kind` of `species` with its log on cell x, y, z (see piece_look).
+static func place_piece(w, x: int, y: int, z: int, species: int, kind: int) -> void:
+	w.add_tree(x, z, species)
+	w.set_cell(x, y, z, Mat.LOG)
+	w.tree_pieces[Vector2i(x, z)] = kind
+
+
+## The way (x, z) a piece lying in column `col` lies out from it: its drawing of turn 0
+## lies along its own x (east), turned in the world as a tree is (turn_of, TreeLooks.to_own).
+static func piece_dir(col: Vector2i) -> Vector2:
+	return Vector2.from_angle(turn_of(col) * PI / 4.0)
+
+
+## How far (cells) the pieces of `kind` of any species lie out from their column at most
+## (TreeLooks `reach`).
+static func piece_reach(kind: int) -> float:
+	var most := 0.0
+	for s: Dictionary in Trees.SPECIES:
+		var d: Dictionary = s.pictures.get("pieces", {}).get(TreeLooks.PIECES[kind], {})
+		most = maxf(most, float(d.get("reach", 0.0)))
+	return most
+
+
 ## Of the trees ([column, species], WorldCells.pack_chunk) of a chunk saved at trees' looks
 ## `looks` (WorldCells.TREE_LOOKS) those of species drawn as pictures since later looks
 ## (TreeLooks `since`): they grew before their species was drawn so (see regrow).
@@ -254,7 +307,7 @@ static func regrow(w, col: Vector2i, species: int, size_y: int) -> Array[Vector3
 	var scale := fit(species, size_y - y0)
 	if scale <= 0.0:
 		return none
-	return grow(w, col.x, y0, col.y, species, null, scale)
+	return grow(w, col.x, y0, col.y, species, scale)
 
 
 ## Whether column `c` is no nearer any of `others` than to trunk `at`, within TREE_REACH.
@@ -347,221 +400,6 @@ static func _probes(look: Dictionary, turn: int, odd: int) -> Array[Vector3i]:
 ## Whether crown point `a` is nearer its trunk than `b` (across first, then up).
 static func _nearer(a: Vector3i, b: Vector3i) -> bool:
 	return (a.x * a.x + a.z * a.z) * 256 + a.y < (b.x * b.x + b.z * b.z) * 256 + b.y
-
-
-## A trunk and a crown of points in a low, wide ellipsoid: in the oblique view the top
-## and the front of a crown both show, so a ball would look tall and narrow, while this
-## one reads as round on screen (width about equal to height plus depth).
-static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
-	var trunk := maxi(2, roundi(rng.randi_range(s.trunk[0], s.trunk[1]) * scale))
-	for i in trunk:
-		w.set_cell(x, y + i, z, Mat.LOG)
-	var rx: float = (s.crown[0] + rng.randf_range(-0.2, 0.3)) * scale
-	var ry: float = (s.crown[1] + rng.randf_range(-0.1, 0.3)) * scale
-	var rz: float = (s.crown[2] + rng.randf_range(-0.2, 0.2)) * scale
-	# Points sit on even levels, the middle one just above the trunk.
-	var middle := ((y + trunk - 1) & ~1) + 2
-	# A short trunk on an even foot would put the middle under LOWEST_POINT, and a small
-	# crown then loses all its points: the middle goes a level up (the trunk follows it).
-	if middle < y + LOWEST_POINT:
-		middle += 2
-	var points: Array[Vector3i] = []
-	var reach := ceili(maxf(rx, maxf(ry, rz)))
-	var column: bool = s.shape == "column"
-	for dy in range(-reach, reach + 1):
-		for dz in range(-reach, reach + 1):
-			for dx in range(-reach, reach + 1):
-				var d := Vector3(dx / rx, dy / ry, dz / rz)
-				# A column narrows above its middle to a point.
-				if column and dy > 0:
-					d.x /= 1.0 - 0.45 * dy / ry
-					d.z /= 1.0 - 0.45 * dy / ry
-				# The crown is layers (Foliage._layer_cards): every other level of points
-				# a layer, the levels between them drawn in, so a band of shade shows
-				# under each layer.
-				if (middle + 2 * dy) >> 1 & 1 == 1:
-					d.x /= INSET
-					d.z /= INSET
-				# A crown hanging low over a short trunk stays a little above the ground
-				# (the point fills the cells round it, one on either side).
-				if d.length() <= 1.0 + rng.randf_range(-0.1, 0.1) and middle + 2 * dy >= y + LOWEST_POINT:
-					points.append(Vector3i(x + 2 * dx, middle + 2 * dy, z + 2 * dz))
-	if s.shape == "weeping":
-		_curtain(points, x, z, y + 1, rng)
-	# A short trunk whose crown's lowest points were held up by LOWEST_POINT goes on up
-	# to the crown (whose leaves reach a cell below its lowest point): else the crown
-	# hangs over an empty cell and the trunk's top log shows as a stump under it.
-	var low := y + trunk + 1
-	if not points.is_empty():
-		low = points[0].y
-	for p in points:
-		low = mini(low, p.y)
-	for i in range(y + trunk, low - 1):
-		w.set_cell(x, i, z, Mat.LOG)
-	return points
-
-
-## The rim of a weeping crown hangs down: under each point of the outer ring of a
-## level that has no point below it, one or two more hang, not below `floor`.
-static func _curtain(points: Array[Vector3i], x: int, z: int, floor: int, rng: RandomNumberGenerator) -> void:
-	var have := {}
-	for p in points:
-		have[p] = true
-	var hang: Array[Vector3i] = []
-	for p in points:
-		var out := Vector2(p.x - x, p.z - z).length()
-		if out < 3.0 or have.has(p + Vector3i(0, -2, 0)):
-			continue
-		var drop := rng.randi_range(1, 2) + (1 if out > 4.0 else 0)
-		for k in range(1, drop + 1):
-			var q := p + Vector3i(0, -2 * k, 0)
-			if q.y - 1 < floor:
-				break
-			hang.append(q)
-	points.append_array(hang)
-
-
-## A crown of round lobes: one over the trunk and a ring of three to five round it,
-## each its own small ellipsoid at a height of its own, so the outline is bumpy and dark
-## gaps show between the lobes. An umbrella crown has its lobes flat and wide, high on
-## the trunk.
-static func _lobed(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
-	var umbrella: bool = s.shape == "umbrella"
-	var trunk := maxi(2, roundi(rng.randi_range(s.trunk[0], s.trunk[1]) * scale))
-	for i in trunk:
-		w.set_cell(x, y + i, z, Mat.LOG)
-	var rx: float = (s.crown[0] + rng.randf_range(-0.2, 0.3)) * scale
-	var ry: float = (s.crown[1] + rng.randf_range(-0.1, 0.2)) * scale
-	var rz: float = (s.crown[2] + rng.randf_range(-0.2, 0.2)) * scale
-	var middle := ((y + trunk - 1) & ~1) + 2
-	# Lobes: centre (in points, from the crown's middle) and radii.
-	var lobes := []
-	var count := rng.randi_range(6, 8) if umbrella else rng.randi_range(3, 5)
-	var turn := rng.randf() * TAU
-	var lobe := 0.55 if umbrella else 0.5
-	lobes.append([Vector3(0.0, ry * (UMBRELLA_TOP if umbrella else 0.45), 0.0), Vector3(rx, ry * (0.3 if umbrella else 0.6), rz) * lobe])
-	for k in count:
-		var a := turn + TAU * (k + rng.randf_range(-0.2, 0.2)) / count
-		var out := rng.randf_range(0.5, 0.65)
-		var up := rng.randf_range(-0.6, 0.25) * ry
-		var size := Vector3(rx, ry * 0.55, rz) * (lobe + rng.randf_range(-0.05, 0.1))
-		if umbrella:
-			# An umbrella (pine) stands in tiers of flat lobes, none hanging down the
-			# trunk: the lower tiers wider and farther out, the top one small.
-			var tier := k % UMBRELLA_TIERS
-			var t := float(tier) / (UMBRELLA_TIERS - 1)
-			up = (t * 2.0 - 0.35) * ry
-			out *= 1.3 - 0.7 * t
-			size = Vector3(rx, ry * 0.25, rz) * (lobe + rng.randf_range(-0.05, 0.1)) * (1.2 - 0.5 * t)
-		lobes.append([Vector3(cos(a) * rx * out, up, sin(a) * rz * out), size])
-	var points: Array[Vector3i] = []
-	var have := {}
-	for l in lobes:
-		var c: Vector3 = l[0]
-		var r: Vector3 = l[1]
-		r = r.max(Vector3(0.75, 0.6, 0.75))
-		for dy in range(floori(c.y - r.y), ceili(c.y + r.y) + 1):
-			for dz in range(floori(c.z - r.z), ceili(c.z + r.z) + 1):
-				for dx in range(floori(c.x - r.x), ceili(c.x + r.x) + 1):
-					var d := Vector3((dx - c.x) / r.x, (dy - c.y) / r.y, (dz - c.z) / r.z)
-					if d.length() <= 1.0 + rng.randf_range(-0.1, 0.1):
-						var p := Vector3i(x + 2 * dx, middle + 2 * dy, z + 2 * dz)
-						if p.y - 1 > y + 1 and not have.has(p):
-							have[p] = true
-							points.append(p)
-	# The trunk goes on up into the lowest point over it: a trunk with air round it in a
-	# gap between the lobes would show as a block of log standing in the crown.
-	var into := -1
-	for p in points:
-		if p.x == x and p.z == z and p.y > y + trunk - 1 and (into < 0 or p.y < into):
-			into = p.y
-	if into < 0:
-		into = middle
-		points.append(Vector3i(x, middle, z))
-	# A ring of points round the trunk from the lowest level of the crown up to there
-	# hides it in front lobes' gaps too, from every side the camera looks.
-	# An umbrella's (pine's) trunk shows between its tiers: no ring.
-	var lowest := into
-	for p in points:
-		lowest = mini(lowest, p.y)
-	if umbrella:
-		lowest = into
-	for level in range(lowest, into + 1, 2):
-		for dz in range(-1, 2):
-			for dx in range(-1, 2):
-				var p := Vector3i(x + 2 * dx, level, z + 2 * dz)
-				if (level < into or dx != 0 or dz != 0) and not have.has(p):
-					have[p] = true
-					points.append(p)
-	for i in range(y + trunk, into):
-		w.set_cell(x, i, z, Mat.LOG)
-	return points
-
-
-## A palm: a tall bare trunk and on its top a tuft of fronds, each a line of points
-## going out level from the top, one flat round tier (no leaves hanging lower); `crown`
-## [length of a frond in points, fewest fronds, most fronds]. The client draws the fronds
-## over these points (Foliage._fronds).
-static func _palm(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
-	var trunk := maxi(3, roundi(rng.randi_range(s.trunk[0], s.trunk[1]) * scale))
-	var top := ((y + trunk) & ~1) + 2
-	for i in range(y, top - 1):
-		w.set_cell(x, i, z, Mat.LOG)
-	var points: Array[Vector3i] = [Vector3i(x, top, z)]
-	var have := {points[0]: true}
-	var length := maxi(1, roundi(s.crown[0] * scale))
-	var count := rng.randi_range(roundi(s.crown[1]), roundi(s.crown[2]))
-	var turn := rng.randf() * TAU
-	for k in count:
-		var a := turn + TAU * (k + rng.randf_range(-0.2, 0.2)) / count
-		for d in range(1, length + 1):
-			var p := Vector3i(x + 2 * roundi(cos(a) * d), top, z + 2 * roundi(sin(a) * d))
-			if p.y - 1 > y + 1 and not have.has(p):
-				have[p] = true
-				points.append(p)
-	return points
-
-
-## A tall trunk in a cone of tiers, widest at the bottom and narrowing evenly to a
-## point: every other level of points stays a little narrower than the one under it,
-## so the tiers show as layers of drooping branches.
-static func _conifer(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumberGenerator, scale: float) -> Array[Vector3i]:
-	var tiers := maxi(3, roundi(rng.randi_range(s.crown[1], s.crown[2]) * scale))
-	var radius: float = (s.crown[0] + rng.randf_range(-0.2, 0.2)) * scale
-	var reach := ceili(radius)
-	# Offsets of the points: dx, tier, dz.
-	var offsets: Array[Vector3i] = []
-	var front := 0
-	for k in tiers:
-		var r := _tier_radius(radius, k, tiers)
-		if k % 2 == 1:
-			r *= 0.85
-		for dz in range(-reach, reach + 1):
-			for dx in range(-reach, reach + 1):
-				# A little narrower across z, as the top and front of a tier both show.
-				if Vector2(dx, dz / 0.85).length() <= r + rng.randf_range(-0.15, 0.15):
-					offsets.append(Vector3i(dx, k, dz))
-					if k == 0 and dx == 0:
-						front = maxi(front, dz)
-	# In the oblique view the front of the lowest tier hangs over the trunk by its
-	# depth and the sprigs below it, so the trunk below the tier is that long plus the
-	# bit that should show.
-	var bare := hidden_trunk(front) + rng.randi_range(s.trunk[0], s.trunk[1])
-	var low := ((y + bare) + 1) & ~1
-	var top := low + 2 * (tiers - 1)
-	# The trunk ends a tier under the top, inside the narrow tiers there.
-	for i in range(y, top - 2):
-		w.set_cell(x, i, z, Mat.LOG)
-	var points: Array[Vector3i] = []
-	for o in offsets:
-		points.append(Vector3i(x + 2 * o.x, low + 2 * o.y, z + 2 * o.z))
-	points.append(Vector3i(x, top + 2, z))
-	return points
-
-
-## Radius in points of tier `k` of `tiers` (before the narrow tiers are narrowed).
-static func _tier_radius(radius: float, k: int, tiers: int) -> float:
-	return radius * (1.0 - (k + 0.5) / tiers) + 0.6
 
 
 ## Cells of trunk a spruce's lowest tier hides on screen when its point in front of

@@ -435,8 +435,7 @@ func _test_nature() -> void:
 	var bush_at := Vector3i(8, 2, 8)
 	Growth.place_bush(w, bush_at.x, bush_at.y, bush_at.z, 0)
 	var birch := Trees.index("plants:birch")
-	var rng := RandomNumberGenerator.new()
-	Growth.place(w, 9, 2, 3, birch, rng, 0.6)
+	Growth.place(w, 9, 2, 3, birch, 0.6)
 	_check(actions.sapling_of("plants:oak") == "plants:oak_sapling" and actions.sapling_of("plants:birch") != ""
 		and actions.sapling_of("plants:spruce") == "plants:spruce_sapling", "a tree with no sapling of its own sprouts as one alike")
 	_check(is_equal_approx(WorldActions.chance_over(0.6, 1.0), 0.6) and WorldActions.chance_over(0.6, 1.0 / 42.0) < 0.03

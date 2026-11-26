@@ -133,6 +133,10 @@ var bush_twigs := {}
 ## a chunk with any is kept as an edited one.
 var tree_twigs := {}
 var tree_seeds := {}
+## The pieces of wood lying in the woods (Growth.place_piece), by the column of their one
+## log cell: which piece (Growth.PIECE_LOG, PIECE_FALLEN, PIECE_BROKEN). The generator lays
+## them, the axe takes them (Felling.fell).
+var tree_pieces := {}
 ## What grows on grass cells the player changed, by chunk (Vector2i) and then by cell:
 ## "" for grass cut short (its tall plants gone until spring, see Gathering.mow), or the
 ## id of the crop sown there (see Plants; Foliage draws it). Saved with the chunk.
@@ -181,7 +185,7 @@ var unsaved := {}
 const BUSH_MAPS := ["bushes", "bush_picked", "bush_twigs"]
 ## Per-tree records (by the trunk's column, Vector2i), kept and saved with the chunk of
 ## the trunk.
-const TREE_MAPS := ["tree_twigs", "tree_seeds"]
+const TREE_MAPS := ["tree_twigs", "tree_seeds", "tree_pieces"]
 
 ## While the generator writes cells, edits are not tracked: it works out the shapes
 ## of each chunk itself once the chunks around are final (see WorldGen).
@@ -309,6 +313,7 @@ func remove_chunk(key: Vector2i) -> void:
 		trees.erase(t)
 		tree_twigs.erase(t)
 		tree_seeds.erase(t)
+		tree_pieces.erase(t)
 	tree_chunks.erase(key)
 	for cell: Vector3i in form_chunks.get(key, {}):
 		forms.erase(cell)
@@ -636,6 +641,7 @@ func _touch(c: Chunk, x: int, z: int) -> void:
 func add_tree(x: int, z: int, species: int) -> void:
 	var at := Vector2i(x, z)
 	trees[at] = species
+	tree_pieces.erase(at)
 	var key := Vector2i(x >> SHIFT, z >> SHIFT)
 	if not tree_chunks.has(key):
 		tree_chunks[key] = {}
@@ -648,6 +654,7 @@ func remove_tree(x: int, z: int) -> void:
 	trees.erase(at)
 	tree_twigs.erase(at)
 	tree_seeds.erase(at)
+	tree_pieces.erase(at)
 	var key := Vector2i(x >> SHIFT, z >> SHIFT)
 	if tree_chunks.has(key):
 		tree_chunks[key].erase(at)

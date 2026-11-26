@@ -289,10 +289,8 @@ func _test_rules_agree() -> void:
 	who.world = w
 	who.at = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
 	who.vitals.fatigue = false
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 1
 	var oak := Trees.first(Trees.BROAD)
-	Growth.place(w, 15, 2, 23, oak, rng)
+	Growth.place(w, 15, 2, 23, oak)
 	who.at = Vector3(13.5, 2.0, 23.5) * WorldData.CELL
 	var axes := _of_class("axe")
 	who.hands = [axes[-1].id, ""]

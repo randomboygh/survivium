@@ -982,6 +982,8 @@
 "[field.biomes.tree_chance.about]": "Шанс дерева на месте"
 "[field.biomes.groves]": "Рощи"
 "[field.biomes.groves.about]": "Насколько деревья собираются в рощи"
+"[field.biomes.pieces]": "Валежник"
+"[field.biomes.pieces.about]": "Шансы бревна, упавшего и сломанного ствола на квадрат леса 8x8"
 "[field.biomes.trees_on]": "Деревья на"
 "[field.biomes.trees_on.about]": "На каких грунтах кроме травы растут деревья"
 "[field.biomes.bushes]": "Кусты"
