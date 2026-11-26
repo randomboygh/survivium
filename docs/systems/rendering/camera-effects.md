@@ -87,7 +87,12 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   a weak glow). The light of a torch/lantern in the hand stands at the height of its flame
   (`Player.torch_height`, no higher than `HAND_TOP` 0.75 units), so that in a house two cells high it burns
   under the roof, not in it, and at the side of the hand that holds it (`Player.torch_side`, `torch_offset`;
-  the drawn shadows go by it too). Rain is carried by the wind (`Effects.rain_lean`: in a storm the drops fly
+  the drawn shadows go by it too). The flames of a light held burn at the brightest pixel of what the hand
+  holds (a sheet's frame or an icon: a torch, a candle, a lantern; `SpriteSheet.spots`, made by `Figure`);
+  where the figure draws the hand behind the body (seen from behind, the far hand seen from the side) its
+  flame is drawn `FLAME_BEHIND` (0.3) units farther in depth alone (`Effects.flame_behind`, `behind` in
+  `particle.gdshader`), so the body hides its sparks (the shots `torch-back`, `tar-torch-far`). A campfire's
+  sparks start within `SPARK_START` (0.4) of its middle, about the fire's own size. Rain is carried by the wind (`Effects.rain_lean`: in a storm the drops fly
   sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
   `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
   texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
