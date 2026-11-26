@@ -84,7 +84,12 @@ slice, to free the far meshes.
   decided by the shaders, see rendering.md), the caps (`update_caps`, the level — `cap_level`), `solid`
   (`solid_map.gd`, the map of solid cells for the slice of rock in layers), `refit_boxes` for the camera's
   turn and tilt (a chunk's trees' box grown by `TreeSprites.stand_box`: a picture stands 1/slope higher under a
-  steeper camera), `on_cell_changed` / `remesh_chunk`.
+  steeper camera; it also refits the blueprint's ghost things, `PlanThings.refit_boxes`), `on_cell_changed` /
+  `remesh_chunk`; `set_holes` draws cells as air though they are solid (`ChunkMesher.holes`, copied into each job's
+  cells with the faces round them made candidates, `_open_holes`, `_hole_cands`): the openings the doors and windows
+  of the blueprint, or one held up, will cut into a wall, shown cut in the build mode (`PlanThings._show_holes`,
+  2026-11-26); only the view, the world and picking keep the blocks; the columns round a cell that changed are
+  built again (`_remesh_around`, as an edit).
 - `src/client/world/chunk_mesher.gd` — the chunk's mesh by column: cells, cut corners (a top drawn in
   quarters, `MeshFaces.quarter_kind`; the half of a side by a cut corner is gone, a curved wall instead), caps
   (`build_cap`; none over a sloping top; the caps lie `CAP_SINK` below the cells' top, otherwise their
@@ -212,7 +217,7 @@ slice, to free the far meshes.
 **Interface.** `ChunkStreamer.prepare(gen)`, `build_near(n)`, `run_jobs(spent)`, `gen_budgets()`,
 `take_work()`, `set_focus(at)` (the chunks are built round `at`: where the player comes back behind the death
 screen, or where `Trip` goes; the chunks on its screen at the lag budget, `focus_built()` — their share built), `update_cut(delta)`, `update_caps()`, `refit_boxes()`, `on_cell_changed(cell)`,
-`remesh_chunk(key)`; `ChunkMesher.start` / `start_rect` / `step` / `finish` / `patch` / `reach`,
+`remesh_chunk(key)`, `set_holes(cells)`; `ChunkMesher.start` / `start_rect` / `step` / `finish` / `patch` / `reach`,
 `Foliage.start` / `start_part` / `part_columns` / `step` / `finish` / `patch`.
 
 **Depends on.** `Session` (zones, budgets, `make_chunk`, `forget_far`), `WorldGen` (`needed`, `made`),

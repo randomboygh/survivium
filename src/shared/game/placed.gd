@@ -230,6 +230,9 @@ static var middles := {}
 ## The items that are seats (`seat` over 1) by id, with their `seat`: seat_near looks no
 ## further when there are none, every body every step.
 static var seats := {}
+## Voxels a door's leaf is moved south shut (shut_voxels), from the north edge of its cells
+## to the middle of their depth.
+const DOOR_SHUT := 3
 ## The boxes of a kind whose item has no model: the plain crate VoxelProps draws for
 ## it, its walls a voxel in from the edges of its cells.
 ## What a thing drawn as a picture (an item's `picture`) takes of its one cell.
@@ -286,7 +289,7 @@ func read_footprints() -> void:
 		var img: Image = Content.picture(path) if path != "" else null
 		if img != null:
 			var n := maxi(1, ceili(img.get_height() / 8.0))
-			var voxels := voxels_of_image(img)
+			var voxels := shut_voxels(rec, voxels_of_image(img))
 			sizes[kind] = n
 			var all := []
 			for t in 4:
@@ -523,6 +526,24 @@ static func footprint_of_image(img: Image) -> Array:
 
 
 ## The voxels of the model in `img` (see footprint_of_image).
+## Voxels `voxels` of the model of item `rec` as it stands shut: a door's leaf, drawn at the
+## north edge of its row of cells (z 0, 1; open_voxels swings it from there against the
+## jamb), moves DOOR_SHUT voxels south, to the middle between the faces of the wall it stands
+## in, as a window's is drawn (user 2026-11-27). A hatch, a wicket and a gate as drawn.
+static func shut_voxels(rec: Dictionary, voxels: Array[Vector3i]) -> Array[Vector3i]:
+	if not is_wall_door(rec):
+		return voxels
+	var out: Array[Vector3i] = []
+	for p: Vector3i in voxels:
+		out.append(p + Vector3i(0, 0, DOOR_SHUT))
+	return out
+
+
+## Whether item `rec` is a door set into a wall (not a hatch, a wicket or a gate).
+static func is_wall_door(rec: Dictionary) -> bool:
+	return rec.get("door", false) and not rec.get("hatch", false) and not rec.get("fence", false)
+
+
 static func voxels_of_image(img: Image) -> Array[Vector3i]:
 	var voxels: Array[Vector3i] = []
 	var size := img.get_height()
@@ -1209,7 +1230,7 @@ func _shape_of(item: String, turn: int) -> Dictionary:
 ## a gate in the plane of the wall or the fence it goes into or stands in (plane_turn; `face`,
 ## the side of the face tapped, SIDES index, -1 none, settles a corner), and a thing that
 ## faces the view or a ladder with its back to a wall when one is at hand (_backed); in the
-## open as before. The build mode shows it while a thing new from the bag is held up in the air.
+## open as before, but a door or a window only in a wall (or a gap in one). The build mode shows it while a thing new from the bag is held up in the air.
 func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := false, face := -1) -> Array:
 	var item := Items.get_item(id)
 	var p: Vector3 = who.position / CELL
@@ -1242,6 +1263,10 @@ func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := fals
 	if rest == IN_FLOOR:
 		cut_from = aim.y
 	_swap_fences = item.get("door", false) and item.get("fence", false)
+	if into_wall and not _walled(aim) and not _in_gap(aim):
+		# A door or a window goes only into a wall (or a gap left in one), never in the open
+		# (user 2026-11-26).
+		return [null, turn]
 	var spot: Variant
 	if into_wall and _walled(aim):
 		spot = _wall_spot(who, aim, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from, item.get("door", false))
@@ -1280,9 +1305,18 @@ func _wall_near(aim: Vector3i, feet: int, door: bool) -> Vector3i:
 						best = d
 						at = c
 	if door:
-		while at.y > feet and _walled(at + Vector3i.DOWN):
+		while at.y > feet and _walled(at + Vector3i.DOWN) and not _floor_cell(at + Vector3i.DOWN):
 			at += Vector3i.DOWN
 	return at
+
+
+## Whether wall cell `c` is of a floor (built or of the blueprint): walled cells beside it
+## both along x and along z, where a wall has them only along itself. A door stands on the
+## floor (user 2026-11-26: a floor laid first, the walls on it, the door on that floor, not
+## down to the ground under it).
+func _floor_cell(c: Vector3i) -> bool:
+	return _walled(c) and (_walled(c + Vector3i(1, 0, 0)) or _walled(c - Vector3i(1, 0, 0))) \
+		and (_walled(c + Vector3i(0, 0, 1)) or _walled(c - Vector3i(0, 0, 1)))
 
 
 ## Whether cell `c` is a gap left in a wall (a doorway): wall cells on both sides of it along
@@ -1323,6 +1357,8 @@ func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], 
 				var corner := Vector3i(c.x, aim.y + dy, c.y)
 				if not _fits(who, corner, top, offsets, rest, high, cut_from):
 					continue
+				if door and _sunk(corner, offsets):
+					continue
 				var walled := 0
 				for o: Vector3i in offsets:
 					for k in high:
@@ -1335,6 +1371,15 @@ func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], 
 					best = corner
 					best_by = by
 	return best
+
+
+## Whether a door at north-west cell `corner` (its cells `offsets`) would go down into a
+## floor (_floor_cell): it stands on it.
+func _sunk(corner: Vector3i, offsets: Array[Vector3i]) -> bool:
+	for o: Vector3i in offsets:
+		if o.y == 0 and _floor_cell(corner + o):
+			return true
+	return false
 
 
 ## The turn of a door, a window, a wicket or a gate set down at cell `aim` (the wall's cell

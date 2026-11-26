@@ -317,6 +317,13 @@ const SHOTS := {
 	# bag chosen (2026-11-26): the thing shows at once under the
 	# finger; a door and a window pressed on a wall from aside
 	# stand in its plane, a bed and a chair pressed by a wall have their backs to it.
+	# A chair pressed two cells before the player (nearer the camera), the view as it is
+	# and turned round: culled by its sheared box (Props.fit), it shows (on high ground a
+	# margin all round culled it as the camera turned, 2026-11-26).
+	"build-lift-chair-front": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_chair", Vector3(0.5, 0.0, 2.5)]},
+	"build-lift-chair-front-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "turn": 2, "press": ["tools:wooden_chair", Vector3(0.5, 0.0, 2.5)]},
 	"build-lift-table": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "press": ["tools:table", Vector3(-2.5, 0.0, -2.5)]},
 	"build-lift-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
@@ -433,6 +440,10 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-1.5, 0.6, 1.98), "room"]},
 	"build-tap-door-room-ground": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-1.5, 0.0, 2.6), "room"]},
+	# A ghost door tapped into the north wall, ghost chairs round the player (before, behind,
+	# beside): each shows where it stands, the door in the opening it will cut (2026-11-26).
+	"build-ghosts-round": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-4.5, 0.6, -6.98), false, true]},
 	"build-tap-window": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:window", Vector3(-3.5, 1.5, -6.98)]},
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},

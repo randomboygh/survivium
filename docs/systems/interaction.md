@@ -247,10 +247,16 @@ lies around. The rules are shared (the server checks them), input and hints are 
   its wall by the face pressed, `face_of`, furniture with its back to a wall; a door or a window aimed over a
   wall's top, before its face or by it sticks to the nearest wall cell, `Placed._wall_near`, `WALL_SNAP` cells
   round, a door down to the floor, and of the spots there the one with most cells in the wall, `_wall_spot`,
-  2026-11-26; a gap in a wall, `_in_gap`, keeps the cell aimed at), its cells shown red only where
-  it does not fit (2026-11-23: no body over a thing that fits; a door or a window held into a wall hangs
-  `WALL_OUT` before its face, on the side the camera sees, `out_of_wall`: in the wall the blocks it will cut would hide
-  it); it follows the finger and is set down where it
+  2026-11-26; a gap in a wall, `_in_gap`, keeps the cell aimed at; a door stands on a floor, built or of the
+  blueprint, never in it or down to the ground under it, `_floor_cell`, `_sunk`; with no wall near a door or a
+  window is not set at all: only into a wall or a gap in one, never in the open, 2026-11-26), its cells shown red only where
+  it does not fit (2026-11-23: no body over a thing that fits; a door or a window held into a wall is drawn
+  in the middle of the wall where it will be, in the opening it will cut: those blocks, `cut_cells`, are drawn as
+  air in the build mode, `PlanThings.hold_hole`, `ChunkStreamer.set_holes`, `ChunkMesher.holes`, 2026-11-26;
+  a door shut stands halfway between the wall's faces as a window does, `Placed.shut_voxels`; a ghost door or
+  window of the blueprint in a wall built stands there too, so a tap on it takes it, `Controls.ghost_thing_at`,
+  and it can be carried; the model held and the ghost things are culled by their sheared boxes, `Props.fit`,
+  refitted on a camera turn, so none vanishes on high ground as the camera turns); it follows the finger and is set down where it
   is let go (a stroke with `put`; `PROP_PUT_AT` with the face, `Placed.put_at`: a door or window pressed on the
   side of a wall with no opening knocks the blocks out, they fall as if dug; blocks below the level of the
   player's feet are not knocked out, so a door on the floor stands on the floor); with the setting «Things from
@@ -275,7 +281,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   server looks for it, its cells red where it does not fit; `release` — `PROP_MOVE`, `Placed.move`, or the model
   drops back, `Props.settle`); a door, a window or a hatch held so (`Placed.is_opening`, movable since
   2026-11-26) follows the wall under the finger as a new one does (`_drag_opening`: `_aimed`, `_aim`, `face_of`,
-  `Placed.opening_spot`, held `out_of_wall` before the wall by `Props.hold_at`'s `out`), and let go it moves
+  `Placed.opening_spot`, held in the opening it would cut, `cut_cells`), and let go it moves
   there by `PROP_MOVE` [cell, the wall's cell, turn, face]: the server cuts the new cells and walls the old ones
   up with the blocks it had cut (`Placed.move_opening`, [crafting.md](crafting.md)); tapped it goes back into
   the bag and leaves ghost blocks in its hole, and a double tap turns it the other way round in its wall
@@ -333,8 +339,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   the ground to dig out a red body seen through the ground (its green taken out by `plan_cut_mul.gdshader`, then
   `plan_through.gdshader`) and a fence a plain blue body (`plan_ghost.gd`, `plan_ghost.gdshader`); its ghost things
   as their models in the blocks' look (`plan_things.gd`, `game.plan_view.things`: `Props.model_mesh`,
-  `PlanBlocks.ghost_material`; a door or a window to be cut into a built wall hangs before its face,
-  `BuildMode.out_of_wall`; `hold` / `settle` while the build mode carries one); the ghosts of what the bag is short
+  `PlanBlocks.ghost_material`; a door or a window to be cut into a built wall stands in it, in the opening it will
+  cut, its blocks drawn as air, `_show_holes`; `hold` / `settle` while the build mode carries one); the ghosts of what the bag is short
   of for the blueprint near (`BuildMode.short_blocks`, `short_of`) tinted `PlanBlocks.SHORT_TINT`, a soft red milder
   than the red of digging (the shader's `ghost_short` bits by material; things get a second material); the farm
   marking — a square on the cell's top face in the colour of the work and a sign inside (furrows, a sprout, a drop,

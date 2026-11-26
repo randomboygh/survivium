@@ -213,6 +213,13 @@ func _model(kind: String, turn := 0, open := false, join := -1, water := 0, wrea
 			m = _with_water(m, water)
 		if wreath != "":
 			m = _with_wreath(m, wreath)
+		if not open and Placed.is_wall_door(Items.get_item(Items.with_prop(kind))):
+			# Shut, in the middle of the wall's depth (Placed.shut_voxels); open it swings
+			# from the north edge it is drawn at against the jamb.
+			var shut = m.get_script().new()
+			for p: Vector3i in m.voxels:
+				shut.set_voxel(p + Vector3i(0, 0, Placed.DOOR_SHUT), m.voxels[p], m.foliage.has(p))
+			m = shut
 		if join >= 0:
 			# A fence: its post, and its model's north rail turned to each side it joins.
 			var joined = m.get_script().new()
@@ -269,7 +276,7 @@ func _on_added(e: Dictionary, still := false) -> void:
 	node.scale = Vector3.ONE / 16.0
 	node.position = Vector3(e.cell) * CELL
 	node.layers = PixelView.LAYER_THINGS
-	_fit(node)
+	fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
 	if Placed.lets_light(e):
@@ -332,7 +339,7 @@ func _add_sprite(e: Dictionary, still: bool) -> void:
 	var half := w / PixelView.PIXELS_PER_UNIT * 0.5
 	node.set_meta("box", AABB(Vector3(-half, 0.0, -half), Vector3(half * 2.0, h / PixelView.PIXELS_PER_UNIT, half * 2.0)))
 	node.material_override = _sprite_look(item, tex, sprite_view(e.get("turn", 0)), Placed.melt_stage(e))
-	_fit(node)
+	fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
 	_sprite_things[e.cell] = e
@@ -597,10 +604,9 @@ func _rest(e: Dictionary) -> Vector3:
 
 
 ## Holds the model of thing `e` up over the north-west cell `corner`, turned `turn` (its own
-## when -1), moved `out` cells more (a door before the wall it would be cut into,
-## BuildMode.out_of_wall), while the build mode drags it (BuildMode); false when it has no
-## model of its own.
-func hold_at(e: Dictionary, corner: Vector3i, turn := -1, out := Vector3.ZERO) -> bool:
+## when -1), while the build mode drags it (BuildMode; a door into a wall stands in the
+## opening it would cut, PlanThings.hold_hole); false when it has no model of its own.
+func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node) or not node is MeshInstance3D:
 		return false
@@ -610,7 +616,7 @@ func hold_at(e: Dictionary, corner: Vector3i, turn := -1, out := Vector3.ZERO) -
 		_turn_light(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
 	else:
 		_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
-	node.position = (Vector3(corner) + out) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
 	if light:
 		node.position += Vector3(0.5, 0.0, 0.5) * CELL
 	node.extra_cull_margin = CULL_MARGIN
@@ -650,12 +656,11 @@ func model_mesh(id: String, turn: int) -> Mesh:
 
 
 ## A thing new from the bag held up in the air by the build mode over the north-west cell
-## `corner`, turned `turn`, before it is set down (BuildMode), moved `out` cells more (a door
-## or a window held into a wall, drawn before its face: BuildMode.out_of_wall), in material
-## `look` when given (the ghost of the blueprint's things, PlanThings.material: it goes into
-## the blueprint); false for one with no model of its own (a campfire, a light). One at a
-## time: drop_new takes it away.
-func hold_new(id: String, corner: Vector3i, turn: int, out := Vector3.ZERO, look: Material = null) -> bool:
+## `corner`, turned `turn`, before it is set down (BuildMode), in material `look` when given
+## (the ghost of the blueprint's things, PlanThings.material: it goes into the blueprint; a
+## door or a window into a wall stands in the opening it would cut, PlanThings.hold_hole);
+## false for one with no model of its own (a campfire, a light). One at a time: drop_new takes it away.
+func hold_new(id: String, corner: Vector3i, turn: int, look: Material = null) -> bool:
 	var item := Items.get_item(id)
 	var kind: String = item.get("prop", "none")
 	if not ghostly(id):
@@ -666,7 +671,6 @@ func hold_new(id: String, corner: Vector3i, turn: int, out := Vector3.ZERO, look
 		_held_new = MeshInstance3D.new()
 		_held_new.scale = Vector3.ONE / 16.0
 		_held_new.layers = PixelView.LAYER_THINGS
-		_held_new.extra_cull_margin = CULL_MARGIN
 		game.world_root.add_child(_held_new)
 	if _held_new.get_meta("key", "") != key:
 		_held_new.mesh = _model(kind, turn).build_mesh()
@@ -675,7 +679,10 @@ func hold_new(id: String, corner: Vector3i, turn: int, out := Vector3.ZERO, look
 		_held_new.material_override = look
 	else:
 		_held_new.material_override = game.low_mat if _held_new.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
-	_held_new.position = (Vector3(corner) + out) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	_held_new.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	# Culled by its sheared box: a margin all round held it only near the sea's level, so
+	# on high ground the preview came and went as the camera turned.
+	fit(_held_new)
 	return true
 
 
@@ -740,7 +747,7 @@ func _add_lamp(e: Dictionary) -> void:
 	node.scale = Vector3.ONE / 16.0
 	node.position = (Vector3(e.cell) + Vector3(0.5, 0.0, 0.5)) * CELL
 	node.layers = PixelView.LAYER_THINGS
-	_fit(node)
+	fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
 	var top := mesh.get_aabb().end.y / 16.0
@@ -857,7 +864,7 @@ func show_drops(key: Vector2i, whole := false, came := false) -> void:
 		node.mesh = mesh
 		node.material_override = game.low_mat
 		node.layers = PixelView.LAYER_THINGS
-		_fit(node)
+		fit(node)
 		game.world_root.add_child(node)
 		nodes.append(node)
 		_drop_spans[key] = spans
@@ -998,7 +1005,7 @@ func _arrays_of(kind: String) -> Array:
 
 ## Culls `node` (a model of the things placed or lying) by the box of what it draws in
 ## the views the camera shows or turns to (PixelView.sheared_box).
-func _fit(node: MeshInstance3D) -> void:
+func fit(node: MeshInstance3D) -> void:
 	var to_world := node.transform
 	var own: AABB = node.get_meta("box", node.mesh.get_aabb())
 	var box := PixelView.sheared_box(to_world * own, FIT_MARGIN)
@@ -1013,11 +1020,13 @@ func _fit(node: MeshInstance3D) -> void:
 ## ChunkStreamer.refit_boxes).
 func refit_boxes() -> void:
 	for node: MeshInstance3D in _nodes.values():
-		_fit(node)
+		fit(node)
+	if holding_new():
+		fit(_held_new)
 	for nodes: Array in drop_nodes.values():
 		for node: Node in nodes:
 			if node is MeshInstance3D:
-				_fit(node)
+				fit(node)
 
 
 ## The mesh of a thing of `kind` lying on the ground (see WorldData.drops): its item's

@@ -1310,6 +1310,8 @@ func refit_boxes() -> void:
 	for n: GeometryInstance3D in cap_nodes.values():
 		_fit_box(n)
 	game.props.refit_boxes()
+	if game.plan_view != null:
+		game.plan_view.things.refit_boxes()
 
 
 ## Culls a part of a chunk by what it draws, moved north as the shaders draw it, instead
@@ -1343,6 +1345,35 @@ func on_cell_changed(cell: Vector3i) -> void:
 	# not after the three around too.
 	# A cell up in the air (a crown's) changes only the columns beside it, unless its
 	# column lost its last leaf or got its first (ChunkMesher.reach).
+	_remesh_around(cell)
+	game.props.on_cell_changed(cell)
+
+
+## Draws the cells of `cells` (cell -> true) as air in the build mode though they are
+## solid (ChunkMesher.holes): the openings of the doors and windows to be cut into walls
+## (PlanThings). The columns round the ones that changed are built again.
+func set_holes(cells: Dictionary) -> void:
+	if cells == ChunkMesher.holes:
+		return
+	var changed := {}
+	for c: Vector3i in ChunkMesher.holes:
+		if not cells.has(c):
+			changed[c] = true
+	for c: Vector3i in cells:
+		if not ChunkMesher.holes.has(c):
+			changed[c] = true
+	ChunkMesher.holes = cells.duplicate()
+	for c: Vector3i in changed:
+		_remesh_around(c)
+
+
+## Whether no cell is drawn cut (set_holes).
+func holes_empty() -> bool:
+	return ChunkMesher.holes.is_empty()
+
+
+## Builds the columns round cell `cell` again, its chunk first (see on_cell_changed).
+func _remesh_around(cell: Vector3i) -> void:
 	var home := WorldData.chunk_key(cell.x, cell.z)
 	var r := ChunkMesher.reach(world, cell)
 	var keys := {}
@@ -1383,7 +1414,6 @@ func on_cell_changed(cell: Vector3i) -> void:
 	for key in dirty_chunks:
 		queue[key] = true
 	dirty_chunks = queue
-	game.props.on_cell_changed(cell)
 
 
 ## Draws the grass of cell `cell` again (cut short, a plant picked or crushed): only the

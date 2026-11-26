@@ -22,6 +22,11 @@ const Forms := preload("res://src/client/world/form_mesher.gd")
 
 ## Per direction: [corners, uvs, normal] of a whole cell face.
 static var _cell_faces: Array = []
+## Cells drawn as air though they are solid (cell -> true; ChunkStreamer.set_holes): the
+## openings a door or a window of the blueprint, or one held up, will cut into a wall,
+## shown cut in the build mode with the faces round them (user 2026-11-26). Only the view:
+## the world and its picking keep the blocks.
+static var holes := {}
 ## How far a cut's wall reaches down into a slope under it (see _cut_walls), in cells.
 const CUT_SKIRT := 0.08
 
@@ -149,16 +154,48 @@ static func _prepare(job: Job, i: int) -> void:
 			job.c = w.padded(false, Mat.STONE, x0, z0, x1, z1, -1, half)
 		4:
 			job.c.append_array(w.padded(false, Mat.STONE, x0, z0, x1, z1, half))
+			_open_holes(job, job.c, Mat.AIR)
 		3:
 			w.refresh_shapes()
 			job.sh = w.padded(true, 0, x0, z0, x1, z1, -1, half)
 		2:
 			w.refresh_shapes()
 			job.sh.append_array(w.padded(true, 0, x0, z0, x1, z1, half))
+			_open_holes(job, job.sh, 0)
 		1:
 			job.cands = _candidates(w, job.x0, job.z0, job.x1, job.z1)
 			job.swash = Water.swash_map(w, job.x0, job.z0, job.x1, job.z1)
 			_take_forms(job)
+			_hole_cands(job)
+
+
+## Sets the cells of `holes` within the job's padded copy `cells` (job.c, job.sh) to `to`.
+static func _open_holes(job: Job, cells: PackedByteArray, to: int) -> void:
+	if holes.is_empty():
+		return
+	var x0 := job.x0 - PAD
+	var z0 := job.z0 - PAD
+	for h: Vector3i in holes:
+		if h.x < x0 or h.x >= job.x1 + PAD or h.z < z0 or h.z >= job.z1 + PAD or h.y < 0 or h.y >= job.w.size_y:
+			continue
+		var i := (h.y + 1) * job.dy + (h.z - z0) * job.dz + h.x - x0
+		if i < cells.size():
+			cells[i] = to
+
+
+## The cells round `holes` may show a face now (job.cands, see _candidates): the four
+## beside each on its level, and the ones over and under it.
+static func _hole_cands(job: Job) -> void:
+	if holes.is_empty():
+		return
+	var width := job.x1 - job.x0
+	for h: Vector3i in holes:
+		for o: Vector3i in [Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 0, 1), Vector3i(0, 0, -1),
+				Vector3i(0, 1, 0), Vector3i(0, -1, 0)]:
+			var c := h + o
+			if c.x < job.x0 or c.x >= job.x1 or c.z < job.z0 or c.z >= job.z1 or c.y < 0 or c.y >= job.w.size_y:
+				continue
+			job.cands[(c.z - job.z0) * width + c.x - job.x0] |= 1 << c.y
 
 
 ## Builds the next `columns` columns of cells of the chunk (a column is all levels of
