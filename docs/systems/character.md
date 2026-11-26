@@ -499,7 +499,8 @@ campfire). The dye's id is the 6th field of the bag cell (`Inventory.dye_of`; th
 in, so a dyed thing stacks only with its own dye and keeps it in chests, on the ground, in a death sack and in
 the save); what is worn keeps the dye of the one worn (`Inventory.gear_dye`, saved as `gear_dyes`; of two
 things of one item `worn_slot` finds the one of that dye). A thing is made dyed in the craft window («Краситель»
-row: `CRAFT` with a third argument; `Workshop.start` checks the dye is in the bag, is a dye and the thing can be
+row: a square of each dye of the bag in its colour, wrapping onto more lines, the one picked ticked, the recipe's
+picture in its colours and the dye a chip of «Материалы»; `CRAFT` with a third argument; `Workshop.start` checks the dye is in the bag, is a dye and the thing can be
 dyed, and one portion of it goes with the job's materials, a cancel gives it back), or dyed anew at a dye vat
 (an item with `washes`, `plants:dye_vat`; the craft tab opened at it lists the bag's things that can be dyed,
 `CraftPanel._show_vat`): `REDYE [slot, dye]` → `Workshop.redye` (a vat near, a dye of the bag other than the

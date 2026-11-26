@@ -1273,7 +1273,13 @@ func _run() -> void:
 			_craft(shot.get("forge", false), shot.get("weave", false), shot.get("smith", false), shot.get("dry", false))
 			if shot.has("recipe"):
 				main.host.player.inventory.add("materials:cord", 2)
-				# Dyes in the bag, one picked in the «Краситель» row (a thing that can be dyed).
+				# Dyes in the bag, one picked in the «Краситель» row (a thing that can be dyed);
+				# `room` empties that many bag slots from the end first, for more dyes.
+				var bag = main.host.player.inventory
+				for k in shot.get("room", 0):
+					var i: int = bag.slots.size() - 1 - k
+					if bag.slots[i] != null:
+						bag.take_slot(i, int(bag.slots[i][1]))
 				for dye: String in shot.get("dyes", []):
 					main.host.player.inventory.add(dye, 3)
 					main.host.workshop.knowledge._known[shot.recipe] = true
