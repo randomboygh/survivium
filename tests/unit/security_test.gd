@@ -189,6 +189,27 @@ func _test_requests() -> void:
 		"a ghost slope is turned only by a cell, and only within reach")
 	p[0].plans.cells.erase(far_ghost)
 	p[0].plans.forms.erase(far_ghost)
+	# Ghost things of the blueprint (Plans.put_thing, move_thing, erase_thing).
+	_check(req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 4, false, -1]) == null
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 0, false, 4]) == null
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 0, 1, -1]) == null
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", "x", 0, false, -1]) == null
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 0]) == null,
+		"no ghost thing is set turned or by a face out of bounds, at a cell that is none or with args missing")
+	_check(req._rule(Protocol.PLAN_THING, ["tools:chest", far_ghost, 0, false, -1]) == false
+		and req._rule(Protocol.PLAN_THING, ["no:such_thing", Vector3i(9, 2, 9), 0, false, -1]) == false
+		and req._rule(Protocol.PLAN_THING, ["tools:chest", Vector3i(9, 2, 9), 0, false, -1]) == false
+		and p[0].plans.things.is_empty(), "nor out of reach, of a thing that is none, or of one the bag does not hold")
+	var ghost: Dictionary = p[0].plans.add_thing("tools:chest", far_ghost, 0, [far_ghost])
+	_check(req._rule(Protocol.PLAN_THING_MOVE, [far_ghost, Vector3i(9, 2, 9), 0, -1]) == false
+		and is_same(p[0].plans.thing_at(far_ghost), ghost) and req._rule(Protocol.PLAN_THING_TAKE, [far_ghost]) == false
+		and p[0].plans.things.size() == 1, "a ghost thing out of reach is neither moved near nor taken off")
+	_check(req._rule(Protocol.PLAN_THING_MOVE, [far_ghost, far_ghost, 4, -1]) == null
+		and req._rule(Protocol.PLAN_THING_MOVE, [far_ghost, far_ghost, 0, 4]) == null
+		and req._rule(Protocol.PLAN_THING_MOVE, [far_ghost, "x", 0, -1]) == null
+		and req._rule(Protocol.PLAN_THING_TAKE, ["x"]) == null and req._rule(Protocol.PLAN_THING_TAKE, []) == null,
+		"nor moved turned or by a face out of bounds, nor by a cell that is none")
+	p[0].plans.drop_thing(ghost)
 	var far_rain: Dictionary = p[0].placed.put("tools:rain_catcher", Vector3i(30, 2, 30))
 	far_rain.water = 100.0
 	a.vitals.water = 10.0

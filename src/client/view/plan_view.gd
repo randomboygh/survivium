@@ -1,9 +1,9 @@
 extends MeshInstance3D
 ## The blueprint's ghost (Plans, decision 163) near the player (user 2026-11-22; until then
 ## a frame round each cell): its blocks as they will stand built, see-through and tinted
-## blue (PlanBlocks), the ground to dig out a red body seen through the ground and a fence
-## a plain blue one (PlanGhost), each merged with no seams between its cells, hidden above
-## the level cut. The red and the fence are built again when the blueprint changes or the
+## blue (PlanBlocks), its ghost things as their models in the same look (PlanThings), the
+## ground to dig out a red body seen through the ground and a fence a plain blue one
+## (PlanGhost), each merged with no seams between its cells, hidden above the level cut. The red and the fence are built again when the blueprint changes or the
 ## player walks REBUILD cells off. `game` is the Main node,
 ## its `plans` the client's copy. The farming mode's marks (Plans.is_mark) are drawn
 ## flat on the ground they mark, a square round its top in the colour of the work and
@@ -17,6 +17,7 @@ const CursorShader := preload("res://shaders/cursor.gdshader")
 const Plans := preload("res://src/shared/game/plans.gd")
 const PlanGhost := preload("res://src/client/view/plan_ghost.gd")
 const PlanBlocks := preload("res://src/client/view/plan_blocks.gd")
+const PlanThings := preload("res://src/client/view/plan_things.gd")
 const GhostShader := preload("res://shaders/plan_ghost.gdshader")
 const CutShader := preload("res://shaders/plan_through.gdshader")
 const CutMulShader := preload("res://shaders/plan_cut_mul.gdshader")
@@ -50,6 +51,8 @@ var _ghost := MeshInstance3D.new()
 var _built := ShaderMaterial.new()
 var _dug := ShaderMaterial.new()
 var _blocks: Node3D
+## The blueprint's ghost things (PlanThings): doors, windows, furniture to be set down.
+var things: Node3D
 var _dirty := true
 var _built_at := Vector3i(1 << 30, 0, 0)
 ## Which of the two modes were on when it was built (bit 0 building, bit 1 farming).
@@ -81,6 +84,9 @@ func _init(g) -> void:
 	_blocks = PlanBlocks.new(g)
 	_blocks.visible = false
 	add_child(_blocks)
+	things = PlanThings.new(g)
+	things.visible = false
+	add_child(things)
 
 
 func _ready() -> void:
@@ -126,6 +132,7 @@ func _build(at: Vector3i) -> void:
 		_ghost.mesh = PlanGhost.build(cells, game.plans.forms, game.world,
 			func(c: Vector3i) -> bool: return _plain(cells[c]) and _near(c, at), _built, _dug)
 	_blocks.visible = building
+	things.visible = building
 	visible = started or building
 
 

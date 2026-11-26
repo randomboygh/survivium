@@ -4,7 +4,7 @@ extends RefCounted
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
 ## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE, FLOW; HEARD, the chat; NOTED, the server's notices to a host; TEAM and INVITES, the
 ## team, MATES, where its members are; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
-## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, PROP_MELT, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the rafts and boats
+## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, PROP_MELT, CHEST), of the blueprint (PLANS, PLAN_CELLS, GHOST_THING, GHOST_THING_GONE), of the rafts and boats
 ## (VESSELS, VESSEL, VESSEL_GONE), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
@@ -26,6 +26,7 @@ const Vessels := preload("res://src/shared/game/vessels.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 
 ## Chunks sent in one flush at most (each a few KB zstd).
 const CHUNKS_PER_FLUSH := 2
@@ -144,6 +145,7 @@ func _init(s) -> void:
 	for e: Dictionary in placed.things:
 		_watch_chest(e)
 	session.plans.changed.connect(_on_plan)
+	session.plans.thing_changed.connect(_on_plan_thing)
 	var wild = session.wildlife
 	wild.born.connect(_on_born)
 	wild.gone.connect(_on_gone)
@@ -198,6 +200,7 @@ func leave() -> void:
 	session.territory.claims_changed.disconnect(_on_claims)
 	session.territory.squares_changed.disconnect(_on_squares)
 	session.plans.changed.disconnect(_on_plan)
+	session.plans.thing_changed.disconnect(_on_plan_thing)
 	for e: Dictionary in placed.things:
 		if e.items != null and e.items.changed.is_connected(_chest_call(e)):
 			e.items.changed.disconnect(_chest_call(e))
@@ -768,6 +771,16 @@ func _on_opened(e: Dictionary) -> void:
 func _on_plan(cells: Array, item: String) -> void:
 	if not _all and not cells.is_empty():
 		_push(Protocol.PLAN_CELLS, [cells, item, session.plans.forms_of(cells) if item != "" else []])
+
+
+## A ghost thing of the blueprint was set or went (Plans.thing_changed).
+func _on_plan_thing(t: Dictionary, came: bool) -> void:
+	if _all:
+		return
+	if came:
+		_push(Protocol.GHOST_THING, [Plans.thing_record(t)])
+	else:
+		_push(Protocol.GHOST_THING_GONE, [t.cell])
 
 
 func _on_fuel(e: Dictionary) -> void:

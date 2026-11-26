@@ -156,8 +156,9 @@ func _out_of_wall(main: Node) -> void:
 	_check(b.out_of_wall("tools:table", under, 0) == Vector3.ZERO, "a thing that cuts nothing hangs where it goes")
 
 
-## The build mode's hands with a thing (the user's picks of 2026-11-15): a tap on the ground
-## sets one from the bag down at once, a hold hangs it in the air until it is let go there;
+## The build mode's hands with a thing (the user's picks of 2026-11-15): by blueprint (the
+## setting's default, 2026-11-26) a tap sets a ghost of it and a tap on the ghost takes it off;
+## at once, a tap on the ground sets one from the bag down, a hold hangs it in the air until it is let go there;
 ## a tap on a thing set down takes it back into the bag after the double tap's time, a hold hangs it in the air,
 ## the turn button turns it there, and letting go sets it down turned.
 func _hold_to_put(main: Node) -> void:
@@ -194,8 +195,28 @@ func _hold_to_put(main: Node) -> void:
 			"turn": 0, "kept": false, "spot": null, "shown": null}
 		main.controls._stroke = s
 		return s
-	# A tap: let go at once, set down where tapped.
+	# By blueprint (the setting's default, the user's picks of 2026-11-26, 2А): a tap sets a
+	# ghost of it into the blueprint and the bag keeps it; a tap on the ghost takes it off.
+	var ghosts: int = main.plans.things.size()
 	var s: Dictionary = put.call(0)
+	main.build.release(s)
+	main.controls._stroke = {}
+	await _wait_ms(300)
+	_check(count.call() == before and main.plans.things.size() == ghosts + 1 and not main.props.holding_new(),
+		"by blueprint, a tap sets a ghost of the thing and the bag keeps it")
+	if main.plans.things.size() == ghosts + 1:
+		var g: Dictionary = main.plans.things[ghosts]
+		var tap := {"button": MOUSE_BUTTON_MIDDLE, "dig": false, "pos": off, "held": true, "pending": false,
+			"ghost_thing": g, "from": off, "ms": Time.get_ticks_msec(), "moved": false, "to": null,
+			"turn": int(g.turn), "shown": null, "grab": Vector3.ZERO, "aim": g.cell, "face": -1}
+		main.build.release(tap)
+		await _wait_ms(main.build.DOUBLE_TAP_MS + 300)
+		_check(main.plans.things.size() == ghosts and count.call() == before, "a tap on a ghost thing takes it off the blueprint")
+	# At once (the setting's other step): the thing itself is set down.
+	var by_plan: int = int(main.settings.values.get("build_things", 0))
+	main.settings.values.build_things = 1
+	# A tap: let go at once, set down where tapped.
+	s = put.call(0)
 	main.build.release(s)
 	main.controls._stroke = {}
 	await _wait_ms(300)
@@ -280,6 +301,7 @@ func _hold_to_put(main: Node) -> void:
 	main.build.kept_turns["tools:big_chest"] = 2
 	await _frames(3)
 	_check(not main.build.kept_turns.has("tools:big_chest"), "a kept turn is forgotten once the bag holds none of its kind")
+	main.settings.values.build_things = by_plan
 	press = press.duplicate()
 	press.pressed = false
 	Input.parse_input_event(press)

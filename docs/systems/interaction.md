@@ -139,6 +139,22 @@ lies around. The rules are shared (the server checks them), input and hints are 
   whole column of ghost cells with forms over and under the cell (`column_of`, `formed_at`), within
   `PLAN_REACH` and by the right «build». Requests: `PLAN` [kind, from, to, height, thickness, erase],
   `PLAN_TURN` [cell], `PLAN_CLEAR`, `BUILD` (the action button of build mode, whatever is in the hand).
+  Ghost things (the user's picks of 2026-11-26, 1А, 2А): doors, windows, hatches and furniture drawn into the
+  blueprint, `things` — records `{item, cell (north-west), turn, cells (each cell it fills,
+  `Placed.volume_of`), wall (an opening's: the ghost blocks it took the place of, offset → block)}`, at most
+  `MAX_THINGS`, indexed by cell (`thing_at`), told by the signal `thing_changed`; `put_thing` sets one of a
+  thing in the bag where it would be set down (`Placed.ghost_spot`: as `put_spot`, but ghost blocks hold and
+  back it as built ones do, other ghost things' cells are taken, an opening may stand in ghost blocks and takes
+  them off into its `wall`); `move_thing` moves it the same way (`Placed.ghost_move_spot`; an opening along its
+  wall, its own cell and turn + 2 turns it the other way round, `Placed.flip_spot`), `erase_thing` takes it
+  off (its ghost wall back), and erasing by a box and `clear` take ghost things too; `build` sets them only
+  when no block nearby can be built (`near_things`: the lowest, then the nearest; `_build_thing`,
+  `Placed.put_ghost` — at its very cell and turn, from the bag at that moment; a door
+  set into a ghost wall remembers the wall's blocks as its `cut`); a thing set down for real takes the ghost
+  things off its cells (`drop_things_in`). Saved in `to_list` as dictionaries (`thing_record`, `_read_thing`;
+  an older loader skips them), told to the copies by `GHOST_THING` / `GHOST_THING_GONE`. Requests
+  `PLAN_THING` [item, aim, view turn, kept, face], `PLAN_THING_MOVE` [cell, to, turn, face], `PLAN_THING_TAKE`
+  [cell].
   The same holds the farm mode's marking: the values of `cells` that are `is_mark` (`TILL`, `WATER`, `REAP`
   or the id of what is sown and planted) lie on the top ground cell (`surface` looks for it in the column ±
   `FARM_UP` / `FARM_DOWN` from the level of the touch); `farm_columns` — a line along the main direction or a
@@ -200,7 +216,16 @@ lies around. The rules are shared (the server checks them), input and hints are 
   it); it follows the finger and is set down where it
   is let go (a stroke with `put`; `PROP_PUT_AT` with the face, `Placed.put_at`: a door or window pressed on the
   side of a wall with no opening knocks the blocks out, they fall as if dug; blocks below the level of the
-  player's feet are not knocked out, so a door on the floor stands on the floor); on a touch screen the place
+  player's feet are not knocked out, so a door on the floor stands on the floor); with the setting «Things from
+  the bag» on «by blueprint» (`build_things` 0, the default; the user's pick of 2026-11-26, 2А) a door, a window,
+  a hatch or furniture (`Props.ghostly`, `_by_blueprint`) is not set down but drawn into the blueprint as a ghost
+  thing (`PLAN_THING`, `Plans.put_thing`): held, it hangs in the ghost look (`PlanThings.material`) over the
+  place found as the server will find it (`Placed.ghost_spot`; the finger aims at ghost blocks as at built
+  ones, `Controls.pick_planned`), «at once» sets it down as before; a ghost thing under the finger
+  (`Controls.ghost_thing_at`) tapped is taken off the blueprint after `DOUBLE_TAP_MS` (`PLAN_THING_TAKE`),
+  tapped twice is turned (`turn_ghost`: a quarter, a door or a window the other way round), held is carried as
+  a placed thing is (`_drag_ghost`, `PlanThings.hold`, `Placed.ghost_move_spot`) and let go moves there
+  (`_release_ghost`, `PLAN_THING_MOVE`); on a touch screen the place
   aimed at is `FINGER_LIFT` over the finger (`_lifted`, `HudLayout.touch_px`: about 0.7 cm; no line is drawn
   to it, the user's pick of 2026-11-26), and once held `HOLD_MS` (or moved `_slop`, a
   `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing
@@ -258,7 +283,10 @@ lies around. The rules are shared (the server checks them), input and hints are 
   `ChunkMesher` meshing it a chunk at a time, `COLUMNS` columns a frame, the chunks round the player drawn by a copy
   of `world.gdshader` made see-through and tinted cold blue, first only into depth so only the nearest faces show);
   the ground to dig out a red body seen through the ground (its green taken out by `plan_cut_mul.gdshader`, then
-  `plan_through.gdshader`) and a fence a plain blue body (`plan_ghost.gd`, `plan_ghost.gdshader`); the farm
+  `plan_through.gdshader`) and a fence a plain blue body (`plan_ghost.gd`, `plan_ghost.gdshader`); its ghost things
+  as their models in the blocks' look (`plan_things.gd`, `game.plan_view.things`: `Props.model_mesh`,
+  `PlanBlocks.ghost_material`; a door or a window to be cut into a built wall hangs before its face,
+  `BuildMode.out_of_wall`; `hold` / `settle` while the build mode carries one); the farm
   marking — a square on the cell's top face in the colour of the work and a sign inside (furrows, a sprout, a drop,
   a cross). The blueprint is seen only in build mode, the marking only in farm mode.
 
@@ -310,7 +338,8 @@ shore and into the bag, oars, saving, ice, death),
 `tests/unit/farming_test.gd` (a bed, sowing, watering, rain, growth, winter, harvest, saving),
 `tests/unit/actions_test.gd` (`felling`, `front_choice`, `snow_gathered`, `world_actions`, `stairs_placed`, `placed`,
 `start_camp`, `lights`, `drinking`, `furniture`, `openings`),
-`tests/unit/plans_test.gd` (the blueprint's shapes, building by cells from the bag, erasing, saving),
+`tests/unit/plans_test.gd` (the blueprint's shapes, building by cells from the bag, erasing, saving, ghost
+things: set, moved, turned, taken off, saved, built after the blocks, `_test_ghost_things`),
 `tests/unit/content_test.gd` (`tools`), `tests/progress_test.gd` (the whole way of the game from bare hands to
 all recipes through the same calls). After an edit of tools, materials, stations, recipes or hands —
 `progress_test` is a must.

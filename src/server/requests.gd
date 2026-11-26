@@ -285,6 +285,17 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.PLAN_TURN:
 			if _fit(args, [TYPE_VECTOR3I]):
 				return session.plans.turn_form(actions, who, args[0])
+		Protocol.PLAN_THING:
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
+					and args[4] >= -1 and args[4] < 4:
+				return session.plans.put_thing(actions, who, args[0], args[1], args[2], args[3], args[4])
+		Protocol.PLAN_THING_MOVE:
+			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
+					and args[3] >= -1 and args[3] < 4:
+				return session.plans.move_thing(actions, who, args[0], args[1], args[2], args[3])
+		Protocol.PLAN_THING_TAKE:
+			if _fit(args, [TYPE_VECTOR3I]):
+				return session.plans.erase_thing(actions, who, args[0])
 		Protocol.FARM:
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_BOOL, TYPE_BOOL]) and args[0] in Plans.WORKS:
 				return session.plans.mark(actions, who, args[0], args[1], args[2], args[3], args[4])

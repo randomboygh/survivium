@@ -242,9 +242,11 @@ the remembered material): the blocks just cut pay first, then those in the bag, 
 one the player stands in, becomes a ghost block of the blueprint (`Placed.plans`, set by the session;
 `Plans.put_ghosts`, the block that builds the material: `_placer`). Blocks cut and not put back go to the bag,
 on the ground at the feet when it is full. [cell, cell, turn + 2] turns it the other way round in its own cells
-(`Placed.move`, `_flipped`); no other three-part `PROP_MOVE` moves an opening. Taken back into the bag (`take_up`) it leaves ghost blocks of its remembered blocks in its hole
-(`_leave_ghosts`); set down or moved into cells with ghost blocks, it takes their place (`Plans.drop_ghosts`;
-a ghost door of its own is the blueprint's things, PR 3 of the building UX).
+(`Placed.move`, `flip_spot`); no other three-part `PROP_MOVE` moves an opening. Taken back into the bag (`take_up`) it leaves ghost blocks of its remembered blocks in its hole
+(`_leave_ghosts`); set down or moved into cells with ghost blocks, it takes their place (`Plans.drop_ghosts`).
+Drawn into the blueprint as a ghost thing (the setting «by blueprint», [interaction.md](interaction.md)), a door
+or a window takes the place of the ghost blocks of its cells and keeps them (`wall`): built, it remembers their
+materials as the blocks it cut (`Placed.put_ghost`, `had`), so moved or taken back it walls its hole up with them.
 
 **Limits.** The solid parts of a thing `Placed.read_footprints` reads from its voxel model (the bundle's PNG)
 at loading the mods, without the client; a thing without a model is solid as a crate (`CRATE_BOX`).

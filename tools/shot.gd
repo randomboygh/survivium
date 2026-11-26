@@ -1395,6 +1395,8 @@ func _run() -> void:
 					for i in 30:
 						await process_frame
 					print("lone forms after: ", _forms_over(c))
+			if shot.has("ghosts"):
+				await _ghost_things(shot.ghosts, feet)
 			if shot.has("press"):
 				# A finger pressed on a touch screen with a thing of the bag chosen (2026-11-26):
 				# [item, the world point aimed at from the feet, in cells]. The finger goes
@@ -1421,7 +1423,7 @@ func _run() -> void:
 					held.get("aim"), held.get("spot"), held.get("shown"), held.get("face")])
 			if shot.has("opening"):
 				await _move_opening(shot.opening, feet)
-			if shot.has("press") or shot.has("lone") or shot.has("opening"):
+			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts"):
 				# The toasts of the recipes the things put into the bag taught, off the view.
 				main.hud._toasts.clear()
 				for i in 3:
@@ -2424,6 +2426,89 @@ func _move_opening(o: Array, feet: Vector3i) -> void:
 	for c: Vector3i in sp.opening_cells({"item": e.item, "cell": e.cell, "turn": e.turn}):
 		cells.append(Mat.IDS[main.world.get_cell(c.x, c.y, c.z)])
 	print("opening: moved to %s, its old cells %s, ghost cells %s" % [sp.things[-1].cell, cells, main.session.plans.cells])
+
+
+## Things set down by the blueprint in the room's corner (places.build_room; the building
+## UX's PR 3, 2026-11-26): a ghost wall of planks across the room, a ghost door into it, a
+## ghost window into the brick wall, a ghost table and chair before them, set as a player
+## sets them (Plans.put_thing); `mode` "drawn" leaves them so, "built" builds the blueprint
+## with the action button's rule (Plans.build: the blocks, then the things).
+func _ghost_things(mode: String, feet: Vector3i) -> void:
+	var sp = main.session.placed
+	var plans = main.session.plans
+	var acts = main.session.actions
+	var hp = main.host.player
+	for e: Dictionary in sp.things.duplicate():
+		if absi(e.cell.x - feet.x) < 14 and absi(e.cell.z - feet.z) < 14:
+			sp._remove(e)
+	plans.erase(acts, hp, plans.cells.keys())
+	for t: Dictionary in plans.things.duplicate():
+		plans.drop_thing(t)
+	var bag := {"tools:table": 1, "tools:wooden_chair": 1, "tools:door": 1, "tools:window": 1, "materials:planks": 30}
+	# Slots for them: the bag of a run of shots is full by now.
+	for k in range(hp.inventory.slots.size() - bag.size() - 1, hp.inventory.slots.size()):
+		hp.inventory.take_slot(k, 9999)
+	for id: String in bag:
+		hp.inventory.add(id, bag[id])
+	hp.hands = ["materials:planks", ""]
+	hp.active = 0
+	var drawn: int = plans.draw(acts, hp, "line", feet + Vector3i(-7, 0, -4), feet + Vector3i(-1, 0, -4), 3)
+	var view: int = main.props.view_turn()
+	var set := [plans.put_thing(acts, hp, "tools:door", feet + Vector3i(-4, 0, -4), -1, false, 2),
+		plans.put_thing(acts, hp, "tools:window", feet + Vector3i(-2, 1, -7), -1, false, 2),
+		plans.put_thing(acts, hp, "tools:table", feet + Vector3i(-6, 0, -2), view),
+		plans.put_thing(acts, hp, "tools:wooden_chair", feet + Vector3i(-3, 0, -2), view)]
+	for i in 40:
+		await process_frame
+	print("ghosts: wall %d cells, things set %s, %s" % [drawn, set, plans.things.map(func(t: Dictionary) -> Array: return [t.item, t.cell, t.turn])])
+	if mode in ["tapped", "turned", "dragged", "moved"]:
+		# The ghost chair tapped once (taken off) or twice (turned); the ghost table held and
+		# carried two cells east (held up, or let go: moved), as a player does.
+		var t: Dictionary = main.plans.thing_at(feet + (Vector3i(-3, 0, -2) if mode in ["tapped", "turned"] else Vector3i(-6, 0, -2)))
+		if t.is_empty():
+			print("ghosts: no ghost thing there on the client's copy")
+			return
+		var on: Vector2 = main.view.screen_of(Placed.center({"item": t.item, "cell": t.cell, "turn": t.turn}))
+		if mode != "dragged" and mode != "moved":
+			for k in (2 if mode == "turned" else 1):
+				_finger(true, on)
+				await process_frame
+				_finger(false, on)
+				await process_frame
+			await _wait_ms(main.build.DOUBLE_TAP_MS + 400)
+		else:
+			_finger(true, on)
+			await _wait_ms(main.build.HOLD_MS + 200)
+			var to: Vector3 = Vector3(t.cell + Vector3i(3, 0, 0)) + Vector3(0.5, 0.0, 0.5)
+			var end: Vector2 = main.view.screen_of(to * CELL) + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT))
+			for k in range(1, 9):
+				_finger_move(on.lerp(end, k / 8.0))
+				for i in 3:
+					await process_frame
+			for i in 10:
+				await process_frame
+			var held: Dictionary = main.controls._stroke
+			print("ghosts: held %s, to %s, turn %s" % [held.get("moved"), held.get("to"), held.get("found_turn")])
+			if mode == "dragged":
+				return
+			_finger(false, end)
+		for i in 40:
+			await process_frame
+		print("ghosts: after %s: %s" % [mode, plans.things.map(func(g: Dictionary) -> Array: return [g.item, g.cell, g.turn])])
+		return
+	if mode != "built":
+		return
+	var built := 0
+	for i in 80:
+		hp.vitals.stamina = hp.vitals.MAX
+		var done: Dictionary = plans.build(acts, hp)
+		if not done.has("placed"):
+			break
+		built += 1
+	for i in 40:
+		await process_frame
+	print("ghosts: built %d, %d cells and %d things left, door %s, window %s" % [built, plans.cells.size(), plans.things.size(),
+		sp.at(feet + Vector3i(-4, 0, -4)), sp.at(feet + Vector3i(-2, 1, -7))])
 
 
 ## Frames go by until `ms` milliseconds have passed (the build mode's holds and taps go by

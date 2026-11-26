@@ -334,6 +334,26 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:window_3x2", Vector3i(-5, 1, -7), Vector3i(-4, 1, -7), "moved"]},
 	"build-take-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "taken"]},
+	# Things set down by the blueprint (2026-11-26, the building UX's PR 3): a ghost wall across
+	# the room with a ghost door in it, a ghost window in the brick wall, a ghost table and a
+	# chair ("ghosts": "drawn"); a chair new from the bag held over the floor in the same look;
+	# the blueprint built by the action button, blocks first, then the things ("built").
+	"build-ghosts": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "drawn"},
+	"build-ghosts-held": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "drawn", "press": ["tools:wooden_chair", Vector3(-1.5, 0.0, -1.5)]},
+	"build-ghosts-built": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "built"},
+	# The ghost chair tapped once (taken off the blueprint) and twice (turned); the ghost table
+	# held up and carried two cells east ("dragged"), and let go there ("moved").
+	"build-ghosts-tapped": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "tapped"},
+	"build-ghosts-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "turned"},
+	"build-ghosts-dragged": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "dragged"},
+	"build-ghosts-moved": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "ghosts": "moved"},
 	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
@@ -1283,6 +1303,8 @@ const SHOTS := {
 	"ui-settings-graphics": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "graphics"},
 	"ui-settings-graphics-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings", "section": "graphics"},
 	# Its bottom: the effects by kind, then fog and haze.
+	# The game page's end: «Стройка», things from the bag by blueprint or at once (2026-11-26).
+	"ui-settings-game-end": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "game", "menu_end": true},
 	"ui-settings-effects": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "graphics", "menu_end": true},
 	"ui-test-pc": {"time": 0.45, "season": 1, "menu": true, "page": "test"},
 	# The playtest page's other tabs: the player's switches and the tools button, debugging.

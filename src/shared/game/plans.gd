@@ -19,6 +19,7 @@ const Plants := preload("res://src/shared/content/plants.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 
 const CELL := WorldData.CELL
 ## Cells one shape may have at most, and the ghost cells in the world at most.
@@ -38,15 +39,31 @@ const MIN_THICK := 1
 const MAX_THICK := 4
 ## The time a ghost cell takes to build, in seconds.
 const BUILD_SWING := 0.3
+## Ghost things in the world at most, and how far from its north-west cell one's cells
+## lie at most (one of a save or of the server's copy is read no further).
+const MAX_THINGS := 200
+const THING_REACH := 4
 
-## Ghost cells were added (`item` the block of each) or taken off (`item` "").
+## Ghost cells were added (`item` the block of each) or taken off (`item` ""); none and ""
+## when the whole blueprint was read anew (from_list).
 signal changed(cells: Array, item: String)
+## Ghost thing `t` (things) was set down (`came`) or taken off.
+signal thing_changed(t: Dictionary, came: bool)
 
 ## The ghost cells: Vector3i → the item id of the block that goes there.
 var cells := {}
 ## The form of the block that goes in a ghost cell when it is not a cube (a slope,
 ## stairs: WorldData.forms), by cell.
 var forms := {}
+## The ghost things (the user's picks, 2026-11-26, 1А, 2А): doors, windows, furniture set
+## down in the blueprint to be built after its blocks (build), seen as their models,
+## see-through and blue (PlanThings). Each {"item", "cell" (its north-west cell), "turn",
+## "cells" (every cell it fills, as high as it stands: Placed.volume_of), "wall" (an
+## opening's: the ghost blocks it took the place of, offset from "cell" -> the block's
+## item; they come back when it goes, as a door's place is walled up again)}.
+var things: Array = []
+## The ghost things by each cell they fill.
+var _thing_cells := {}
 
 
 ## The kinds of shape (the build mode's panel): a wall along a line, a floor in a
@@ -299,12 +316,17 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 		return 0
 	var p: Vector3 = who.position
 	if erase_it:
-		# The farming mode's marks stay.
+		# The farming mode's marks stay; the ghost things in the box go with the blocks.
 		var box: Array = []
+		var things_gone := 0
 		for c in erase_box(kind, a, b, height, Vector2(p.x, p.z), thick):
 			if cells.has(c) and not is_mark(cells[c]):
 				box.append(c)
-		return erase(actions, who, box)
+			var t := thing_at(c)
+			if not t.is_empty() and (actions == null or actions.territory_allows(who, t.cell, "build")):
+				drop_thing(t)
+				things_gone += 1
+		return erase(actions, who, box) + things_gone
 	if kind == "flatten":
 		return _flatten(actions, who, a, b)
 	var block := Mat.index(Items.get_item(item).get("place", ""))
@@ -455,13 +477,19 @@ static func is_floor(kind: String, a: Vector3i, c: Vector3i) -> bool:
 
 
 ## Takes every ghost cell off within PLAN_REACH of `who` where they may build (the
-## farming mode's marks with `farm`, the blueprint's without); how many.
+## farming mode's marks with `farm`, the blueprint's and its ghost things without); how many.
 func clear(actions, who, farm := false) -> int:
 	var near_cells: Array = []
 	for c: Vector3i in cells:
 		if is_mark(cells[c]) == farm and within_reach(who, c):
 			near_cells.append(c)
-	return erase(actions, who, near_cells)
+	var gone := erase(actions, who, near_cells)
+	if not farm:
+		for t: Dictionary in things.duplicate():
+			if within_reach(who, t.cell) and (actions == null or actions.territory_allows(who, t.cell, "build")):
+				drop_thing(t)
+				gone += 1
+	return gone
 
 
 ## Takes the ghost off `of` (the cells that are ghost cells) where `who` may build.
@@ -526,8 +554,11 @@ func turn_form(actions, who, c: Vector3i) -> int:
 
 
 ## Whether `block` could go in cell `c` some day: in the world, not that block already, and
-## open (air, water), or a floor's ground (a cell the hands or a shovel dig).
+## open (air, water), or a floor's ground (a cell the hands or a shovel dig); not where a
+## ghost thing stands (a wall drawn through a ghost door goes round it).
 func fits(actions, c: Vector3i, block: int, floor: bool) -> bool:
+	if _thing_cells.has(c):
+		return false
 	if actions == null:
 		return true
 	var w = actions.world
@@ -646,6 +677,15 @@ func build(actions, who) -> Dictionary:
 			(Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
 		done.placed = 1
 		return done
+	# Then the ghost things whose cells and ground are ready now (the user's pick,
+	# 2026-11-26, 1А: the blocks first, then the things).
+	for t in near_things(who):
+		if who.inventory.count(t.item) == 0:
+			missing = t.item if missing == "" else missing
+			continue
+		var set_down := _build_thing(actions, who, t)
+		if not set_down.is_empty():
+			return set_down
 	if missing != "":
 		who.nag("no_block", Lang.line("[not_in_the_bag]", [Items.title(missing)]))
 	else:
@@ -710,6 +750,259 @@ func _dig_out(actions, who, c: Vector3i) -> Dictionary:
 	cells.erase(c)
 	changed.emit([c], "")
 	return done
+
+
+# --- Ghost things ----------------------------------------------------------------------
+
+
+## The ghost thing filling cell `c`, {} for none.
+func thing_at(c: Vector3i) -> Dictionary:
+	return _thing_cells.get(c, {})
+
+
+## Whether ghost cell `c` holds a block to build (not a mark, ground to dig out, a fence):
+## a ghost thing stands on it, and a ghost door or window takes its place (Placed.ghost_spot).
+func block_at(c: Vector3i) -> bool:
+	var v: String = cells.get(c, "")
+	return v != "" and v != CUT and not is_mark(v) and not is_fence(v)
+
+
+## Adds ghost thing `item` at north-west cell `cell` turned `turn`, filling cells `filled`,
+## in the place of ghost blocks `wall` (an opening's, see things), and tells of it.
+func add_thing(item: String, cell: Vector3i, turn: int, filled: Array, wall := {}) -> Dictionary:
+	var t := {"item": item, "cell": cell, "turn": posmod(turn, 4), "cells": filled.duplicate(), "wall": wall.duplicate()}
+	things.append(t)
+	for c: Vector3i in t.cells:
+		_thing_cells[c] = t
+	thing_changed.emit(t, true)
+	return t
+
+
+## Takes ghost thing `t` off and tells of it; with `back` the ghost blocks it took the place
+## of (an opening's `wall`) come back into its cells.
+func drop_thing(t: Dictionary, back := false) -> void:
+	var i := _index_of(t)
+	if i < 0:
+		return
+	things.remove_at(i)
+	for c: Vector3i in t.cells:
+		if is_same(_thing_cells.get(c), t):
+			_thing_cells.erase(c)
+	thing_changed.emit(t, false)
+	if back:
+		var hole := {}
+		for o: Vector3i in t.wall:
+			hole[t.cell + o] = t.wall[o]
+		put_ghosts(hole)
+
+
+## Where ghost thing `t` is in `things` (the very one), -1 when it is not.
+func _index_of(t: Dictionary) -> int:
+	for i in things.size():
+		if is_same(things[i], t):
+			return i
+	return -1
+
+
+## Takes the ghost things off that fill any of cells `of` (a thing set down there for real:
+## Placed._set_down, move).
+func drop_things_in(of: Array) -> void:
+	for c in of:
+		var t := thing_at(c)
+		if not t.is_empty():
+			drop_thing(t)
+
+
+## The build mode with things set down by the blueprint (Protocol.PLAN_THING; the user's
+## picks, 2026-11-26, 1А, 2А): `who` sets a ghost of thing `item` (one is in their bag) at
+## cell `aim` as they would set the thing down there (Placed.put_at: turned best, `view`,
+## `kept` and `face` alike), but in the world as the blueprint will stand built
+## (Placed.ghost_spot): on ghost blocks, against ghost walls, clear of other ghost things; a
+## door or a window takes the place of the ghost blocks where it goes. Within PLAN_REACH,
+## where they may build, MAX_THINGS at most. True if it was set.
+func put_thing(actions, who, item: String, aim: Vector3i, view := -1, kept := false, face := -1) -> bool:
+	var placed = who.get("placed")
+	var rec := Items.get_item(item)
+	if placed == null or rec.get("prop", "none") == "none" or not within_reach(who, aim):
+		return false
+	if who.inventory.count(rec.id) <= 0:
+		who.nag("put", Lang.line("[not_in_the_bag]", [Items.title(rec.id)]))
+		return false
+	if things.size() >= MAX_THINGS:
+		who.nag("plan_full", "[too_many_blueprints]")
+		return false
+	var found: Array = placed.ghost_spot(who, self, rec.id, aim, view, kept, face)
+	if found[0] == null:
+		who.nag("put", Lang.line("[no_room_here]", [Items.title(rec.id)]))
+		return false
+	return not _set_thing(actions, who, placed, rec.id, found[0], found[1]).is_empty()
+
+
+## Sets ghost thing `item` at north-west cell `spot` turned `turn` where `who` may build all
+## its cells: a door or a window takes the ghost blocks of its cells off into its `wall`.
+## The thing, {} when it was not set.
+func _set_thing(actions, who, placed, item: String, spot: Vector3i, turn: int) -> Dictionary:
+	var filled: Array = placed.volume_of(item, spot, turn)
+	for c: Vector3i in filled:
+		if actions != null and not actions.territory_allows(who, c, "build"):
+			return {}
+	var wall := {}
+	var gone: Array = []
+	if Placed.is_opening(item):
+		for c: Vector3i in filled:
+			if block_at(c):
+				wall[c - spot] = cells[c]
+				gone.append(c)
+	_drop(gone)
+	return add_thing(item, spot, turn, filled, wall)
+
+
+## Moves the ghost thing filling cell `c` (Protocol.PLAN_THING_MOVE) as a thing set down is
+## moved (Placed.move): to north-west cell `aim` turned `turn` (the same cell and a quarter
+## more: turned where it stands); a door, a window or a hatch along its wall by the wall's
+## cell `aim` pressed (`face` the side of its face, -1 none), or the other way round where it
+## stands (its own cell, its turn + 2), its ghost wall going back into its old cells and
+## taken off its new ones. Within PLAN_REACH of `who`, where they may build at both ends.
+## True if it moved.
+func move_thing(actions, who, c: Vector3i, aim: Vector3i, turn: int, face := -1) -> bool:
+	var t := thing_at(c)
+	var placed = who.get("placed")
+	if t.is_empty() or placed == null or not within_reach(who, t.cell) or not within_reach(who, aim):
+		return false
+	if actions != null and not actions.territory_allows(who, t.cell, "build"):
+		return false
+	turn = posmod(turn, 4)
+	var found: Array
+	if Placed.is_opening(t.item) and aim == t.cell and turn == (int(t.turn) + 2) % 4:
+		found = [placed.flip_spot(t, turn), turn]
+	else:
+		found = placed.ghost_move_spot(who, self, t, aim, turn, face)
+	if found[0] == null:
+		who.nag("put", Lang.line("[no_room_here]", [Items.title(t.item)]))
+		return false
+	if found[0] == t.cell and found[1] == t.turn:
+		return false
+	for at: Vector3i in placed.volume_of(t.item, found[0], found[1]):
+		if actions != null and not actions.territory_allows(who, at, "build"):
+			return false
+	drop_thing(t, true)
+	return not _set_thing(actions, who, placed, t.item, found[0], found[1]).is_empty()
+
+
+## Takes the ghost thing filling cell `c` off the blueprint (Protocol.PLAN_THING_TAKE), a
+## door's or a window's ghost wall back in its place, within PLAN_REACH of `who` where they
+## may build. True if it was taken off.
+func erase_thing(actions, who, c: Vector3i) -> bool:
+	var t := thing_at(c)
+	if t.is_empty() or not within_reach(who, t.cell) or actions != null and not actions.territory_allows(who, t.cell, "build"):
+		return false
+	drop_thing(t, true)
+	return true
+
+
+## The ghost things within reach of placing of `who` (Tools.PLACE_REACH), the lowest first,
+## then the nearest.
+func near_things(who) -> Array:
+	var out: Array = []
+	var p: Vector3 = who.position / CELL
+	var r := Tools.PLACE_REACH
+	for t: Dictionary in things:
+		var c: Vector3i = t.cell
+		if absf(c.x + 0.5 - p.x) <= r and absf(c.z + 0.5 - p.z) <= r and absf(c.y - p.y) <= r:
+			out.append(t)
+	out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool:
+		if x.cell.y != y.cell.y:
+			return x.cell.y < y.cell.y
+		return Vector3(x.cell).distance_squared_to(p) < Vector3(y.cell).distance_squared_to(p))
+	return out
+
+
+## The action button builds ghost thing `t` (build): set down from the bag of `who` where it
+## stands when its cells and the ground under it are ready (Placed.put_ghost). The work
+## done, {} when it cannot go there yet, {"swing"} when the hands are tired.
+func _build_thing(actions, who, t: Dictionary) -> Dictionary:
+	var placed = who.get("placed")
+	if placed == null or not actions.territory_allows(who, t.cell, "build"):
+		return {}
+	var got: int = placed.put_ghost(who, t)
+	if got < 0:
+		return {"swing": actions.IDLE_SWING}
+	if got == 0:
+		return {}
+	drop_thing(t)
+	var done: Dictionary = actions.work(actions.skilled(who, "build", BUILD_SWING, 1.0), "reach",
+		Placed.center({"item": t.item, "cell": t.cell, "turn": t.turn}), -1)
+	done.placed = 1
+	return done
+
+
+## Ghost thing `t` as plain data, for the save and the clients' copies (to_list,
+## Protocol.GHOST_THING): {"thing": item, "cell", "turn", "cells", "wall": [[offset, block
+## item], …]}.
+static func thing_record(t: Dictionary) -> Dictionary:
+	var wall: Array = []
+	for o: Vector3i in t.wall:
+		wall.append([o, t.wall[o]])
+	return {"thing": t.item, "cell": t.cell, "turn": t.turn, "cells": t.cells.duplicate(), "wall": wall}
+
+
+## Adds the ghost thing of record `d` (thing_record: a save's, the server's) when it is a thing
+## still known, its cells near its north-west cell (THING_REACH) and none of them another
+## ghost thing's. The thing, {} for none.
+func _read_thing(d: Dictionary) -> Dictionary:
+	var id: Variant = d.get("thing")
+	if not (id is String and Items.has(Items.canon(id))):
+		return {}
+	var item: String = Items.get_item(Items.canon(id)).id
+	var cell: Variant = cell_of(d.get("cell"))
+	if Items.get_item(item).get("prop", "none") == "none" or not cell is Vector3i:
+		return {}
+	var tv: Variant = d.get("turn", 0)
+	var turn: int = int(tv) if tv is int or tv is float and is_finite(tv) and absf(tv) < 1e9 else 0
+	var filled: Array = []
+	var listed: Variant = d.get("cells")
+	if listed is Array:
+		for v: Variant in listed:
+			var c: Variant = cell_of(v)
+			if c is Vector3i and _near_cell(c - cell) and not _thing_cells.has(c) and not filled.has(c) \
+					and filled.size() < 4 * THING_REACH * THING_REACH:
+				filled.append(c)
+	if filled.is_empty():
+		if _thing_cells.has(cell):
+			return {}
+		filled.append(cell)
+	var wall := {}
+	var walled: Variant = d.get("wall")
+	if walled is Array:
+		for w: Variant in walled:
+			if not (w is Array and w.size() == 2 and w[1] is String):
+				continue
+			var o: Variant = cell_of(w[0])
+			var block := Items.canon(w[1])
+			if o is Vector3i and _near_cell(o) and Mat.index(Items.get_item(block).get("place", "")) >= 0:
+				wall[o] = Items.get_item(block).id
+	return add_thing(item, cell, turn, filled, wall)
+
+
+## Whether offset `o` lies within THING_REACH of a ghost thing's north-west cell.
+static func _near_cell(o: Vector3i) -> bool:
+	return maxi(maxi(absi(o.x), absi(o.y)), absi(o.z)) <= THING_REACH
+
+
+## The client's copy: ghost thing `d` (thing_record) was set (Protocol.GHOST_THING); one at
+## its north-west cell before goes.
+func take_thing(d: Dictionary) -> void:
+	var cell: Variant = cell_of(d.get("cell"))
+	if cell is Vector3i:
+		take_thing_gone(cell)
+	_read_thing(d)
+
+
+## The client's copy: the ghost thing at north-west cell `cell` went (Protocol.GHOST_THING_GONE).
+func take_thing_gone(cell: Vector3i) -> void:
+	for t: Dictionary in things.duplicate():
+		if t.cell == cell:
+			drop_thing(t)
 
 
 # --- The farming mode's marks --------------------------------------------------------
@@ -1037,11 +1330,14 @@ func drop_ghosts(of: Array) -> void:
 
 
 ## The ghost cells for the save and for a client joining: [[cell, item], …], with the
-## form third where it is not a cube.
+## form third where it is not a cube; then the ghost things, each a Dictionary
+## (thing_record: a game from before them reads past it).
 func to_list() -> Array:
 	var out: Array = []
 	for c: Vector3i in cells:
 		out.append([c, cells[c], forms[c]] if forms.has(c) else [c, cells[c]])
+	for t: Dictionary in things:
+		out.append(thing_record(t))
 	return out
 
 
@@ -1059,7 +1355,12 @@ func forms_of(list: Array) -> Array:
 func from_list(list: Array) -> void:
 	cells.clear()
 	forms.clear()
+	things.clear()
+	_thing_cells.clear()
 	for e in list:
+		if e is Dictionary:
+			_read_thing(e)
+			continue
 		if not (e is Array and e.size() in [2, 3] and e[1] is String):
 			continue
 		var c: Variant = cell_of(e[0])
