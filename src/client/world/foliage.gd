@@ -17,6 +17,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Ground plants (see Grass, PixelTextures.build_plants and grass.gdshader): the size
@@ -83,6 +84,22 @@ const STRAND_DROP := 0.8
 ## How far round its trunk a cone's crown is looked for, in cells (see _spruce).
 const SPRUCE_REACH := 8
 const CELL := WorldData.CELL
+## The grass along a pictured tree's foot (_foot_grass): pixels it reaches past the bark's
+## half width to each side, pixels between its plants, how far in front of the foot they
+## stand (pixels, toward the camera; the picture's own front `foot.y` added), the shares of
+## mushrooms and low tufts among them, and how much of an ordinary tuft's thinning draw it
+## keeps (grass.gdshader thins those whose draw is high).
+const FOOT_SIDE := 2.0
+const FOOT_STEP := 1.5
+const FOOT_FRONT := [0, 3]
+const FOOT_MUSHROOMS := 0.08
+const FOOT_LOW := 0.25
+const FOOT_KEEP := 0.1
+## A plant of a foot's grass carries in its 4th custom float FOOT_MARK x (1 + its front in
+## pixels) + FOOT_ASIDE + its shift aside (world units): grass.gdshader stands it there in
+## the camera's view, so it stays in front of the foot whichever way the camera turns.
+const FOOT_MARK := 100.0
+const FOOT_ASIDE := 50.0
 ## Levels 0, 2, 4.. of a column mask.
 const EVEN_LEVELS := 0x5555555555555555
 ## Cells of a conifer's trunk under the lowest disc of its shadow (see _tree_shadows).
@@ -377,6 +394,8 @@ static func _column(job: Job, x: int, z: int) -> void:
 					put(grass, Vector3(x + sx, y + h, z + sz) * CELL)
 					grass.append_array([float(Grass.SPORE), rng.randf_range(0.7, 1.2), rng.randf(), 0.0])
 					job.ng += 1
+	if w.trees.has(Vector2i(x, z)):
+		_foot_grass(job, x, z)
 	if x & 1 == 0 or z & 1 == 0:
 		return
 	var leaves: int = ch.leaf[col] & EVEN_LEVELS
@@ -523,6 +542,61 @@ static func _column(job: Job, x: int, z: int) -> void:
 			put(shadows, mid)
 			shadows.append_array([base.a, 0.0, 0.0, 0.0])
 			job.ns += 1
+
+## Grass and mushrooms along the foot of a tree or a stump drawn as a picture (TreeSprites),
+## so the picture's lower edge never meets the ground in a bare line: a row of tufts across
+## the roots drawn (look.yaml `foot`: the bark's half width and the foot's front, pixels;
+## FOOT_SIDE more to each side), FOOT_STEP pixels apart, a few pixels in front of the foot.
+## The camera turns, so they stand at the axis and grass.gdshader puts them aside and in
+## front in its view (FOOT_MARK). Only where the foot stands on grass, a mushroom now and then.
+static func _foot_grass(job: Job, x: int, z: int) -> void:
+	var w = job.w
+	var at := Vector2i(x, z)
+	var species: int = w.trees[at]
+	if species < 0 or species >= Trees.SPECIES.size():
+		return
+	var looks: Array = Trees.SPECIES[species].pictures.get("looks", [])
+	var foot := [0]
+	var i := Growth.standing_look(w, at, foot)
+	if i < 0:
+		var size := Growth.stump_look(w, at, foot)
+		if size < 0:
+			return
+		# A stump's roots are its tree's (the look of its size and the column's variant).
+		i = size * TreeLooks.VARIANTS + Growth.variant_of(at)
+	if i >= looks.size():
+		return
+	var y0: int = foot[0]
+	var ch: WorldData.Chunk = w.chunk_at(x, z)
+	if y0 < 1 or ch.cells[(y0 - 1) * WorldData.LAYER + WorldData.col_of(x, z)] != Mat.GRASS:
+		return
+	var half: float = looks[i].foot.x + FOOT_SIDE
+	var front: int = roundi(looks[i].foot.y)
+	var n := maxi(2, roundi(2.0 * half / FOOT_STEP))
+	var rng := job.rng
+	rng.seed = hash(Vector3i(x, y0, z) + Vector3i(0, 7919, 0))
+	var grass := job.grass
+	var root := Vector3(x + 0.5, y0, z + 0.5) * CELL
+	for k in n + 1:
+		var px := roundf(-half + 2.0 * half * k / n + rng.randf_range(-0.8, 0.8))
+		var kind: int
+		var phase := rng.randf()
+		var roll := rng.randf()
+		if roll < FOOT_MUSHROOMS:
+			kind = Grass.MUSHROOM + rng.randi_range(0, 1)
+		elif roll < FOOT_MUSHROOMS + FOOT_LOW:
+			kind = Grass.LOW + rng.randi_range(0, 3)
+		else:
+			kind = rng.randi_range(0, 3)
+			phase *= FOOT_KEEP
+		if Grass.plant_of(kind) == "":
+			continue
+		var ahead := front + rng.randi_range(FOOT_FRONT[0], FOOT_FRONT[1])
+		put(grass, root)
+		grass.append_array([float(kind), rng.randf_range(0.88, 1.06), phase,
+			FOOT_MARK * (1 + ahead) + FOOT_ASIDE + px / PixelView.PIXELS_PER_UNIT])
+		job.ng += 1
+
 
 ## The job of a whole chunk built before (`old`) with the columns of `part` (start_part,
 ## built since the cells changed) put in place of its own, as

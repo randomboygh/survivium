@@ -10,7 +10,8 @@
 // patches (see ground_patch), flowers show on the lush patches, reeds stand at the
 // water, and all of them stand up again around fires.
 // INSTANCE_CUSTOM: x = plant 0..28 (and the mods' after them), y = brightness, z = sway phase and thinning draw,
-// w = the shift aside of a card of a wide plant, or the height of tall grass (foliage.gd).
+// w = the shift aside of a card of a wide plant, or the height of tall grass, or the place of a plant of a
+// pictured tree's foot (foliage.gd).
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 // Grass, flowers and ears are low: the player's silhouette does not show behind them
@@ -48,6 +49,9 @@ const int HALO = 11;
 const int CUSTOM = 12;
 // A halo's card is this much larger than the others (foliage.gd scales it).
 const float HALO_SCALE = 2.5;
+// A plant of a pictured tree's foot (foliage.gd FOOT_MARK, FOOT_ASIDE).
+const float FOOT_MARK = 100.0;
+const float FOOT_ASIDE = 50.0;
 const vec3 GLOW_COLOR = vec3(0.35, 0.95, 0.8);
 // How long a spore takes to rise and how high it goes, in seconds and world units.
 const float SPORE_TIME = 9.0;
@@ -168,6 +172,13 @@ void vertex() {
 	if (kind == TALL) {
 		float tall_h = INSTANCE_CUSTOM.w > 0.0 ? round(INSTANCE_CUSTOM.w * 24.0) / 24.0 : 1.0;
 		VERTEX.y = root.y + (VERTEX.y - root.y) * tall_h;
+	} else if (INSTANCE_CUSTOM.w > FOOT_MARK * 0.5) {
+		// A plant of a pictured tree's foot (foliage.gd _foot_grass) stands on the tree's axis:
+		// aside and in front of it in the camera's view, so it covers the foot's lower edge
+		// from every side.
+		float ahead = floor(INSTANCE_CUSTOM.w / FOOT_MARK);
+		VERTEX.x += INSTANCE_CUSTOM.w - ahead * FOOT_MARK - FOOT_ASIDE;
+		VERTEX.z += (ahead - 1.0) / TEXELS;
 	} else {
 		VERTEX.x += INSTANCE_CUSTOM.w;
 	}
