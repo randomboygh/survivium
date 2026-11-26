@@ -548,6 +548,21 @@ func _test_requests() -> void:
 	_check(net.request(Protocol.PLAN, ["roof", g0, g0, 1, 1, false, 0]).value == null, "a shape of no known kind is refused")
 	_check(net.request(Protocol.BUILD, []).value is Dictionary, "the build mode's button builds through the server")
 	_check(net.request(Protocol.PLAN_CLEAR, []).value >= 2 and s.plans.cells.is_empty(), "and the ghost near is cleared")
+	# A thing set down by the blueprint (the user's picks, 2026-11-26): its ghost is told, turned, taken off.
+	a.inventory.add("tools:stool", 1)
+	events.clear()
+	_check(net.request(Protocol.PLAN_THING, ["tools:stool", g0, 0, false, -1]).value == true and s.plans.things.size() == 1,
+		"a ghost thing is set through the server")
+	host.flush(net)
+	_check(events.any(func(e: Array) -> bool: return e[0] == Protocol.GHOST_THING and e[1][0].get("thing") == "tools:stool"),
+		"and told to the client")
+	var ghost_cell: Vector3i = s.plans.things[0].cell if not s.plans.things.is_empty() else g0
+	_check(net.request(Protocol.PLAN_THING_MOVE, [ghost_cell, ghost_cell, 1, -1]).value == true and s.plans.things[0].turn == 1,
+		"turned through the server")
+	_check(net.request(Protocol.PLAN_THING_TAKE, [ghost_cell]).value == true and s.plans.things.is_empty(), "and taken off")
+	host.flush(net)
+	_check(events.any(func(e: Array) -> bool: return e[0] == Protocol.GHOST_THING_GONE and e[1][0] == ghost_cell),
+		"which the client is told")
 	_check(net.request(Protocol.FARM, ["dig", g0, g0, false, false]).value == null, "a farming work of no known kind is refused")
 	_check(net.request(Protocol.FARM, ["till", g0, g0 + Vector3i(2, 0, 0), false, false]).value is int,
 		"the farming mode's marks are drawn through the server")

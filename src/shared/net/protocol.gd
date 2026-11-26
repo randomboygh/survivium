@@ -126,6 +126,18 @@ const PLAN_CLEAR := "plan_clear"
 ## Turns the slopes and stairs of the ghost column at a cell a quarter (the build mode's
 ## double tap on a ghost slope): [cell] (Plans.turn_form).
 const PLAN_TURN := "plan_turn"
+## Sets the ghost of a thing of the bag into the blueprint where it would be set down (the
+## build mode with things set down by the blueprint, the user's picks of 2026-11-26): [item,
+## cell, the view's turn 0..3, kept, the side of the face -1..3], as PROP_PUT_AT
+## (Plans.put_thing).
+const PLAN_THING := "plan_thing"
+## Moves the ghost thing filling a cell: [cell, to, turn 0..3, face -1..3] (Plans.move_thing:
+## to a north-west cell turned so, its own and a quarter more turned where it stands; a door,
+## a window or a hatch by the wall's cell pressed and the side of its face, or its own cell
+## and its turn + 2: the other way round).
+const PLAN_THING_MOVE := "plan_thing_move"
+## Takes the ghost thing filling a cell off the blueprint: [cell] (Plans.erase_thing).
+const PLAN_THING_TAKE := "plan_thing_take"
 ## The build mode's action button: builds one ghost cell of the blueprint near the player,
 ## whatever the hand holds: [] (Plans.build).
 const BUILD := "build"
@@ -315,11 +327,16 @@ const PROP_FUEL := "prop_fuel"
 const PROP_WATER := "prop_water"
 ## How far a thing of snow has melted: [cell, melt 0..1], at each new stage (Placed.melt_changed).
 const PROP_MELT := "prop_melt"
-## Every ghost cell of the blueprint, on joining: [list] (as Plans.to_list gives it).
+## Every ghost cell of the blueprint, on joining: [list] (as Plans.to_list gives it, its
+## ghost things too).
 const PLANS := "plans"
 ## Ghost cells of the blueprint came with a block, or went: [cells, item ("" gone), the
 ## forms of the cells that came (Plans.forms_of)].
 const PLAN_CELLS := "plan_cells"
+## A ghost thing of the blueprint was set or moved there: [Plans.thing_record].
+const GHOST_THING := "ghost_thing"
+## The ghost thing at a north-west cell went (built, moved, taken off): [cell].
+const GHOST_THING_GONE := "ghost_thing_gone"
 ## What a thing that stores holds changed: [cell, Inventory.to_dict()].
 const CHEST := "chest"
 ## The time, the season and the weather: [Clock.snapshot()], on joining and then a few

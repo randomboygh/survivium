@@ -6,6 +6,11 @@ const Plans := preload("res://src/shared/game/plans.gd")
 const PLANKS := "materials:planks"
 
 
+## One drawing and building with the things it sets down (Plans.put_thing: Placed.ghost_spot).
+class Builder extends "res://tests/unit/test_case.gd".Who:
+	var placed
+
+
 func run() -> void:
 	_test_shapes()
 	_test_build()
@@ -14,6 +19,7 @@ func run() -> void:
 	_test_bands()
 	_test_turn_form()
 	_test_flatten()
+	_test_ghost_things()
 
 
 func _test_shapes() -> void:
@@ -377,3 +383,130 @@ func _test_flatten() -> void:
 	who.inventory.add("tools:wooden_shovel", 1)
 	_check(Plans.best_tool(who, Mat.DIRT) == "tools:wooden_shovel", "a shovel in the bag digs it faster")
 	_check(Plans.best_tool(who, Mat.STONE) == null, "nothing in the bag digs stone")
+
+
+## Doors, windows and furniture set down by the blueprint (the user's picks, 2026-11-26,
+## 1А, 2А): their ghosts are set where the thing would go in the world as the blueprint will
+## stand (a door into a ghost wall takes its ghost blocks' place), saved, moved, turned and
+## taken off like things, and built by the action button after the blocks, from the bag.
+func _test_ghost_things() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var plans := Plans.new()
+	placed.plans = plans
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	actions.plans = plans
+	var who := Builder.new()
+	who.placed = placed
+	who.position = Vector3(14.5, 1.0, 14.5) * WorldData.CELL
+	_check(not plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 16)) and plans.things.is_empty()
+		and who.said.any(func(s: String) -> bool: return s.contains("Not in the bag")),
+		"no ghost of a thing the bag does not hold")
+	who.inventory.add("tools:stool", 1)
+	who.inventory.add("tools:door", 1)
+	_check(plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 16)) and plans.things.size() == 1,
+		"a ghost stool is set where the stool would go")
+	var stool: Dictionary = plans.things[0]
+	_check(stool.cell == Vector3i(14, 1, 16) and stool.cells == [Vector3i(14, 1, 16)] and placed.things.is_empty()
+		and not w.blockers.has(stool.cell) and who.inventory.count("tools:stool") == 1,
+		"it fills its cell in the blueprint only: nothing is set down, nothing leaves the bag")
+	_check(plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 16)) and plans.things.size() == 2
+		and plans.things[1].cell != stool.cell, "a second ghost goes beside the first, not into it")
+	_check(plans.erase_thing(actions, who, plans.things[1].cell) and plans.things.size() == 1, "a ghost thing is taken off")
+	_check(not plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 90)) and plans.things.size() == 1,
+		"not out of reach")
+	# A ghost wall of planks along x at z 20, three high; the wall drawn through the stool goes round it.
+	who.item = PLANKS
+	_check(plans.draw(actions, who, "line", Vector3i(8, 1, 20), Vector3i(20, 1, 20), 3) == 39, "(a ghost wall)")
+	_check(plans.draw(actions, who, "line", Vector3i(12, 1, 16), Vector3i(16, 1, 16), 1) == 4 and not plans.cells.has(stool.cell),
+		"ghost blocks are not drawn where a ghost thing stands")
+	plans.erase(actions, who, [Vector3i(12, 1, 16), Vector3i(13, 1, 16), Vector3i(15, 1, 16), Vector3i(16, 1, 16)])
+	# A door into the ghost wall, the face of it looking north tapped.
+	_check(plans.put_thing(actions, who, "tools:door", Vector3i(12, 1, 20), -1, false, 0) and plans.things.size() == 2,
+		"a ghost door goes into the ghost wall")
+	var door: Dictionary = plans.things[1]
+	_check(door.cells.has(Vector3i(12, 1, 20)) and door.cells.has(Vector3i(12, 2, 20)) and door.cells.size() == 2
+		and door.turn % 2 == 0, "in the wall's plane, where it was pressed: %s" % [door])
+	_check(not plans.cells.has(Vector3i(12, 1, 20)) and not plans.cells.has(Vector3i(12, 2, 20)) and plans.cells.has(Vector3i(12, 3, 20))
+		and door.wall.size() == 2 and door.wall.values().all(func(v: String) -> bool: return v == PLANKS),
+		"its ghost blocks are taken off and kept by it (1А): %s" % [door.wall])
+	# Saved and read back, through the JSON of a world's file.
+	var copy := Plans.new()
+	copy.from_list(JSON.parse_string(JSON.stringify(plans.to_list())))
+	_check(copy.things.size() == 2 and copy.cells == plans.cells and copy.thing_at(Vector3i(12, 2, 20)).get("cell") == door.cell
+		and copy.thing_at(Vector3i(12, 2, 20)).turn == door.turn and copy.thing_at(Vector3i(12, 2, 20)).wall == door.wall,
+		"the ghost things are saved with the blueprint and read back")
+	var told: Array = []
+	var copy2 := Plans.new()
+	copy2.thing_changed.connect(func(t: Dictionary, came: bool) -> void: told.append([t.cell, came]))
+	copy2.take_thing(Plans.thing_record(door))
+	copy2.take_thing_gone(door.cell)
+	_check(told == [[door.cell, true], [door.cell, false]] and copy2.things.is_empty(), "a client's copy takes them as told")
+	# Moved along the wall: its ghost wall goes back into its old cells.
+	var was: Vector3i = door.cell
+	_check(plans.move_thing(actions, who, Vector3i(12, 1, 20), Vector3i(14, 1, 20), door.turn, 0), "a ghost door is moved along the wall")
+	door = plans.thing_at(Vector3i(14, 1, 20))
+	_check(not door.is_empty() and door.cells.has(Vector3i(14, 2, 20)) and plans.cells.get(Vector3i(12, 1, 20)) == PLANKS
+		and plans.cells.get(Vector3i(12, 2, 20)) == PLANKS and not plans.cells.has(Vector3i(14, 1, 20)) and door.wall.size() == 2,
+		"its old place is a ghost wall again, the new one taken off")
+	var cells_before: Array = door.cells.duplicate()
+	cells_before.sort()
+	var turn_before: int = door.turn
+	_check(plans.move_thing(actions, who, door.cell, door.cell, (door.turn + 2) % 4, -1), "a ghost door is turned the other way round")
+	door = plans.thing_at(Vector3i(14, 1, 20))
+	var cells_after: Array = door.cells.duplicate()
+	cells_after.sort()
+	_check(door.turn == (turn_before + 2) % 4 and cells_after == cells_before and door.wall.size() == 2, "where it stands")
+	_check(plans.move_thing(actions, who, stool.cell, Vector3i(16, 1, 16), 0) and not plans.thing_at(Vector3i(16, 1, 16)).is_empty()
+		and plans.thing_at(Vector3i(14, 1, 16)).is_empty(), "a ghost stool is moved")
+	stool = plans.thing_at(Vector3i(16, 1, 16))
+	_check(plans.move_thing(actions, who, stool.cell, stool.cell, (stool.turn + 1) % 4)
+		and plans.thing_at(stool.cell).turn == (stool.turn + 1) % 4, "and turned a quarter where it stands")
+	stool = plans.thing_at(Vector3i(16, 1, 16))
+	# On a ghost block: it rests on it, as on the floor that will be built.
+	plans.cells[Vector3i(30, 3, 30)] = PLANKS
+	_check(plans.put_thing(actions, who, "tools:stool", Vector3i(30, 4, 30)) and plans.thing_at(Vector3i(30, 4, 30)).get("cell") == Vector3i(30, 4, 30),
+		"a ghost thing stands on a ghost floor")
+	var raised: Dictionary = plans.thing_at(Vector3i(30, 4, 30))
+	plans.drop_thing(raised)
+	plans.cells.erase(Vector3i(30, 3, 30))
+	# Built: the blocks first, then the things, from the bag.
+	who.inventory.add(PLANKS, 60)
+	who.item = PLANKS
+	var things_while_blocks := false
+	for i in 60:
+		var cells_left := plans.cells.size()
+		var things_left := plans.things.size()
+		var done := plans.build(actions, who)
+		if not done.has("placed"):
+			break
+		if plans.things.size() < things_left and cells_left > 0:
+			things_while_blocks = true
+	_check(plans.cells.is_empty() and plans.things.is_empty() and not things_while_blocks,
+		"the action button builds the blocks, then the things: %d cells, %d things left" % [plans.cells.size(), plans.things.size()])
+	var real_door: Dictionary = placed.at(Vector3i(14, 1, 20))
+	_check(not real_door.is_empty() and real_door.item == "tools:door" and real_door.cell == door.cell and real_door.turn == door.turn
+		and w.get_cell(14, 1, 20) == Mat.AIR and w.get_cell(14, 3, 20) == Mat.index(PLANKS),
+		"the door stands where its ghost was, in the wall built round it")
+	_check(real_door.get("cut", {}).size() == 2 and real_door.cut.values().all(func(v: String) -> bool: return v == Mat.IDS[Mat.index(PLANKS)]),
+		"remembering the ghost blocks it took the place of as cut, to wall them up when moved: %s" % [real_door.get("cut")])
+	_check(placed.at(stool.cell).get("item", "") == "tools:stool" and placed.at(stool.cell).turn == stool.turn
+		and who.inventory.count("tools:stool") == 0 and who.inventory.count("tools:door") == 0, "the stool too, as it was turned")
+	# A ghost thing with nothing to build it with waits; one where a thing is set down for real goes.
+	_check(plans.put_thing(actions, who, "tools:door", Vector3i(20, 1, 12)) == false, "(the bag holds no door now)")
+	who.inventory.add("tools:stool", 2)
+	plans.put_thing(actions, who, "tools:stool", Vector3i(10, 1, 12))
+	var ghost: Dictionary = plans.thing_at(Vector3i(10, 1, 12))
+	_check(not ghost.is_empty() and placed.put_at(who, "tools:stool", Vector3i(10, 1, 12), 40) and plans.thing_at(Vector3i(10, 1, 12)).is_empty(),
+		"a thing set down for real where a ghost thing stands takes its place")
+	plans.put_thing(actions, who, "tools:stool", Vector3i(6, 1, 12))
+	_check(plans.clear(actions, who) >= 1 and plans.things.is_empty(), "clearing the blueprint takes the ghost things off")
+	plans.put_thing(actions, who, "tools:stool", Vector3i(6, 1, 12))
+	who.item = PLANKS
+	_check(plans.draw(actions, who, "line", Vector3i(4, 1, 12), Vector3i(8, 1, 12), 1, 1, true) >= 1 and plans.things.is_empty(),
+		"and so does an erasing stroke over them")
