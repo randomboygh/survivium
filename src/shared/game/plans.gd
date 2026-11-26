@@ -505,7 +505,8 @@ static func is_earth(v: String) -> bool:
 ## its top (2Б: the ground over the top stays) is dug out, and the dips under it filled with soil down to solid ground
 ## when it is at most FLAT_DOWN levels down (a deeper one is left and the figure hangs
 ## there). A flight of slopes or stairs only has its dips filled, under each column's lowest
-## cell: a flight up a hill stays on the hill. Trees, what players built and ghost cells
+## cell: a flight up a hill stays on the hill. A figure laid on a structure (_on_structure: a
+## ceiling over walls) fills nothing, the room under it stays. Trees, what players built and ghost cells
 ## stay; only where `who` may build. {"cut": cells to dig out (not the figure's), "dig":
 ## the figure's cells in natural ground → true (its blocks go there once it is dug),
 ## "fill": cells of soil, "under": the same → true}; {} with no world, or a footprint over
@@ -531,6 +532,9 @@ func earthwork(actions, who, kind: String, a: Vector3i, b: Vector3i, all: Array[
 				cols[Vector2i(x, z)] = a.y
 	if cols.size() > MAX_FLAT:
 		return {}
+	# A figure laid on what players built (a ceiling over walls, a floor of an upper storey,
+	# a roof) fills no dips: the room under it stays open (the user's report of 2026-11-26).
+	var held := _on_structure(actions, cols)
 	var out := {"cut": [], "dig": {}, "fill": [], "under": {}}
 	for col: Vector2i in cols:
 		var base: int = cols[col]
@@ -544,6 +548,8 @@ func earthwork(actions, who, kind: String, a: Vector3i, b: Vector3i, all: Array[
 					out.dig[up] = true
 				else:
 					out.cut.append(up)
+		if held:
+			continue
 		var hole: Array = []
 		var floor := false
 		for i in FLAT_DOWN + 1:
@@ -566,6 +572,39 @@ func earthwork(actions, who, kind: String, a: Vector3i, b: Vector3i, all: Array[
 			out.fill.append(c)
 			out.under[c] = true
 	return out
+
+
+## Whether a figure over columns `cols` (column → its lowest level) rests on a structure:
+## under one of them is a block players built or the ghost of one (_built) that does not
+## stand on the ground (_ground), as a wall, a pillar or a beam does. A paved path or a
+## floor laid on the ground is none.
+func _on_structure(actions, cols: Dictionary) -> bool:
+	for col: Vector2i in cols:
+		var base: int = cols[col]
+		if base >= 2 and _built(actions, Vector3i(col.x, base - 1, col.y)) \
+				and not _ground(actions, Vector3i(col.x, base - 2, col.y)):
+			return true
+	return false
+
+
+## Whether cell `c` holds a block players built, not of loose ground (dirt, sand: a dip
+## filled is ground), or the ghost of one (not the earth's: CUT, soil).
+func _built(actions, c: Vector3i) -> bool:
+	if cells.has(c):
+		return not is_earth(cells[c])
+	var w = actions.world
+	var m: int = w.get_cell(c.x, c.y, c.z)
+	return m != Mat.AIR and m != Mat.WATER and m != Mat.LEAVES and not Mat.can_slope(m) \
+			and not w.is_natural(c.x, c.y, c.z) and actions.tree_of(c) == null
+
+
+## Whether cell `c` is ground: natural ground, loose ground players put (a dip filled), or
+## the ghost of the soil filling a dip.
+func _ground(actions, c: Vector3i) -> bool:
+	if cells.get(c, "") == soil_item():
+		return true
+	var m: int = actions.world.get_cell(c.x, c.y, c.z)
+	return m != Mat.AIR and m != Mat.WATER and Mat.can_slope(m) or _natural_ground(actions, c)
 
 
 ## Whether cell `c` is natural ground a flattening digs out: not air, water or leaves, not

@@ -469,6 +469,42 @@ func _test_earthwork() -> void:
 		Plans.shape("line", Vector3i(30, 2, 30), Vector3i(34, 2, 30), 3, Vector2.INF, 1, ramp), ramp)
 	_check(fw.cut.is_empty() and fw.dig.is_empty() and fw.fill == [Vector3i(33, 1, 30)],
 		"a flight's dips are filled, the ground over it not cut: %s" % [fw])
+	# A ceiling over walls (built or ghost) fills nothing under it; a floor on a paved path
+	# (natural ground right under the path) still fills its dips.
+	for x in range(36, 41):
+		for z in range(36, 41):
+			if x == 36 or x == 40 or z == 36 or z == 40:
+				for y in [2, 3]:
+					w.set_cell(x, y, z, Mat.index(PLANKS))
+					w.set_natural(x, y, z, false)
+	who.position = Vector3(38.5, 4.0, 38.5) * WorldData.CELL
+	var lid_a := Vector3i(36, 4, 36)
+	var lid_b := Vector3i(40, 4, 40)
+	var lid := plans.earthwork(actions, who, "plane", lid_a, lid_b, Plans.shape("plane", lid_a, lid_b, 1))
+	_check(lid.fill.is_empty() and lid.cut.is_empty(), "a ceiling over walls fills nothing under it: %s" % [lid])
+	for c: Vector3i in Plans.shape("line", Vector3i(42, 2, 36), Vector3i(42, 3, 40), 2):
+		plans.cells[c] = PLANKS
+	var ghost_lid := plans.earthwork(actions, who, "plane", Vector3i(41, 4, 36), Vector3i(43, 4, 40),
+		Plans.shape("plane", Vector3i(41, 4, 36), Vector3i(43, 4, 40), 1))
+	_check(ghost_lid.fill.is_empty(), "a ceiling over ghost walls fills nothing: %s" % [ghost_lid])
+	for c: Vector3i in Plans.shape("line", Vector3i(42, 2, 36), Vector3i(42, 3, 40), 2):
+		plans.cells.erase(c)
+	w.set_cell(30, 2, 40, Mat.index(PLANKS))
+	w.set_natural(30, 2, 40, false)
+	w.set_cell(32, 1, 40, Mat.AIR)
+	who.position = Vector3(31.5, 3.0, 41.5) * WorldData.CELL
+	var path := plans.earthwork(actions, who, "plane", Vector3i(30, 3, 40), Vector3i(32, 3, 41),
+		Plans.shape("plane", Vector3i(30, 3, 40), Vector3i(32, 3, 41), 1))
+	_check(path.fill.has(Vector3i(32, 1, 40)) and path.fill.has(Vector3i(32, 2, 40)),
+		"a floor on a paved path still fills the dips under it: %s" % [path])
+	# Nor is a dip filled before (soil players put, two deep) a structure.
+	w.set_cell(30, 2, 40, Mat.AIR)
+	for y in [1, 2]:
+		w.set_cell(30, y, 41, Mat.DIRT)
+		w.set_natural(30, y, 41, false)
+	var filled := plans.earthwork(actions, who, "plane", Vector3i(30, 3, 40), Vector3i(32, 3, 41),
+		Plans.shape("plane", Vector3i(30, 3, 40), Vector3i(32, 3, 41), 1))
+	_check(filled.fill.has(Vector3i(32, 1, 40)), "a floor over a dip filled before still fills the dips: %s" % [filled])
 
 
 ## Replacing the material (the user's idea 6, 2026-11-26): a stroke over a wall players built

@@ -133,7 +133,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   or the whole rectangle of a plane, a square or a cube, natural ground from its lowest level up to its top
   (the user's pick 2Б: the ground over the top stays) is a `CUT` ghost, the figure's own cells in it stay its blocks and `build` digs them first when no block takes
   their place at once (`_buried`, stone), dips under it are filled with soil when solid ground is at most
-  `FLAT_DOWN` levels down (a deeper one is left and the figure hangs there); a flight of slopes or stairs only
+  `FLAT_DOWN` levels down (a deeper one is left and the figure hangs there), but not under a figure laid on a structure (`_on_structure`: under it a block players built or a ghost block, not of loose ground, that does not stand on the ground — a ceiling over walls, an upper floor, a roof; a paved path or a floor on the ground, or a dip filled before, is none), whose room stays open; a flight of slopes or stairs only
   has its dips filled, a fence takes the ground as it lies; `sort` takes it so the cells in the ground fit and
   those over soil do not hang), `draw` (draws or, with `erase`, erases the ghost in the whole box of the figure,
   `erase_box`; with `level` the box reaches `FLAT_DOWN` under the figure but takes only the earth's ghost there, `is_earth`;

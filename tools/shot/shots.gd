@@ -398,6 +398,13 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"]},
 	"build-level-built": {"time": 0.4, "season": 1, "uneven": true, "built": true, "build_mode": "draw",
 		"stroke": false, "touch": true, "hide": ["chunks: grass"]},
+	# A ceiling's ghost drawn over plank walls with the levelling on (places.ceiling): the room
+	# under it is left open, not filled with soil; then its earthwork built and the ceiling's
+	# ghost taken off: the room and the dip in it are as they were.
+	"build-ceiling": {"time": 0.4, "season": 1, "ceiling": "ghost", "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"]},
+	"build-ceiling-earth": {"time": 0.4, "season": 1, "ceiling": "earth", "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"]},
 	# The eyedropper (BuildMode.pick_at) in a room's corner (places.build_room): on, planks in
 	# the hand; then a tap on the brick wall west took brick.
 	"build-pick-on": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

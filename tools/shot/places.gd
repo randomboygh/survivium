@@ -1698,6 +1698,49 @@ func steep(w, at: Vector3) -> Vector3:
 	return main.player.position
 
 
+## A ceiling's ghost over walls (Plans.earthwork laid on a structure, 2026-11-26): on a
+## flat near `at` a square of plank walls 7×6 three high, a dip two deep inside, and a plane
+## of planks drawn by the server over the walls' tops with the ground levelling on: the room
+## under it is not filled with soil. With `earth` the earthwork is built at once and the
+## ceiling's ghost taken off, to show what was done under it. Where the player stands:
+## south of the room.
+func ceiling(w, at: Vector3, earth: bool) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
+	var a := spot + Vector3i(-3, 0, -9)
+	var b := a + Vector3i(6, 0, 5)
+	var keys := {}
+	for c: Vector3i in Plans.shape("square", a, b, 3, Vector2(spot.x, spot.z) * CELL):
+		w.set_cell(c.x, c.y, c.z, planks)
+		w.set_natural(c.x, c.y, c.z, false)
+		keys[WorldData.chunk_key(c.x, c.z)] = true
+	for d: Vector3i in [Vector3i(0, 0, -6), Vector3i(1, 0, -6), Vector3i(0, 0, -7)]:
+		for y in 2:
+			var c: Vector3i = spot + d - Vector3i(0, y + 1, 0)
+			w.set_cell(c.x, c.y, c.z, Mat.AIR)
+	for key: Vector2i in keys:
+		main.chunks.remesh_chunk(key)
+	var hp = main.host.player
+	hp.hands = ["materials:planks", ""]
+	hp.active = 0
+	hp.position = (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
+	main.session.plans.draw(main.session.actions, hp, "plane", a + Vector3i(0, 3, 0), b + Vector3i(0, 3, 0), 1, 1,
+		false, 0, true)
+	if earth:
+		var plans = main.session.plans
+		var cells: Array = plans.cells.keys()
+		for c: Vector3i in cells:
+			if plans.cells[c] == Plans.CUT:
+				w.set_cell(c.x, c.y, c.z, Mat.AIR)
+			elif plans.cells[c] == Plans.soil_item():
+				w.set_cell(c.x, c.y, c.z, Mat.DIRT)
+				w.set_natural(c.x, c.y, c.z, true)
+		plans.erase(main.session.actions, hp, cells)
+		for key: Vector2i in keys:
+			main.chunks.remesh_chunk(key)
+	return Vector3(spot.x + 0.5, spot.y, spot.z + 0.5) * CELL
+
+
 ## Uneven ground for a figure drawn with its earthwork (Plans.earthwork; the building UX's
 ## PR 6, 2026-11-26): on a flat near `at`, bumps of natural dirt one and two levels high and
 ## dips one and two deep where a room and walls are drawn north of the feet by the server,
