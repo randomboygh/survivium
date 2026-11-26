@@ -32,6 +32,7 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 
 const COLUMNS := 8
 ## The most cells of recipes made in one refresh (see refresh_now).
@@ -39,6 +40,8 @@ const NEW_CELLS := 2
 ## The rows of recipes shown whole before the list scrolls.
 const ROWS := 4
 const JOB_SLOT := 24
+## The side of a dye's square in the «Краситель» row, in UI pixels: as a fact's chip (a tool, a station).
+const DYE_SIDE := 20
 ## What the queue's row keeps beside its cells, in UI pixels: the time and count over
 ## the progress, the pause and the two buttons to cancel.
 const QUEUE_INFO := 56
@@ -84,8 +87,8 @@ var _get: Button
 var _facts: FactChips
 ## «Краситель»: a thing that can be dyed is made in its own colours or a dye's of the bag
 ## (the picture of each shows it so); the dye picked, "" none.
-var _dye_row: HBoxContainer
-var _dye_cells: HBoxContainer
+var _dye_row: VBoxContainer
+var _dye_cells: HFlowContainer
 var _dye := ""
 ## At a dye vat: the cells of the things of the bag that can be dyed (reused, by
 ## order), the bag slot of the one chosen, and the line of «Перекрасить | Отмыть».
@@ -224,14 +227,15 @@ func _ready() -> void:
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(_facts)
-	_dye_row = HBoxContainer.new()
-	_dye_row.add_theme_constant_override("separation", 4)
+	# The title over the colours (as the facts' groups), the colours wrapping onto more
+	# lines rather than widening the window.
+	_dye_row = VBoxContainer.new()
+	_dye_row.add_theme_constant_override("separation", 2)
 	box.add_child(_dye_row)
-	var dye_title := UiStyle.label("[dye]", UiStyle.MUTED)
-	dye_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_dye_row.add_child(dye_title)
-	_dye_cells = HBoxContainer.new()
-	_dye_cells.add_theme_constant_override("separation", 2)
+	_dye_row.add_child(UiStyle.label("[dye]", UiStyle.MUTED))
+	_dye_cells = HFlowContainer.new()
+	_dye_cells.add_theme_constant_override("h_separation", 4)
+	_dye_cells.add_theme_constant_override("v_separation", 4)
 	_dye_row.add_child(_dye_cells)
 	# One line: «сделать» (amber, as wide as the inventory's action button) on the left,
 	# joined to «×5» when five can be made and «MAX» when more than one can (then
@@ -504,9 +508,10 @@ func _start(n: int) -> void:
 		game.net.request(Protocol.CRAFT, [_chosen, n])
 
 
-## The «Краситель» row of recipe `r`: shown for a thing that can be dyed, a cell of its
-## own colours and one of each dye in the bag, each the thing's picture in those colours;
-## at a vat, for a thing dyed `had`, one of each other dye of the bag.
+## The «Краситель» row of recipe `r`: shown for a thing that can be dyed, a square of its
+## own colour and one of each dye in the bag, each in its colour (as the land's colours),
+## the one picked ticked; at a vat, for a thing dyed `had`, one of each other dye of the
+## bag. The recipe's picture shows the thing in the colours picked.
 func _show_dyes(r: Dictionary, had := "-") -> void:
 	var inv = game.character.inventory
 	_dye_row.visible = Items.dyeable(r.makes)
@@ -521,22 +526,33 @@ func _show_dyes(r: Dictionary, had := "-") -> void:
 		_dye = "" if had == "-" or dyes.is_empty() else dyes[0]
 	var cells := _dye_cells.get_children()
 	for i in maxi(cells.size(), dyes.size()):
-		var cell = cells[i] if i < cells.size() else null
+		var cell: Button = cells[i] if i < cells.size() else null
 		if cell == null:
-			cell = HotbarSlot.new(28)
-			cell.custom_minimum_size = Vector2(28, 28)
-			cell.icon_size = Vector2(20, 20)
+			cell = Kit.button("", Callable(), DYE_SIDE, DYE_SIDE)
+			cell.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			cell.pressed.connect(_pick_dye.bind(cell))
 			_dye_cells.add_child(cell)
 		cell.visible = i < dyes.size()
 		if not cell.visible:
 			continue
 		var dye: String = dyes[i]
+		var color: Color = Items.dye_shades(dye)[1] if dye != "" else Items.cloth(r.makes)[1]
 		cell.set_meta("dye", dye)
-		cell.texture = ItemIcons.dyed(r.makes, dye) if dye != "" else ItemIcons.of_item(r.makes)
+		UiStyle.tint(cell, color)
 		cell.tooltip_text = Lang.t(Items.title(dye)) if dye != "" else Lang.t("[own_colours]")
-		cell.number = str(inv.count(dye)) if dye != "" else ""
-		cell.selected = dye == _dye
+		cell.icon = UiStyle.icon("check") if dye == _dye else null
+		# The tick dark on a light colour, light on a dark one.
+		var ink := UiStyle.DARK_INK if color.get_luminance() > 0.45 else Color.WHITE
+		for c in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_hover_pressed_color", "icon_focus_color"]:
+			cell.add_theme_color_override(c, ink)
+	if _dye != "":
+		_icon.texture = ItemIcons.dyed(r.makes, _dye)
+
+
+## A chip of the dye picked among the materials: `need` of it used of those in the bag.
+func _dye_chip(need: int) -> Array:
+	var have: int = game.character.inventory.count(_dye)
+	return [ItemIcons.of_item(_dye), "%d/%d" % [need, have], have < need, Lang.t(Items.title(_dye))]
 
 
 func _pick_dye(cell: Control) -> void:
@@ -596,9 +612,11 @@ func _show_vat() -> void:
 	_fit_title()
 	var washes: String = Items.get_item(Items.get_item(_station.item).washes).id
 	var has_wash: int = inv.count(washes)
-	_facts.show_groups([["[where]", [[ItemIcons.of_item(_station.item), "", false, Lang.t(Items.title(_station.item))]]],
-		["[wash_with]", [[ItemIcons.of_item(washes), "%d/%d" % [int(s[1]), has_wash], has_wash < int(s[1]), Lang.t(Items.title(washes))]]]])
 	_show_dyes({"makes": thing}, dyed)
+	# The dye picked first, among the materials, as in a recipe.
+	_facts.show_groups(([["[materials]", [_dye_chip(int(s[1]))]]] if _dye != "" else [])
+		+ [["[where]", [[ItemIcons.of_item(_station.item), "", false, Lang.t(Items.title(_station.item))]]],
+		["[wash_with]", [[ItemIcons.of_item(washes), "%d/%d" % [int(s[1]), has_wash], has_wash < int(s[1]), Lang.t(Items.title(washes))]]]])
 	var shop = game.workshop
 	_redye.disabled = _dye == "" or shop.why_not_redye(_vat_slot, _dye) != ""
 	_redye.icon = UiStyle.centred(ItemIcons.of_item(_dye)) if _dye != "" else UiStyle.centred(UiStyle.icon("hammer"))
@@ -739,6 +757,8 @@ func _show_details(near: Dictionary) -> void:
 	for g: Array in FactChips.item_groups(r.makes, r.count):
 		made.append_array(g[1])
 	_show_dyes(r)
+	if _dye != "" and _dye_row.visible:
+		needs.append(_dye_chip(1))
 	_facts.show_groups([["[materials]", needs], ["[not_used_up_n2]", keeps], ["[where]", at],
 		["[with]", tools], ["[time]", time], ["[product]", made], ["[byproduct_n2]", also]])
 	var can := Crafting.can_make(r, inv, near)
