@@ -61,8 +61,9 @@ Part of [The picture](../rendering.md). The rules a change of the picture keeps.
   in place (not `WorldData.WILD`) carry `ChunkMesher.BUILT_BLUE` in the vertex colour's blue (the shader takes
   the red for it; plain tops of built and natural cells are never one quad, `PLAIN_BUILT`), and `world.gdshader`
   discards them and the things of voxels above `build_cut` (`above_build_cut`; snow drifts stay); the plan
-  shaders too. Natural ground, trees, grass, water and sprites are not cut; the ordinary cut and the layers are
-  off meanwhile. Its caps close only built cells (`build_cap(..., built)`, `ChunkStreamer.BUILT_CAPS`).
+  shaders too. Natural ground, trees, grass, water and sprites are not cut; the cut that follows the player and the
+  layers look only at natural ground meanwhile, and are off while another floor is looked at. Its caps close only
+  built cells (`build_cap(..., built)`, `ChunkStreamer.BUILT_CAPS`).
 - The cave view is one — layers (`src/client/view/cave_layers.gd`; decision 168: the «slice of levels», the
   «cut by the camera» and the «sphere» were removed together with the setting «Cave view» `cave_mode`, saved
   old values are not read, everyone has layers). Where an automatic slice would cut the view (under a roof;

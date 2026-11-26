@@ -261,6 +261,8 @@ var cut_level := -1
 var build_floor := 0
 ## The level the floors are cut over (built cells above it are left out), -1 for none.
 var build_cut := -1
+## The cut that follows the player looks only at natural ground (the build mode, _roof).
+var _natural_only := false
 ## Added to cap_level() for caps over built cells only (the build cut's).
 const BUILT_CAPS := 1 << 16
 ## The solid cells round the player, for the rock the view in layers fills in.
@@ -1489,12 +1491,22 @@ func update_cut(_delta: float) -> void:
 	var level := ground_level
 	var px := floori(player.position.x / CELL)
 	var pz := floori(player.position.z / CELL)
+	# In the build mode the floors are cut over what is built (build_level), and the cut
+	# that follows the player looks only at natural ground (_roof).
+	var floors := build_level(level)
+	if (floors >= 0) != _natural_only:
+		_natural_only = floors >= 0
+		hidden_at = Vector3i(0, -1000, 0)
 	indoor = false
-	# Any roof over the head, however high (the vault of a tall cave).
+	# Any roof over the head, however high (the vault of a tall cave); `roofed` a natural one
+	# in the build mode.
+	var roofed := false
 	for y in range(level + 2, world.size_y):
 		if Mat.is_roof(world.get_cell(px, y, pz)):
 			indoor = true
-			break
+			if not _natural_only or world.is_natural(px, y, pz):
+				roofed = true
+				break
 	var at := Vector3i(px, level, pz)
 	solid.flush()
 	if at != hidden_at:
@@ -1512,16 +1524,18 @@ func update_cut(_delta: float) -> void:
 			manual_level = -1
 		else:
 			manual_level = maxi(manual_level, reach.x)
-	var floors := build_level(level)
+	if floors >= 0:
+		# The level buttons step by floors meanwhile.
+		manual_level = -1
 	if game.view.first_person:
 		# The eyes see what is round them: nothing cut away, no layers.
 		manual_level = -1
-	elif floors >= 0:
-		# The build cut of the floors: natural ground stays whole, no layers.
-		manual_level = -1
+	elif floors >= 0 and build_floor != 0:
+		# Another floor looked at: natural ground stays whole, no layers.
+		pass
 	elif manual_level >= 0:
 		target = manual_level
-	elif indoor:
+	elif roofed:
 		# Over the head.
 		target = level + 1
 	elif hidden_by >= 0 and not hill:
@@ -1533,7 +1547,7 @@ func update_cut(_delta: float) -> void:
 		# nothing (a ravine running along the view) open nothing either.
 		target = hidden_by - 1
 	_update_depth()
-	var opened: bool = manual_level < 0 and target < world.size_y and not game.view.first_person and floors < 0
+	var opened: bool = manual_level < 0 and target < world.size_y and not game.view.first_person
 	# Where the automatic cut would cut the view, the layers open it instead and fill
 	# what they leave out with the rock's section, by the solid cells round the player.
 	_update_layers(opened, at)
@@ -1553,6 +1567,13 @@ func update_cut(_delta: float) -> void:
 	_apply_cut()
 
 
+## Whether cell (x, y, z) is earth the cut that follows the player opens (Mat.is_roof): in
+## the build mode natural ground only (`_natural_only`), what is built has the cut of the
+## floors.
+func _roof(x: int, y: int, z: int) -> bool:
+	return Mat.is_roof(world.get_cell(x, y, z)) and (not _natural_only or world.is_natural(x, y, z))
+
+
 ## The lowest level of earth (not trunks or leaves) that covers most of the body of a
 ## player standing on `level` in column (x, z), as the camera sees it, or -1. In the
 ## default 3/4 view a cell (x, y, z) covers the screen rows z - y - 1 .. z - y + 1 (its
@@ -1568,7 +1589,7 @@ func _hiding_level(x: int, level: int, z: int) -> int:
 	for y in range(level + 2, mini(level + 2 + HIDE_REACH, world.size_y)):
 		var ahead := body - up * PixelView.slope * (y - level)
 		for c: Vector2 in [ahead + up, ahead]:
-			if Mat.is_roof(world.get_cell(floori(c.x), y, floori(c.y))):
+			if _roof(floori(c.x), y, floori(c.y)):
 				_hide_steep = _sheer_below(c + up, y)
 				return y
 	return -1
@@ -1579,7 +1600,7 @@ func _hiding_level(x: int, level: int, z: int) -> int:
 ## world, a hut, a ledge), not as a slope coming down to the player's feet.
 func _sheer_below(c: Vector2, y: int) -> bool:
 	for k in [1, 2]:
-		if y - k < 0 or Mat.is_roof(world.get_cell(floori(c.x), y - k, floori(c.y))):
+		if y - k < 0 or _roof(floori(c.x), y - k, floori(c.y)):
 			return false
 	return true
 
@@ -1600,21 +1621,21 @@ func _rises_behind(x: int, level: int, z: int) -> bool:
 	for way: Vector2 in [up, (up + side) * SQRT1_2, (up - side) * SQRT1_2]:
 		for r in range(1, RISE_REACH + 1):
 			var c := body + way * r
-			if Mat.is_roof(world.get_cell(floori(c.x), y, floori(c.y))):
+			if _roof(floori(c.x), y, floori(c.y)):
 				return true
 	return false
 
 
 ## The level the build mode's cut of the floors cuts built cells over for a player standing
-## on `level`, -1 for none (out of the build mode, or on the player's own floor): as high
-## over each floor as the ordinary cut under a roof is over the feet (the floor and the
-## body's two cells show), within view_range.
+## on `level`, -1 for none (out of the build mode): on each floor its floor and one row of
+## its walls show, all built above them is left out (the user's pick, 2026-11-27), within
+## floors_range.
 func build_level(level: int) -> int:
-	if build_floor == 0 or game.build == null or not game.build.on or game.view.first_person:
+	if game.build == null or not game.build.on or game.view.first_person:
 		build_floor = 0
 		return -1
 	var reach := floors_range()
-	return clampi(level + 1 + build_floor * floor_height(), reach.x, reach.y)
+	return clampi(level + build_floor * floor_height(), reach.x, reach.y)
 
 
 ## The levels the cut of the floors may lie on: anywhere in the world (natural ground is
@@ -1645,7 +1666,7 @@ func shift_cut(d: int) -> void:
 	if by_floors():
 		# A floor at a time while the next one is within reach (see build_level).
 		var reach := floors_range()
-		var next := ground_level + 1 + (build_floor + d) * floor_height()
+		var next := ground_level + (build_floor + d) * floor_height()
 		if next >= reach.x and next <= reach.y or build_floor + d == 0:
 			build_floor += d
 		manual_level = -1
@@ -1695,7 +1716,7 @@ func reset_view_level() -> void:
 func can_shift(d: int) -> bool:
 	if by_floors():
 		var reach := floors_range()
-		var floor_at := ground_level + 1 + (build_floor + d) * floor_height()
+		var floor_at := ground_level + (build_floor + d) * floor_height()
 		return build_floor + d == 0 or floor_at >= reach.x and floor_at <= reach.y
 	var view := view_range()
 	var next := cut_base() + d

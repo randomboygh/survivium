@@ -348,12 +348,15 @@ lies around. The rules are shared (the server checks them), input and hints are 
   or the build cut of the floors show their tops at the cut (`PlanBlocks._caps`: `ChunkMesher.build_cap` of the
   ghost world, white, in the ghost's look), as a built wall's dark caps do.
 - The build cut of the floors (2026-11-27, the building UX's PR 9): in build mode the level buttons (and Q / E)
-  step by floors as tall as the shape drawn (`ChunkStreamer.build_floor`, `build_level`: over each floor as high as
-  the cut under a roof is over the feet, anywhere in the world, `floors_range`; `can_shift`); the label reads
-  «Этаж N» (`[floor_n]`, 1 the player's floor). Only what is built is cut (`build_cut`, see
-  `docs/systems/rendering/rules.md`); natural ground, trees, plants and creatures stay. A finger passes through the
-  built cells above (`Controls.pick` skips them), and the requests that take the cut get `ChunkStreamer.top_level`.
-  Leaving build mode (or the first-person view) brings the ordinary cut back.
+  step by floors as tall as the shape drawn (`ChunkStreamer.build_floor`, `build_level`; anywhere in the world,
+  `floors_range`; `can_shift`), and on each floor, the player's too, its floor and one row of walls show, all built
+  above them is left out (the cut at the level of the feet on that floor; the user's pick, 2026-11-27); the label
+  reads «Этаж N» (`[floor_n]`, 1 the player's floor). Only what is built is cut (`build_cut`, see
+  `docs/systems/rendering/rules.md`); natural ground, trees, plants and creatures stay, and the cut that follows
+  the player (under a roof, in a pit: the layers) looks only at natural ground there (`_natural_only`, `_roof`;
+  `indoor` still counts any roof) and only on the player's own floor. A finger passes through the built cells
+  above (`Controls.pick` skips them), and the requests that take the cut get `ChunkStreamer.top_level`. Leaving
+  build mode (or the first-person view) brings the ordinary cut back.
 
 - `src/client/game/gathering.gd` — what a touch gathers and the hint for it, picking up near the player (a
   beast's body lying is hit round its middle, `BODY_UP`, `BODY_GROW` px farther).
