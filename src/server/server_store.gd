@@ -180,6 +180,7 @@ func _world_meta(next_id: int) -> Dictionary:
 		"known": Mods.all(),
 		"content": WorldStore.CONTENT,
 		"materials": Array(Mat.IDS),
+		"numberings": session.gen.numberings,
 		"levels": session.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
 		"saved": Time.get_datetime_string_from_system(),

@@ -146,7 +146,8 @@ The interface's pictures are `assets/ui/`. The assets are drawn by `tools/make_*
 
 - A cell's material is a number in the order of loading (`core:air` = 0). So a world's set of bundles
   cannot be changed (only supplementing bundles, with no cells, enter an old world); the world stores the
-  list `materials` and is converted by `Mat.remap`.
+  orders its chunks were written in (`numberings`, with the trees', bushes' and biomes' numbers) and each
+  chunk names its own (`order`); they are translated as read (`numbering.gd`).
 - The atlas: materials and different barks together are no more than 63 (`PixelTextures.MOST_MATERIALS`, 6
   bits of material in the mesh, `material_bits[63]` in the shader). 38 are used now: 30 materials and 8
   different barks.
