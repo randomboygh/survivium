@@ -624,9 +624,9 @@ func show_chest(e: Dictionary) -> void:
 ## Glides the list so that the strip of chest _glide_chest stands at the top (as far as
 ## the list scrolls) once the list is laid out with it: the chests' grids are made, and the
 ## window sized, at the end of the frame they are seen, the scroll's range a frame later.
-## Till the list is there it glides again whenever the glide stopped short (the strips made
-## anew, the range grown), for GLIDE_WAIT ms at most (by the clock: a phone's frames are
-## long), and gives way to a finger or the wheel on the list (DragScroll.touched).
+## For GLIDE_WAIT ms (by the clock: a phone's frames are long) it keeps the list there,
+## gliding again whenever it is not (the strips made anew, the range or the page changed),
+## and gives way to a finger or the wheel on the list (DragScroll.touched).
 func _glide_to_chest() -> void:
 	var e := _glide_chest
 	var touched: int = _drag.touched
@@ -642,15 +642,14 @@ func _glide_to_chest() -> void:
 			continue
 		var line: Control = _chest_grids[i].line
 		var bar := _scroll.get_v_scroll_bar()
-		# A strip just made sits at the top, of no size, till the list sorts it; the bar's
-		# range follows the list's height after that.
-		if not line.is_visible_in_tree() or line.size.y <= 0.0 or _list.size.y < line.position.y \
+		# A strip just made sits at the top of the list, already of its size, till the list
+		# sorts it under the bag's slots (the frame can come first: the tap that opened the
+		# chest came before it, 2026-11-27); the bar's range follows the list's height.
+		if not line.is_visible_in_tree() or line.position.y <= 0.0 or _list.size.y < line.position.y \
 				or bar.max_value < _list.get_combined_minimum_size().y - 0.5:
 			continue
 		var to := clampf(line.position.y, 0.0, maxf(bar.max_value - bar.page, 0.0))
-		if absf(_scroll.scroll_vertical - to) <= 1.0:
-			break
-		if not _drag.moving():
+		if absf(_scroll.scroll_vertical - to) > 1.0 and not _drag.moving():
 			_drag.glide_to(to)
 	if _glide_chest == e:
 		_glide_chest = {}
