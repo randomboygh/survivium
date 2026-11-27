@@ -253,12 +253,19 @@ lies around. The rules are shared (the server checks them), input and hints are 
   aimed at (`Placed.put_spot`, as the server will look for it, turned best: a door or window in the plane of
   its wall by the face pressed, `face_of`, furniture with its back to a wall; a door or a window aimed over a
   wall's top, before its face or by it sticks to the nearest wall cell, `Placed._wall_near`, `WALL_SNAP` cells
-  round, a door down to the floor, and of the spots there the one with most cells in the wall, `_wall_spot`,
-  2026-11-26; a gap in a wall, `_in_gap`, keeps the cell aimed at: wall cells on both sides along a row, each
+  round, a floor's cell `FLOOR_FAR` farther (a door over a floor by a wall goes into the wall), a door down to
+  the floor, and of the spots there with every column in the wall or in a gap (`_wall_cells`: never on the
+  ground before a wall too short for it, nor on a bare floor, 2026-11-27) the one with most cells in the wall,
+  then aimed at a gap the fewest blocks cut (a doorway is filled as it is left), `_wall_spot`, 2026-11-26; a gap
+  in a wall, `_in_gap`, keeps the cell aimed at: wall cells on both sides along a row, each
   the end of a wall going that way, not of one across it, so the middle of a small room is no gap, 2026-11-27; a door stands on a floor, built or of the
   blueprint, never in it or down to the ground under it, `_floor_cell`, `_sunk`; with no wall near a door or a
   window is not set at all: only into a wall or a gap in one, never in the open, 2026-11-26), its cells shown red only where
-  it does not fit (2026-11-23: no body over a thing that fits; a door or a window held into a wall is drawn
+  it does not fit (a door, a window, a hatch, a wicket or a gate, `shown_where_fits`, is not shown at all where
+  it cannot go, no room or out of reach, `_spot_new`: a new one from the bag is hidden, one carried is held in
+  its own place, `_hold_home`, and let go there nothing is asked and nothing said, no `[no_room_here]`; the
+  user's ask 2026-11-27;
+  2026-11-23: no body over a thing that fits; a door or a window held into a wall is drawn
   in the middle of the wall where it will be, in the opening it will cut: those blocks, `cut_cells`, are drawn as
   air in the build mode, `PlanThings.hold_hole`, `ChunkStreamer.set_holes`, `ChunkMesher.holes`, 2026-11-26;
   a door shut stands halfway between the wall's faces as a window does, `Placed.shut_voxels`; a ghost door or
@@ -272,7 +279,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   a hatch or furniture (`Props.ghostly`, `_by_blueprint`) is not set down but drawn into the blueprint as a ghost
   thing (`PLAN_THING`, `Plans.put_thing`): held, it hangs in the ghost look (`PlanThings.material`) over the
   place found as the server will find it (`Placed.ghost_spot`; the finger aims at ghost blocks as at built
-  ones, `Controls.pick_planned`), «at once» sets it down as before; a ghost thing under the finger
+  ones, `Controls.pick_planned`), «at once» sets it down as before; let go where no place was found (`spot`
+  null, a tap looked for on release) a thing from the bag asks the server nothing, so nothing is said; a ghost thing under the finger
   (`Controls.ghost_thing_at`) tapped is taken off the blueprint after `DOUBLE_TAP_MS` (`PLAN_THING_TAKE`),
   tapped twice is turned (`turn_ghost`: a quarter, a door or a window the other way round), held is carried as
   a placed thing is (`_drag_ghost`, `PlanThings.hold`, `Placed.ghost_move_spot`) and let go moves there

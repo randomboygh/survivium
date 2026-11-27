@@ -34,6 +34,7 @@ func run() -> void:
 	_test_move_openings()
 	_test_dye_sources()
 	_test_door_in_room()
+	_test_doors_only_in_walls()
 
 
 func _test_felling() -> void:
@@ -1319,15 +1320,23 @@ func _test_openings() -> void:
 		after += w.drops[k].size()
 	_check(after > before, "and the blocks taken out lie on the ground")
 	# A door aimed at the floor of a house it stands on (the bug of 2026-11-07: it sank
-	# into the floor, cut as a wall's blocks are) stands on the floor.
+	# into the floor, cut as a wall's blocks are) goes into the wall on the floor; with no
+	# wall near it has no place at all (user 2026-11-27: doors stood on a bare floor).
 	for z in range(36, 43):
 		for x in range(30, 37):
 			w.set_cell(x, 1, z, Mat.STONE)
 	who.position = Vector3(33.5, 2.0, 40.5) * WorldData.CELL
 	who.inventory.add("tools:door", 1)
-	_check(placed.put_at(who, "tools:door", Vector3i(33, 1, 38), 40) and placed.things[-1].item == "tools:door"
-		and placed.things[-1].cell.y == 2 and w.get_cell(33, 1, 38) == Mat.STONE,
-		"a door aimed at the floor stands on it, the floor whole: %s" % [placed.things[-1]])
+	var count := placed.things.size()
+	_check(not placed.put_at(who, "tools:door", Vector3i(33, 1, 38), 40) and placed.things.size() == count
+		and w.get_cell(33, 1, 38) == Mat.STONE and who.inventory.count("tools:door") == 1,
+		"a door aimed at a bare floor is not set down: %s" % [placed.things[-1]])
+	for y in range(2, 5):
+		for x in range(30, 37):
+			w.set_cell(x, y, 36, Mat.STONE)
+	_check(placed.put_at(who, "tools:door", Vector3i(33, 2, 37), 40) and placed.things[-1].item == "tools:door"
+		and placed.things[-1].cell == Vector3i(33, 2, 36) and w.get_cell(33, 1, 36) == Mat.STONE,
+		"aimed at the floor by a wall on it, it goes into the wall, on the floor: %s" % [placed.things[-1]])
 	who.position = Vector3(11.5, 1.0, 22.5) * WorldData.CELL
 	_check(not placed.put_at(_with(who, "tools:stool"), "tools:stool", Vector3i(40, 1, 40), 40), "nothing is set down out of reach")
 	_check(placed.put_at(who, "tools:stool", Vector3i(12, 1, 23), 40) and placed.things[-1].item == "tools:stool"
@@ -1676,3 +1685,72 @@ func _test_door_in_room() -> void:
 	var end: Dictionary = placed.things[-1]
 	var kept: Array = placed.opening_spot(who, end, Vector3i(34, 1, 30), 2)
 	_check(kept[0] == end.cell and kept[1] % 2 == 0, "held over its own cell it stays there: %s" % [kept])
+
+
+## A door or a window goes only where each of its columns is in a wall, or in a doorway left
+## in one (user 2026-11-27): never on the ground before a house its wall is too short for,
+## never on a floor with no walls, whatever the level the player stands at; a doorway is
+## filled as it is left.
+func _test_doors_only_in_walls() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	# A house on a floor one up: walls three high, x 10..14, z 10..13; a bare floor x 30..35, z 30..35.
+	for x in range(10, 15):
+		for z in range(10, 14):
+			w.set_cell(x, 1, z, Mat.STONE)
+			if x == 10 or x == 14 or z == 10 or z == 13:
+				for y in range(2, 5):
+					w.set_cell(x, y, z, Mat.STONE)
+	for x in range(30, 36):
+		for z in range(30, 36):
+			w.set_cell(x, 1, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var who := Who.new()
+	var out: Array = []
+	var house := 0
+	for stand: Vector3 in [Vector3(16.5, 1.0, 15.5), Vector3(12.5, 2.0, 11.5)]:
+		who.position = stand * WorldData.CELL
+		for id: String in ["tools:door", "tools:door_3x3"]:
+			for y in range(1, 4):
+				for z in range(8, 16):
+					for x in range(8, 17):
+						var found: Array = placed.put_spot(who, id, Vector3i(x, y, z), 40)
+						if found[0] == null:
+							continue
+						house += 1
+						# Each column of it has a block of the walls (over the floor) to cut.
+						var columns := {}
+						for c: Vector3i in placed.volume_of(id, found[0], found[1]):
+							var key := Vector2i(c.x, c.z)
+							columns[key] = columns.get(key, false) or w.is_solid(c.x, c.y, c.z) and c.y > 1
+						if columns.values().has(false):
+							out.append([id, stand, Vector3i(x, y, z), found])
+	_check(house > 0 and out.is_empty(), "round a house every door goes into its walls (%d), none before them: %s" % [house, out.slice(0, 3)])
+	who.position = Vector3(16.5, 1.0, 11.5) * WorldData.CELL
+	_check(placed.put_spot(who, "tools:door_3x3", Vector3i(15, 2, 12), 40)[0] == null
+		and placed.put_spot(who, "tools:door_3x3", Vector3i(16, 1, 12), 40)[0] == null,
+		"a gate three wide has no place by a wall with two cells between its corners, nor before it")
+	var bare: Array = []
+	for stand: Vector3 in [Vector3(32.5, 2.0, 32.5), Vector3(37.5, 1.0, 32.5)]:
+		who.position = stand * WorldData.CELL
+		for id: String in ["tools:door", "tools:door_2x2", "tools:window"]:
+			for y in range(1, 4):
+				for z in range(28, 38):
+					for x in range(28, 38):
+						var found: Array = placed.put_spot(who, id, Vector3i(x, y, z), 40)
+						if found[0] != null:
+							bare.append([id, stand, Vector3i(x, y, z), found])
+	_check(bare.is_empty(), "on a floor with no walls no door or window goes, from on it or beside it: %s" % [bare.slice(0, 3)])
+	# A doorway two wide left in a wall along x at z 20 (x 20..21): a door two wide aimed at
+	# its first cell fills it, cutting nothing.
+	for y in range(1, 4):
+		for x in range(16, 26):
+			if x < 20 or x > 21:
+				w.set_cell(x, y, 20, Mat.STONE)
+	who.position = Vector3(20.5, 1.0, 23.5) * WorldData.CELL
+	var gate: Array = placed.put_spot(who, "tools:door_2x2", Vector3i(20, 1, 20), 40, -1, false, 2)
+	_check(gate[0] == Vector3i(20, 1, 20) and gate[1] % 2 == 0, "a doorway is filled as it is left: %s" % [gate])

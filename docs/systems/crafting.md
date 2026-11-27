@@ -147,8 +147,11 @@ at a wall's end goes on along it; at a tie — a corner, a pillar — across the
 `PROP_PUT_AT`, a `Placed.SIDES` index, an opening moved over a corner's top in the plane of the wall it was
 in; in the open as the player faces; never across its wall: of the spots round the cell, `_wall_spot`, one with
 more wall beside its cells across its plane than along it, or in a corner's cell, is skipped, `_across`, and a
-moved opening's own cells count as its wall, `_moving_cells`; user 2026-11-27, a door dragged by a corner stood
-across the wall); a thing that faces the view and a
+moved opening's own cells (a ghost one's too, `_moved_opening`) count as its wall, `_moving_cells`; user
+2026-11-27, a door dragged by a corner stood across the wall; and each column of the opening has a block it
+cuts, a cell of a gap left in the wall or of the moved opening, `_wall_cells`, else the spot is skipped: user
+2026-11-27, doors stood on the ground before a house whose wall was too short for them and on a bare floor);
+a thing that faces the view and a
 ladder set down by a wall turn their back to it (`Placed._backed`: of the four turns the one whose spot has the
 most solid cells right behind its back edge, then the fewest open ones, so a bed lies along the wall; a tie
 keeps the view's or the kept turn), in the open they take the view's (or the kept) turn as before; a ladder put

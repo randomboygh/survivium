@@ -943,6 +943,9 @@ func drag(s: Dictionary) -> void:
 		game.cursor.show_boxes([cell] if s.to != null else [], [] if s.to != null else [cell])
 		return
 	s.to = game.placed.move_spot(game.character, e, corner, turn)
+	if s.to == null and shown_where_fits(e.item):
+		_hold_home(s)
+		return
 	var at: Vector3i = s.to if s.to != null else corner
 	game.props.hold_at(e, at, turn)
 	_frame(e.item, at, turn, s.to != null)
@@ -1017,12 +1020,14 @@ func _drag_new(s: Dictionary) -> void:
 	if s.shown == shown:
 		return
 	s.shown = shown
-	var found: Array
-	if ghost:
-		found = game.placed.ghost_spot(game.character, game.plans, s.put, s.aim, s.turn, s.kept, s.get("face", -1))
-	else:
-		found = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept, s.get("face", -1))
+	var found := _spot_new(s, ghost)
 	s.spot = found[0]
+	if s.spot == null and shown_where_fits(s.put):
+		# A door or a window is not shown where it cannot go (user 2026-11-27).
+		game.props.drop_new()
+		game.plan_view.things.hold_hole([])
+		game.cursor.show_boxes([], [])
+		return
 	var at: Vector3i = s.spot if s.spot != null else s.aim
 	game.props.hold_new(s.put, at, found[1], game.plan_view.things.material() if ghost else null)
 	game.plan_view.things.hold_hole(cut_cells(s.put, at, found[1]) if s.spot != null else [])
@@ -1064,8 +1069,11 @@ func _drag_ghost(s: Dictionary) -> void:
 	s.aim = at
 	s.face = face
 	var found: Array = game.placed.ghost_move_spot(game.character, game.plans, t, at, s.turn, face)
-	s.to = found[0]
+	s.to = found[0] if Plans.within_reach(game.character, at) else null
 	s.found_turn = found[1]
+	if s.to == null and shown_where_fits(t.item):
+		_hold_home(s)
+		return
 	var spot: Vector3i = s.to if s.to != null else at
 	game.plan_view.things.hold(t, spot, found[1])
 	game.plan_view.things.hold_hole(cut_cells(t.item, spot, found[1]) if s.to != null else [], t)
@@ -1090,12 +1098,15 @@ func _drag_opening(s: Dictionary, e: Dictionary) -> void:
 	s.aim = aim
 	s.face = face
 	var found: Array = game.placed.opening_spot(game.character, e, aim, face)
-	s.to = found[0]
+	s.to = found[0] if Placed.in_reach(game.character, aim) else null
 	s.turn = found[1]
-	var at: Vector3i = s.to if s.to != null else aim
+	if s.to == null:
+		_hold_home(s)
+		return
+	var at: Vector3i = s.to
 	game.props.hold_at(e, at, s.turn)
-	game.plan_view.things.hold_hole(cut_cells(e.item, at, s.turn) if s.to != null else [])
-	_frame(e.item, at, s.turn, s.to != null)
+	game.plan_view.things.hold_hole(cut_cells(e.item, at, s.turn))
+	game.cursor.show_boxes([], [])
 
 
 ## The blocks door or window `id` at north-west cell `at` turned `turn` will cut out of a
@@ -1111,6 +1122,45 @@ func cut_cells(id: String, at: Vector3i, turn: int) -> Array[Vector3i]:
 		if game.world.is_solid(c.x, c.y, c.z):
 			out.append(c)
 	return out
+
+
+## Where thing `s.put` new from the bag held by stroke `s` goes, as the server will look for
+## it: into the blueprint (`ghost`, Placed.ghost_spot, within Plans.within_reach) or set down
+## at once (Placed.put_spot, within Placed.in_reach). [north-west cell, null where it cannot
+## go; turn].
+func _spot_new(s: Dictionary, ghost: bool) -> Array:
+	var found: Array
+	if ghost:
+		found = game.placed.ghost_spot(game.character, game.plans, s.put, s.aim, s.turn, s.kept, s.get("face", -1))
+		if not Plans.within_reach(game.character, s.aim):
+			found[0] = null
+	else:
+		found = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept, s.get("face", -1))
+		if not Placed.in_reach(game.character, s.aim):
+			found[0] = null
+	return found
+
+
+## Whether thing `id` held up is shown only where it can go (user 2026-11-27: no door shown
+## where none can stand; let go there, nothing happens and nothing is said): a door, a window
+## or a hatch, a wicket or a gate. Another thing shows its cells red there (_frame).
+static func shown_where_fits(id: String) -> bool:
+	var item := Items.get_item(id)
+	return item.get("door", false) or item.get("window", false)
+
+
+## The thing stroke `s` carries (a door, a window: shown_where_fits) held over no place it can
+## go: shown held up in its own place, as it will stay when let go there (release).
+func _hold_home(s: Dictionary) -> void:
+	game.cursor.show_boxes([], [])
+	if s.has("ghost_thing"):
+		var t: Dictionary = s.ghost_thing
+		game.plan_view.things.hold(t, t.cell, int(t.turn))
+		game.plan_view.things.hold_hole(cut_cells(t.item, t.cell, int(t.turn)), t)
+		return
+	var e: Dictionary = s.prop
+	game.props.hold_at(e, e.cell, int(e.get("turn", 0)))
+	game.plan_view.things.hold_hole([])
 
 
 ## Shows where thing `id` turned `turn` would go from the north-west cell `at`: where it
@@ -1138,10 +1188,14 @@ func release(s: Dictionary) -> void:
 		s.up = false
 		game.props.drop_new()
 		game.cursor.show_boxes([], [])
-		if _by_blueprint(s.put):
+		var ghost := _by_blueprint(s.put)
+		# Where it cannot go (no room, out of reach) nothing is asked and nothing said (user
+		# 2026-11-27: no [no_room_here]); a tap let go before it was looked for is looked for now.
+		var spot: Variant = s.spot if s.shown != null else _spot_new(s, ghost)[0]
+		if spot != null and ghost:
 			# Into the blueprint, built after its blocks (the user's picks, 2026-11-26, 2А: a tap too).
 			game.net.request(Protocol.PLAN_THING, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))]).then(_laid)
-		else:
+		elif spot != null:
 			game.land.expect_post(s.put)
 			game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
 		if was_up:
