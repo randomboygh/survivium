@@ -108,7 +108,9 @@ slice, to free the far meshes.
   mushroom, covers the picture's lower edge: as wide as the roots drawn (look.yaml `foot`, `FOOT_SIDE` more),
   `FOOT_STEP` pixels apart; each stands on the tree's axis and carries its place in its 4th custom float
   (`FOOT_MARK`), and `grass.gdshader` puts it aside and a few pixels in front of the foot in the camera's
-  view, so the row is in front from every side the camera turns to.
+  view, so the row is in front from every side the camera turns to. Its fog is taken `FOG_AHEAD` in front of
+  the tree, as the tree's own (`fog_root`): on the axis `fog_at` takes the trunk's column top for ground, and the
+  row stood bright over a fog.
 - Stumps and the fall (trees PR 5): a felled pictured tree always leaves its foot's log (`Felling.fell`; struck
   again, `Felling.uproot` takes it for one log in half the blows), drawn by `TreeSprites` as a picture too
   (`Growth.stump_look`; TreeLooks `stumps`, `stump_frames`, `wood`: the approved stump at 3 sizes, 8 turns, summer

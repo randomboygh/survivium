@@ -231,9 +231,6 @@ varying flat vec2 shake;
 // The phase of this tree's sway (radians), -1 for one not swaying (a stump, a falling tree).
 varying flat float sway_phase;
 #endif
-// How far in front of the picture the fog over it is taken from (world units, a
-// cell and a half: past a trunk two cells wide).
-const float FOG_AHEAD = 0.75;
 varying vec3 world_pos;
 varying vec3 foot_pos;
 varying vec2 light_xz;
