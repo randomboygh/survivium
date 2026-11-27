@@ -23,6 +23,7 @@ func run() -> void:
 	_test_earthwork()
 	_test_replace()
 	_test_ghost_things()
+	_test_ghost_campfire()
 	_test_undo()
 
 
@@ -699,6 +700,45 @@ func _test_ghost_things() -> void:
 	who.item = PLANKS
 	_check(plans.draw(actions, who, "line", Vector3i(4, 1, 12), Vector3i(8, 1, 12), 1, 1, true) >= 1 and plans.things.is_empty(),
 		"and so does an erasing stroke over them")
+
+
+## A campfire set down by the blueprint as every other thing (user 2026-11-27): its ghost is
+## set, moved and taken off; it cooks nothing and does not burn until built from the bag.
+func _test_ghost_campfire() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var plans := Plans.new()
+	placed.plans = plans
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	actions.plans = plans
+	var who := Builder.new()
+	who.placed = placed
+	who.position = Vector3(14.5, 1.0, 14.5) * WorldData.CELL
+	who.inventory.add(Placed.CAMPFIRE, 1)
+	_check(plans.put_thing(actions, who, Placed.CAMPFIRE, Vector3i(16, 1, 14)) and plans.things.size() == 1
+		and placed.things.is_empty() and who.inventory.count(Placed.CAMPFIRE) == 1,
+		"a ghost campfire goes into the blueprint: nothing is set down, nothing leaves the bag")
+	var fire: Dictionary = plans.things[0]
+	var at := (Vector3(fire.cell) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL
+	_check(placed.stations_near(at, 3.0 * WorldData.CELL).is_empty() and not placed.burns(at),
+		"a ghost campfire lets nothing be made at it and does not burn")
+	_check(plans.move_thing(actions, who, fire.cell, Vector3i(12, 1, 14), 0) and not plans.thing_at(Vector3i(12, 1, 14)).is_empty()
+		and plans.thing_at(Vector3i(16, 1, 14)).is_empty(), "a ghost campfire is moved")
+	_check(plans.erase_thing(actions, who, Vector3i(12, 1, 14)) and plans.things.is_empty(), "and taken off")
+	plans.put_thing(actions, who, Placed.CAMPFIRE, Vector3i(16, 1, 14))
+	fire = plans.things[0]
+	for i in 4:
+		if not plans.build(actions, who).has("placed"):
+			break
+	var real: Dictionary = placed.at(fire.cell)
+	_check(plans.things.is_empty() and real.get("item", "") == Placed.CAMPFIRE and who.inventory.count(Placed.CAMPFIRE) == 0
+		and placed.stations_near(at, 3.0 * WorldData.CELL).has(Placed.CAMPFIRE) == bool(real.get("lit", false)),
+		"built from the bag, it stands where its ghost was, a station once it burns: %s" % [real])
 
 
 ## Undo and redo of the blueprint (PlanHistory; the user's picks of 2026-11-26, 1А 2А).

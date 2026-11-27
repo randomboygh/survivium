@@ -38,7 +38,7 @@ const ANIMAL_DEPTH := 0.4
 ## A trunk's, for one 6 texels across; a thicker one throws a wider shadow.
 const TRUNK_WIDTH := 0.5
 ## How wide and how tall a campfire throws its shadow, in world units: its ring of
-## stones and the logs on it (Effects._campfire_model, 11 and 3 of its 16 voxels a unit).
+## stones and the logs on it (Effects.campfire_model, 11 and 3 of its 16 voxels a unit).
 const CAMPFIRE_SIZE := Vector2(0.7, 0.2)
 ## Casters stand on the light's ground within this many world units up or down.
 const SAME_GROUND := 0.6

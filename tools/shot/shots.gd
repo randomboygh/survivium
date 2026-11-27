@@ -328,6 +328,12 @@ const SHOTS := {
 	# A chair pressed two cells before the player (nearer the camera), the view as it is
 	# and turned round: culled by its sheared box (Props.fit), it shows (on high ground a
 	# margin all round culled it as the camera turned, 2026-11-26).
+	# A campfire pressed before the player and tapped there (user 2026-11-27): held up and set
+	# into the blueprint as a ghost, as every other thing.
+	"build-campfire-held": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["core:campfire", Vector3(0.5, 0.0, 2.5)]},
+	"build-campfire-ghost": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["core:campfire", Vector3(0.5, 0.0, 2.5)]},
 	"build-lift-chair-front": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_chair", Vector3(0.5, 0.0, 2.5)]},
 	"build-lift-chair-front-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

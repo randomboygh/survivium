@@ -215,6 +215,9 @@ func _model(kind: String, turn := 0, open := false, join := -1, water := 0, wrea
 	var key := "%s/%d/%s/%d/%d/%s" % [kind, turn, open, join, water, wreath]
 	if not _models.has(key):
 		var m = VoxelProps.prop(kind)
+		if _campfire(Items.with_prop(kind)):
+			# Drawn by Effects with its flames: its stones and logs (a ghost of the blueprint).
+			m = game.effects.campfire_model()
 		if water > 0:
 			m = _with_water(m, water)
 		if wreath != "":
@@ -723,11 +726,16 @@ func _turn_model(node: MeshInstance3D, e: Dictionary, turn: int) -> void:
 
 
 ## Whether thing `id` has a model of its own to show held up or as a ghost of the blueprint
-## (hold_new, model_mesh): not a campfire, not a light.
+## (hold_new, model_mesh): not a light (a campfire's stones and logs are Effects' model).
 static func ghostly(id: String) -> bool:
-	var probe := {"item": id, "cell": Vector3i.ZERO, "turn": 0, "lit": false}
-	return Items.get_item(id).get("prop", "none") != "none" and not Placed.is_light_item(id) \
-		and not (Placed.is_fire(probe) and not Placed.is_hearth(probe))
+	return Items.get_item(id).get("prop", "none") != "none" and not Placed.is_light_item(id)
+
+
+## True for thing `id` a campfire: a fire with no hearth of its own, its model drawn by
+## Effects with its flames (Effects.add_campfire, campfire_model).
+static func _campfire(id: String) -> bool:
+	var probe := {"item": id}
+	return Placed.is_fire(probe) and not Placed.is_hearth(probe)
 
 
 ## The mesh of the model of thing `id` turned `turn`, shut (a ghost thing of the blueprint,
@@ -742,7 +750,7 @@ func model_mesh(id: String, turn: int) -> Mesh:
 ## `corner`, turned `turn`, before it is set down (BuildMode), in material `look` when given
 ## (the ghost of the blueprint's things, PlanThings.material: it goes into the blueprint; a
 ## door or a window into a wall stands in the opening it would cut, PlanThings.hold_hole);
-## false for one with no model of its own (a campfire, a light). One at a time: drop_new takes it away.
+## false for one with no model of its own (a light). One at a time: drop_new takes it away.
 func hold_new(id: String, corner: Vector3i, turn: int, look: Material = null) -> bool:
 	var item := Items.get_item(id)
 	var kind: String = item.get("prop", "none")

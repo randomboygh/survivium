@@ -155,7 +155,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   whole column of ghost cells with forms over and under the cell (`column_of`, `formed_at`), within
   `PLAN_REACH` and by the right «build». Requests: `PLAN` [kind, from, to, height, thickness, erase, form, level, replace (both may be left out)],
   `PLAN_TURN` [cell], `PLAN_CLEAR`, `BUILD` (the action button of build mode, whatever is in the hand).
-  Ghost things (the user's picks of 2026-11-26, 1А, 2А): doors, windows, hatches and furniture drawn into the
+  Ghost things (the user's picks of 2026-11-26, 1А, 2А): doors, windows, hatches, furniture and stations, the
+  campfire too (user 2026-11-27; a ghost is no station: it lets nothing be made, warms and burns nothing), drawn into the
   blueprint, `things` — records `{item, cell (north-west), turn, cells (each cell it fills,
   `Placed.volume_of`), wall (an opening's: the ghost blocks it took the place of, offset → block)}`, at most
   `MAX_THINGS`, indexed by cell (`thing_at`), told by the signal `thing_changed`; `put_thing` sets one of a
@@ -276,7 +277,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   side of a wall with no opening knocks the blocks out, they fall as if dug; blocks below the level of the
   player's feet are not knocked out, so a door on the floor stands on the floor); with the setting «Things from
   the bag» on «by blueprint» (`build_things` 0, the default; the user's pick of 2026-11-26, 2А) a door, a window,
-  a hatch or furniture (`Props.ghostly`, `_by_blueprint`) is not set down but drawn into the blueprint as a ghost
+  a hatch, furniture, a station or a campfire (`Props.ghostly`: all but lights; a campfire's ghost is
+  `Effects.campfire_model`, `_by_blueprint`) is not set down but drawn into the blueprint as a ghost
   thing (`PLAN_THING`, `Plans.put_thing`): held, it hangs in the ghost look (`PlanThings.material`) over the
   place found as the server will find it (`Placed.ghost_spot`; the finger aims at ghost blocks as at built
   ones, `Controls.pick_planned`), «at once» sets it down as before; let go where no place was found (`spot`
