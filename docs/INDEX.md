@@ -47,7 +47,7 @@ edited by hand.
 | Document | Purpose | Status | For whom and when |
 |---|---|---|---|
 | [SYSTEMS.md](SYSTEMS.md) | the catalog of systems: main files, context, tests; what is not there yet | ACTIVE | any task: find your system |
-| [systems/](systems/) | the context of each system (19 files; the three largest, `network`, `ui`, `rendering`, are a short overview plus pages in a folder of their name): purpose, files, interfaces, data, pitfalls, tests | ACTIVE | before editing a system — its overview and only the page the change reaches |
+| [systems/](systems/) | the context of each system (19 files; the ten largest, `network`, `ui`, `rendering`, `character`, `interaction`, `chunks`, `crafting`, `content`, `wildlife`, `territory`, are a short overview plus pages in a folder of their name): purpose, files, interfaces, data, pitfalls, tests | ACTIVE | before editing a system — its overview and only the page the change reaches |
 | [CONTRIBUTOR_RULES.md](CONTRIBUTOR_RULES.md) | the full text of the rules and gotchas that `CLAUDE.md` keeps in one line | ACTIVE | before a change to layers, requests, `main.gd`, content kinds, audio, saves |
 
 **The data model, bundles, recipes and production**
