@@ -66,6 +66,9 @@ const COLUMNS := 8
 const ROWS := 4
 ## The room between the bag's slots and a chest's, and between chests.
 const CHEST_GAP := 2
+## How long a storage tapped in the world waits for its strip to be laid out and glided
+## to, in ms (_glide_to_chest).
+const GLIDE_WAIT := 3000
 const SLOT := 40
 const SLOT_SMALL := 36
 ## The width of the craft tab's column of the recipe and the queue beside the cells on
@@ -618,42 +621,39 @@ func show_chest(e: Dictionary) -> void:
 	_glide_to_chest()
 
 
-## Once the list is laid out with chest _glide_chest in it, glides it so that the chest's
-## strip stands at the top (as far as the list scrolls). Waits a few frames at most: the
-## chests' grids are made, and the window sized, at the end of the frame they are seen.
+## Glides the list so that the strip of chest _glide_chest stands at the top (as far as
+## the list scrolls) once the list is laid out with it: the chests' grids are made, and the
+## window sized, at the end of the frame they are seen, the scroll's range a frame later.
+## Till the list is there it glides again whenever the glide stopped short (the strips made
+## anew, the range grown), for GLIDE_WAIT ms at most (by the clock: a phone's frames are
+## long), and gives way to a finger or the wheel on the list (DragScroll.touched).
 func _glide_to_chest() -> void:
 	var e := _glide_chest
-	# Frames on a phone take long: wait by the clock (a second and a half), not by frames.
-	var until := Time.get_ticks_msec() + 1500
-	var laid := 0
-	while true:
+	var touched: int = _drag.touched
+	var until := Time.get_ticks_msec() + GLIDE_WAIT
+	while Time.get_ticks_msec() < until:
 		await get_tree().process_frame
-		var last := Time.get_ticks_msec() >= until
 		if _glide_chest != e or not visible or not _bag_page.visible:
 			return
+		if _drag.touched != touched:
+			break
 		var i := _chests.find(e)
 		if i < 0 or i >= _chest_grids.size():
-			if last:
-				break
 			continue
 		var line: Control = _chest_grids[i].line
-		# A strip just made has no place until the list sorts it (at the top, size 0):
-		# gliding then would take the list to its top, as it does on every open but the
-		# first, when the window is shown at once.
-		if not line.is_visible_in_tree() or line.size.y <= 0.0 or _list.size.y < line.position.y:
-			if last:
-				break
-			continue
-		# The scroll's range follows the list a frame later: wait up to 4 frames for it (a
-		# chest at the very end scrolls only as far as the end).
 		var bar := _scroll.get_v_scroll_bar()
-		laid += 1
-		if bar.max_value - bar.page < line.position.y and laid < 4 and not last:
+		# A strip just made sits at the top, of no size, till the list sorts it; the bar's
+		# range follows the list's height after that.
+		if not line.is_visible_in_tree() or line.size.y <= 0.0 or _list.size.y < line.position.y \
+				or bar.max_value < _list.get_combined_minimum_size().y - 0.5:
 			continue
+		var to := clampf(line.position.y, 0.0, maxf(bar.max_value - bar.page, 0.0))
+		if absf(_scroll.scroll_vertical - to) <= 1.0:
+			break
+		if not _drag.moving():
+			_drag.glide_to(to)
+	if _glide_chest == e:
 		_glide_chest = {}
-		_drag.glide_to(line.position.y)
-		return
-	_glide_chest = {}
 
 
 func _show_chest(e: Dictionary) -> void:

@@ -541,15 +541,20 @@ func _chest_by_touch(main: Node) -> void:
 		_touch(at, false)
 		await _frames(2)
 		_check(bag.visible and is_same(bag._chest_entry, e), "the chest opens as the finger lifts (%d)" % time)
-		await _wait_ms(1500)
-		_check(bag._from == null, "the finger that opened the chest chooses no slot under it (%d)" % time)
-		var i: int = bag._chests.find(e)
-		var bar: ScrollBar = bag._scroll.get_v_scroll_bar()
+		# The glide takes about half a second (slow frames stretch it: wait by the clock).
 		var want := 0
-		if i >= 0 and i < bag._chest_grids.size():
-			want = roundi(clampf(bag._chest_grids[i].line.position.y, 0.0, maxf(bar.max_value - bar.page, 0.0)))
+		var until := Time.get_ticks_msec() + 6000
+		while Time.get_ticks_msec() < until:
+			await process_frame
+			want = _strip_scroll(bag, e)
+			if want > 0 and absi(bag._scroll.scroll_vertical - want) <= 1:
+				break
+		_check(bag._from == null, "the finger that opened the chest chooses no slot under it (%d)" % time)
+		var bar: ScrollBar = bag._scroll.get_v_scroll_bar()
 		_check(want > 0 and absi(bag._scroll.scroll_vertical - want) <= 1,
-			"the list glides down to the chest opened (%d: at %d, its strip %d)" % [time, bag._scroll.scroll_vertical, want])
+			"the list glides down to the chest opened (%d: at %d, its strip %d; range %d of %d, list %d, %d chests, moving %s)"
+			% [time, bag._scroll.scroll_vertical, want, bar.page, bar.max_value, bag._list.get_combined_minimum_size().y,
+			bag._chests.size(), bag._drag.moving()])
 		main.hud.toggle_bag()
 		await _frames(2)
 	# A press on the chest lifted away from it opens nothing.
@@ -566,6 +571,16 @@ func _chest_by_touch(main: Node) -> void:
 			_check(main.session.placed.take_up(main.host.player, t), "the chest tapped is taken back up")
 			break
 	await _frames(3)
+
+
+## The scroll of the bag's list that shows the strip of chest `e` at the top, as far as the
+## list scrolls; 0 while the strip is not there.
+func _strip_scroll(bag, e: Dictionary) -> int:
+	var i: int = bag._chests.find(e)
+	if i < 0 or i >= bag._chest_grids.size():
+		return 0
+	var bar: ScrollBar = bag._scroll.get_v_scroll_bar()
+	return roundi(clampf(bag._chest_grids[i].line.position.y, 0.0, maxf(bar.max_value - bar.page, 0.0)))
 
 
 ## A beast's body lying before the player is taken by a press of the action button, not
