@@ -20,7 +20,7 @@ static func patch(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: 
 			_patch_far(c, sh, diag, dy, d, 3 - k, h[k]), h[k])
 		far[2 * k + 1] = WorldData.far_corner(_patch_far(c, sh, i + o.y * dz, dy, 3 - k, k, h[k]),
 			_patch_far(c, sh, diag, dy, d, k ^ 1, h[k]), h[k])
-	return WorldData.make_patch(h, far, shore_top(c, sh, i, dy, dz))
+	return WorldData.make_patch(h, far, c[i + dy] == WATER or shore_top(c, sh, i, dy, dz))
 
 
 ## True when the top of padded ground cell `i` lies at the shore of water on its level
@@ -219,10 +219,16 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 	var ns: PackedVector3Array = grid[1]
 	var white := Color(1, 1, 1)
 	var top := Vector2(pack(m * 3, 0, SLOPE), around)
+	# The level part of an outer corner on the diagonal in the bed's material (see
+	# level_bed_material), on its own copies of the grid's points.
+	var bed := level_bed_material(c, i, dy, side_offsets[4], p)
+	var level := _level_points(p, steps) if bed >= 0 else PackedByteArray()
+	var bed_packed := Vector2(pack(bed * 3, 0, SLOPE), float(NO_TILES)) if bed >= 0 else Vector2.ZERO
 	if cuts == 0:
-		_surface(buf, base, hs, ns, steps, top, crease_flip(p))
+		_surface(buf, base, hs, ns, steps, top, crease_flip(p), level, bed_packed)
 	else:
-		_cut_surface(buf, base, hs, ns, cuts, top, Vector2(pack(m * 3 + 1, 0, SLOPE), float(NO_TILES)))
+		_cut_surface(buf, base, hs, ns, cuts, top, Vector2(pack(m * 3 + 1, 0, SLOPE), float(NO_TILES)),
+			crease_flip(p), level, bed_packed)
 	var own := _corner_heights(sh, i, dy)
 	for d in [0, 1, 3, 4, 5]:
 		var nm := nb[d]
@@ -236,40 +242,104 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 		_patch_side(buf, faces, c, sh, i, dy, side_offsets[d], d, base, m, hs, steps, own, cuts)
 
 
+## The material of the bed that the level part of an outer corner on the diagonal
+## (WorldData.PATCH_DIAG) lies level with: the ground under the water beside it, across
+## the corner from its high corner or beside it there; -1 where it is none (dry ground
+## beside, or a top with no such part). Drawn in the bank's own material, that part
+## stood in the bed in stairs round the cells, which shallow water shows (the user,
+## 2026-11-28).
+static func level_bed_material(c: PackedByteArray, i: int, dy: int, dz: int, p: PackedFloat32Array) -> int:
+	if p.size() <= WorldData.PATCH_DIAG or int(p[WorldData.PATCH_DIAG]) >= 4:
+		return -1
+	var code := int(p[WorldData.PATCH_DIAG])
+	return _bed_beside(c, i, dy, dz, code, int(p[(code + 2) & 3]))
+
+
+## The bed's material (see level_bed_material) of the level part of the sloping top over
+## padded cell `i`, where a cut corner of that top shows `i`'s own top: the cut goes on
+## in the bed's material, not the bank's. -1 where that top has none: only an outer
+## corner (three corners low) beside water has one. Told from the corners' heights, not
+## the whole patch: many cells lie under cut corners.
+static func level_bed_under(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int) -> int:
+	var t := i + dy
+	var low := sh[t] & 15
+	if low != 7 and low != 11 and low != 13 and low != 14 \
+			or c[t + 1] != WATER and c[t - 1] != WATER and c[t + dz] != WATER and c[t - dz] != WATER:
+		return -1
+	var h := _corner_heights(sh, t, dy)
+	var code := WorldData.diag_corner(h)
+	if code < 0 or code >= 4 or not (c[t + dy] == WATER or shore_top(c, sh, t, dy, dz)):
+		return -1
+	return _bed_beside(c, t, dy, dz, code, h[(code + 2) & 3])
+
+
+## The ground under the water beside padded cell `i` whose top lies at `level` (0 the
+## bottom of `i`'s level, -1 a level lower), across the far corner of outer corner `code`
+## or beside it there: its material, or -1.
+static func _bed_beside(c: PackedByteArray, i: int, dy: int, dz: int, code: int, level: int) -> int:
+	if level > 0:
+		return -1
+	var o: Vector2i = CORNER_DIRS[(code + 2) & 3]
+	for j: int in [i + o.x + o.y * dz, i + o.x, i + o.y * dz]:
+		# The ground whose top is at the level part's height, water over it.
+		var g := j + (level - 1) * dy
+		if g >= 0 and c[g + dy] == WATER and Mat.is_solid(c[g]) and c[g] != LEAVES \
+				and (level == 0 or c[j] == AIR or c[j] == WATER):
+			return c[g]
+	return -1
+
+
+## Which points of the grid of `steps` squares lie in the level part of a top's corner on
+## the diagonal (WorldData.diag_reach), 1 each.
+static func _level_points(p: PackedFloat32Array, steps: Vector2i) -> PackedByteArray:
+	var nu := steps.x + 1
+	var out := PackedByteArray()
+	out.resize(nu * (steps.y + 1))
+	for b in steps.y + 1:
+		for a in nu:
+			if WorldData.diag_reach(p, float(a) / steps.x, float(b) / steps.y) >= 1.0 - DIAG_EPS:
+				out[b * nu + a] = 1
+	return out
+
+
 ## The grid of a surface as triangles sharing its points (they are many on a slope),
-## its squares split as `flip` says (see crease_flip).
+## its squares split as `flip` says (see crease_flip). `level` (see _level_points): the
+## triangles all of whose points are level take `level_packed` (the bed's material, see
+## level_bed_material) on their own copies of the points.
 static func _surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVector3Array, steps: Vector2i,
-		packed: Vector2, flip := false) -> void:
+		packed: Vector2, flip := false, level := PackedByteArray(), level_packed := Vector2.ZERO) -> void:
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
+	var count := nu * (steps.y + 1)
 	var white := Color(1, 1, 1)
-	for b in steps.y + 1:
-		var z := float(b) / steps.y
-		for a in nu:
-			var x := float(a) / steps.x
-			buf.verts.append(base + Vector3(x, hs[b * nu + a], z))
-			buf.normals.append(ns[b * nu + a])
-			buf.uvs.append(Vector2(x, z))
-			buf.uv2s.append(packed)
-			buf.colors.append(white)
+	for copy in (1 if level.is_empty() else 2):
+		for b in steps.y + 1:
+			var z := float(b) / steps.y
+			for a in nu:
+				var x := float(a) / steps.x
+				buf.verts.append(base + Vector3(x, hs[b * nu + a], z))
+				buf.normals.append(ns[b * nu + a])
+				buf.uvs.append(Vector2(x, z))
+				buf.uv2s.append(packed if copy == 0 else level_packed)
+				buf.colors.append(white)
+	# Clockwise from above (Godot front faces).
+	var tris := PackedInt32Array([0, 1, nu, 1, nu + 1, nu]) if flip \
+		else PackedInt32Array([0, 1, nu + 1, 0, nu + 1, nu])
 	for b in steps.y:
 		for a in steps.x:
-			var j := start + b * nu + a
-			# Clockwise from above (Godot front faces).
-			if flip:
-				buf.indices.append(j)
-				buf.indices.append(j + 1)
-				buf.indices.append(j + nu)
-				buf.indices.append(j + 1)
-				buf.indices.append(j + nu + 1)
-				buf.indices.append(j + nu)
+			var j := b * nu + a
+			if level.is_empty():
+				for t in tris:
+					buf.indices.append(start + j + t)
 				continue
-			buf.indices.append(j)
-			buf.indices.append(j + 1)
-			buf.indices.append(j + nu + 1)
-			buf.indices.append(j)
-			buf.indices.append(j + nu + 1)
-			buf.indices.append(j + nu)
+			for t in 2:
+				var q0: int = j + tris[3 * t]
+				var q1: int = j + tris[3 * t + 1]
+				var q2: int = j + tris[3 * t + 2]
+				var off := start + (count if level[q0] + level[q1] + level[q2] == 3 else 0)
+				buf.indices.append(off + q0)
+				buf.indices.append(off + q1)
+				buf.indices.append(off + q2)
 
 
 ## Cut walls lower than this, in cells, would be thinner than a pixel: drawn, they show
@@ -279,9 +349,11 @@ const LOW_CUT := 0.125
 
 
 ## The surface of a sloping top with cut corners: each triangle of the grid clipped to
-## the cuts, with a wall at each cut as high as the slope there.
+## the cuts, with a wall at each cut as high as the slope there; its squares split as
+## `flip` says and the level part in `level_packed` as in _surface.
 static func _cut_surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVector3Array,
-		cuts: int, top: Vector2, wall: Vector2) -> void:
+		cuts: int, top: Vector2, wall: Vector2, flip := false, level := PackedByteArray(),
+		level_packed := Vector2.ZERO) -> void:
 	var white := Color(1, 1, 1)
 	var n := PATCH_STEPS + 1
 	var step := 1.0 / PATCH_STEPS
@@ -292,6 +364,11 @@ static func _cut_surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedV
 			var q10 := _onto_cut(Vector3((a + 1) * step, hs[j00 + 1], b * step), cuts)
 			var q11 := _onto_cut(Vector3((a + 1) * step, hs[j00 + n + 1], (b + 1) * step), cuts)
 			var q01 := _onto_cut(Vector3(a * step, hs[j00 + n], (b + 1) * step), cuts)
+			# The square's two triangles (clockwise from above), the points of each by
+			# their place in the grid.
+			var t0: Array = [q00, q10, q01, j00, j00 + 1, j00 + n] if flip else [q00, q10, q11, j00, j00 + 1, j00 + n + 1]
+			var t1: Array = [q10, q11, q01, j00 + 1, j00 + n + 1, j00 + n] if flip \
+				else [q00, q11, q01, j00, j00 + n + 1, j00 + n]
 			# Most squares lie wholly beside the cuts, or wholly in one.
 			var whole := true
 			var gone := false
@@ -304,15 +381,19 @@ static func _cut_surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedV
 					gone = gone or inside == 4
 			if gone:
 				continue
-			if whole:
-				buf.tri_n([base + q00, base + q10, base + q11], [ns[j00], ns[j00 + 1], ns[j00 + n + 1]],
-					[Vector2(q00.x, q00.z), Vector2(q10.x, q10.z), Vector2(q11.x, q11.z)], white, top)
-				buf.tri_n([base + q00, base + q11, base + q01], [ns[j00], ns[j00 + n + 1], ns[j00 + n]],
-					[Vector2(q00.x, q00.z), Vector2(q11.x, q11.z), Vector2(q01.x, q01.z)], white, top)
-				continue
-			for t: Array in [[q00, q10, q11, ns[j00], ns[j00 + 1], ns[j00 + n + 1]],
-					[q00, q11, q01, ns[j00], ns[j00 + n + 1], ns[j00 + n]]]:
-				var poly: Array = [t[0], t[1], t[2]]
+			for tri: Array in [t0, t1]:
+				var packed := top
+				if not level.is_empty() and level[tri[3]] + level[tri[4]] + level[tri[5]] == 3:
+					packed = level_packed
+				var a0: Vector3 = tri[0]
+				var a1: Vector3 = tri[1]
+				var a2: Vector3 = tri[2]
+				if whole:
+					buf.tri_n([base + a0, base + a1, base + a2], [ns[tri[3]], ns[tri[4]], ns[tri[5]]],
+						[Vector2(a0.x, a0.z), Vector2(a1.x, a1.z), Vector2(a2.x, a2.z)], white, packed)
+					continue
+				var t: Array = [a0, a1, a2, ns[tri[3]], ns[tri[4]], ns[tri[5]]]
+				var poly: Array = [a0, a1, a2]
 				for k in 4:
 					if cuts & (1 << k) and not poly.is_empty():
 						var clipped := _clip(poly, k)
@@ -336,7 +417,7 @@ static func _cut_surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedV
 					for q: Vector3 in pts:
 						nrm.append(_normal_in(t, q))
 						uvs.append(Vector2(q.x, q.z))
-					buf.tri_n([base + pts[0], base + pts[1], base + pts[2]], nrm, uvs, white, top)
+					buf.tri_n([base + pts[0], base + pts[1], base + pts[2]], nrm, uvs, white, packed)
 
 
 ## The normal at point q of triangle t ([3 corners, their 3 normals]), blended from its
