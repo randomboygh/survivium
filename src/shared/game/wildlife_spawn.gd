@@ -58,6 +58,7 @@ func _settle_new(most := 1 << 30) -> bool:
 ## on the chunk where it lives, not at the people's feet (START_AWAY).
 func _populate_chunk(key: Vector2i) -> void:
 	var biomes := _chunk_biomes(key)
+	var water := -1.0
 	var shares := {}
 	_settled[key] = shares
 	var cells := Rect2i(key * WorldData.CHUNK, Vector2i(WorldData.CHUNK, WorldData.CHUNK))
@@ -65,6 +66,11 @@ func _populate_chunk(key: Vector2i) -> void:
 		if kind == AiRules.HUMAN:
 			continue
 		var share := _biome_share(kind, biomes) / ROAM_CHUNKS
+		if under_ice_swimmer(AiRules.SPECIES[kind]):
+			# A fish's count lives on the water (FISH_WATER_CHUNKS), not on the land.
+			if water < 0.0:
+				water = _water_share(key)
+			share *= water * ROAM_CHUNKS / FISH_WATER_CHUNKS
 		if share <= 0.0:
 			continue
 		shares[kind] = share
@@ -73,6 +79,32 @@ func _populate_chunk(key: Vector2i) -> void:
 		var n := floori(groups) + (1 if rng.randf() < groups - floorf(groups) else 0)
 		for i in n:
 			_spawn_group(kind, 1 << 20, cells, START_AWAY)
+
+
+## The share of chunk `key` that is water a fish can live in (at least two cells deep,
+## as _spawn asks), looked at on every WATER_STEP-th column each way: the sea's counts
+## FISH_SEA of a lake's or a river's, and a chunk with some of those at least
+## FISH_WATER_LEAST.
+func _water_share(key: Vector2i) -> float:
+	var inland := 0
+	var sea := 0
+	var all := 0
+	for j in range(WATER_STEP / 2, WorldData.CHUNK, WATER_STEP):
+		for i in range(WATER_STEP / 2, WorldData.CHUNK, WATER_STEP):
+			var x := key.x * WorldData.CHUNK + i
+			var z := key.y * WorldData.CHUNK + j
+			all += 1
+			var top := WorldData.top_level(world.water_col(x, z))
+			if top < 1 or world.get_cell(x, top - 1, z) != Mat.WATER:
+				continue
+			if world.sea(x, top, z):
+				sea += 1
+			else:
+				inland += 1
+	var share := (inland + sea * FISH_SEA) / maxf(1.0, all)
+	if inland >= FISH_WATER_SEEN:
+		share = maxf(share, FISH_WATER_LEAST)
+	return share
 
 
 ## The biomes at BIOME_SAMPLES × BIOME_SAMPLES points of chunk `key`; empty without a

@@ -8,7 +8,10 @@ Part of [Beasts](../wildlife.md). `wildlife.gd` and its chain of parts.
   `SETTLE_EVERY` 1 s → `_populate_chunk`, nearest first, at most `SETTLE_MOST` 6 chunks a frame: after a
   teleport or a respawn the rest come in the next frames, not in one long one): of a kind — its `count` × `DENSITY` 0.1 (animals are ten times rarer than the data's counts say; `Wildlife.density`, the tests raise it) per square `ROAM` (`ROAM_CHUNKS` chunks),
   multiplied by the share of the kind's biomes in the chunk (2×2 points of the layout), the fractional part is
-  rolled, in packs; no nearer than `START_AWAY` 8 units to people. While a chunk's ground is kept, its beasts
+  rolled; a fish (`under_ice_swimmer`) is not thinned by `DENSITY` (only by `density` as a share of it) and its `count`
+  lives on `FISH_WATER_CHUNKS` 16 chunks' worth of water two cells deep (`_water_share`, every second column;
+  the sea's water counts `FISH_SEA` 0.2, a chunk with a pond or a river in it at least `FISH_WATER_LEAST`, a whole
+  chunk), so every pond, lake and river has its schools whatever land lies round it; in packs; no nearer than `START_AWAY` 8 units to people. While a chunk's ground is kept, its beasts
   live; with forgotten ground (`Session.DROP`) those that nobody sees leave too (`_leave`), and a chunk made
   again gets them again. The eaten, once per `RESPAWN_EVERY` 15 s, are refilled (`_plan_refill` notes each kind round each player, `_refill_some` does
   `REFILL_MOST` 2 of them a frame; `_refill` does all at once, for the tests): if a kind is

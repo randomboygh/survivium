@@ -360,22 +360,24 @@ func _test_swimmers(w: WorldData) -> void:
 	life.people = [Who.new()]
 	# In the middle of the world, so all the square they come on is made.
 	life.people[0].position = Vector3(88.0, 6.0, 88.0) * WorldData.CELL
-	# Whether a perch comes at all is a roll of the numbers, and every kind added to the
-	# mods moves the rolls (the black grouse left seed 5 without one): seeds are tried till
-	# perches come, and every one that comes must be in the water.
+	# The fish's count lives on the water (FISH_WATER_CHUNKS), not thinned by DENSITY: a
+	# pond of 40 × 40 units has some tens of them, every one in the water (the user's four
+	# waters had none, 2026-11-27, when the count of the square went to its land).
+	life._settled.clear()
+	life.start(5)
 	var fishes := 0
-	for roll in range(5, 15):
-		life.animals.clear()
-		life._settled.clear()
-		life.start(roll)
-		for a in life.animals:
-			if a.kind == "animals:perch":
-				fishes += 1
-				if w.get_cell(floori(a.pos.x / WorldData.CELL), 5, floori(a.pos.z / WorldData.CELL)) != Mat.WATER:
-					fishes = -100
-		if fishes != 0:
-			break
-	_check(fishes > 0, "perches come into the water (%d)" % fishes)
+	var wet := true
+	var want := 0.0
+	for key: Vector2i in life._settled:
+		for kind: String in life._settled[key]:
+			if Wildlife.under_ice_swimmer(AiRules.SPECIES[kind]):
+				want += life._settled[key][kind] * life.wanted(kind)
+	for a in life.animals:
+		if Wildlife.under_ice_swimmer(AiRules.SPECIES[a.kind]):
+			fishes += 1
+			wet = wet and w.get_cell(floori(a.pos.x / WorldData.CELL), 5, floori(a.pos.z / WorldData.CELL)) == Mat.WATER
+	_check(want > 30.0 and fishes > want * 0.5 and fishes < want * 1.6 and wet,
+		"fish come into the pond, as many as its water holds, all in it (%d of about %d)" % [fishes, roundi(want)])
 	for z in range(pz, pz + side):
 		for x in range(px, px + side):
 			w.set_cell(x, 3, z, Mat.AIR)
@@ -573,6 +575,8 @@ func _test_birds(w: WorldData, person: Who) -> void:
 	life.clock = Clock.new()
 	life.clock.time_of_day = 0.5
 	life.people = [person]
+	# A crowd, so sparrows come whatever the rolls of the other kinds before them.
+	life.density = 1.0
 	life.start(3)
 	var flocked: bool = life.count("animals:sparrow") > 0
 	var leads := 0
