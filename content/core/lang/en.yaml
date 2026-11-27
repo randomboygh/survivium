@@ -874,6 +874,8 @@
 "[field.creatures.herd.about]": "Most tame ones that still breed"
 "[field.creatures.trapped]": "Trapped"
 "[field.creatures.trapped.about]": "The live animal a trap gives"
+"[field.creatures.trap_days]": "Trap days"
+"[field.creatures.trap_days.about]": "How many days a baited trap far from players takes on average to catch one"
 "[field.creatures.catch]": "Catch"
 "[field.creatures.catch.about]": "What a rod pulls out"
 "[field.trees.leaves]": "Leaves"

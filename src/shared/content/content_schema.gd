@@ -353,6 +353,10 @@ const SCHEMAS := {
 		"herd": {"type": "int", "min": 2, "default": 8},
 		# The live animal a baited trap turns it into (ActionsTame.step_traps), "" none.
 		"trapped": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "trap"},
+		# A baited trap far from every player, on the ground of one of its biomes, catches
+		# one on average once in this many days of the game (ActionsTame.step_far_traps);
+		# 0 catches none there.
+		"trap_days": {"type": "float", "min": 0.0, "default": 0.0},
 		# Fishing: what a swimmer becomes in the bag when it is pulled out on a rod's line
 		# (WorldActions.fish, Fishing); "" none bites.
 		"catch": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "fish"},

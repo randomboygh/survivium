@@ -8,7 +8,9 @@
 # tame_food — what it is fed by hand with (it does not run from one holding it), tame_feeds — how many times, wool — what
 # a tame one gives with a knife once every wool_days days, breed_days — once every how many days a pair of tame ones left
 # together and fed within a day brings a leveret, while there are fewer than herd of them there; trapped — which live
-# item it is as it sits in a live trap, where it came for bait from tame_food (the "Live trap" bundle).
+# item it is as it sits in a live trap, where it came for bait from tame_food (the "Live trap" bundle);
+# trap_days — far from every player, where no rabbit is about, a baited trap in its biomes catches one on
+# average once in this many days.
 - id: rabbit
   title: "[animals.creatures.rabbit]"
   mass: 2
@@ -39,3 +41,4 @@
   breed_days: 4
   herd: 8
   trapped: tools:live_rabbit
+  trap_days: 1

@@ -874,6 +874,8 @@
 "[field.creatures.herd.about]": "Сколько ручных ещё размножаются"
 "[field.creatures.trapped]": "Пойман"
 "[field.creatures.trapped.about]": "Какое живое животное даёт ловушка"
+"[field.creatures.trap_days]": "Дней в ловушке"
+"[field.creatures.trap_days.about]": "За сколько дней в среднем ловушка с приманкой вдали от игроков ловит одного"
 "[field.creatures.catch]": "Улов"
 "[field.creatures.catch.about]": "Что вытаскивает удочка"
 "[field.trees.leaves]": "Листва"
