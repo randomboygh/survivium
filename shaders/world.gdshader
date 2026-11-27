@@ -21,7 +21,8 @@
 //   UV2.y = top materials of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces; on a wall the materials of the cells
 //          beside it on its plane, above, below, W and E (see ChunkMesher._side_tiles)
-//   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
+//   COLOR.r = shade (dark caps of the cut); COLOR.b 0 on a built cell's faces (one the
+//          generator did not leave in place: ChunkMesher.BUILT_BLUE), drawn as COLOR.g; COLOR.a = half the relief shade of a
 //          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1); below
 //          1 on a stone top whose moss was picked, 16ths naming which tops beside,
 //          bits N, S, W, E, were picked too; on a tree's trunk which cell of it this
@@ -322,6 +323,12 @@ void fragment() {
 	int flag = a / 16384;
 	int tile = code == NO_MATERIAL ? NONE
 		: code * 3 + ((flag & 1) != 0 ? 1 : (world_normal.y < -0.5 ? 2 : 0));
+	// A built cell's faces (ChunkMesher.BUILT_BLUE) and the things of voxels (placed, dropped)
+	// go above the build mode's cut of the floors; natural ground and snow drifts stay.
+	bool built = tile != NONE ? COLOR.b < 0.05 : !is_drift(packed.x, UV);
+	if (!IN_SHADOW_PASS && built && above_build_cut(own)) {
+		discard;
+	}
 	// The trunk of a tree nearer the viewer than the player clears round them (see
 	// trunk_through), but for its foot: its first cell stays whole and the
 	// TRUNK_RISE cells above it clear more and more from the bottom up. The vertex
@@ -343,7 +350,7 @@ void fragment() {
 	// A cracked built block (building decay, ChunkMesher.CRACKED: green at half on a tile
 	// face) keeps its tile's colours; its cracks are drawn over them (crack_mark).
 	bool cracked = tile != NONE && COLOR.r > 0.9 && COLOR.g > 0.2 && COLOR.g < 0.8;
-	vec3 col = cracked ? vec3(1.0) : COLOR.rgb;
+	vec3 col = cracked ? vec3(1.0) : (tile != NONE && built ? COLOR.rgg : COLOR.rgb);
 	// The steep middle of a curved slope still counts as its top.
 	bool top = world_normal.y > 0.5 || (flag == 4 && tile != NONE && tile % 3 == 0);
 	// The dark caps of the cut (see ChunkMesher.build_cap) are cross-sections, not

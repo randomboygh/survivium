@@ -274,7 +274,17 @@ static func _column(job: Job, x: int, z: int) -> bool:
 	var cand := cands[j]
 	var column := (z - z0 + PAD) * dz + PAD + x - x0
 	var left := COLUMN_CELLS
+	# Which cells of the column the generator left in place (WorldData.WILD): the faces
+	# of the others are built and carry BUILT_BLUE (see mark_built).
+	var home: WorldData.Chunk = w.chunk_at(x, z)
+	var natural: PackedByteArray = home.natural if home != null else PackedByteArray()
+	var col := WorldData.col_of(x, z)
+	# The first vertex of the built cell drawn last, -1 for none.
+	var built_from := -1
 	while cand != 0:
+		if built_from >= 0:
+			mark_built(solid, built_from)
+			built_from = -1
 		if left == 0:
 			cands[j] = cand
 			return false
@@ -284,6 +294,10 @@ static func _column(job: Job, x: int, z: int) -> bool:
 		var y := WorldData.level_of(bit)
 		var i := (y + 1) * dy + column
 		var m := c[i]
+		var built := m != AIR and m != WATER and m != LEAVES and not natural.is_empty() \
+				and natural[(y << 8) | col] & WorldData.WILD == 0
+		if built:
+			built_from = solid.colors.size()
 		if m == AIR or m == LEAVES:
 			if sh[i] >= 16:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, Vector3(x, y, z))
@@ -398,7 +412,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 					and cov[c[i + dx + dz]] and cov[c[i + dx - dz]] and cov[c[i - dx + dz]] and cov[c[i - dx - dz]] \
 					and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
 					and not cov[c[i + dy - dz]]:
-				plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
+				plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0 | (PLAIN_BUILT if built else 0))
 				continue
 			for d in 6:
 				var n := nb[d]
@@ -423,7 +437,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 						_top_pieces(solid, base, m, cuts, edges, halves, float(a), shapes)
 						continue
 					if edges == 0 and not bare and not cracked and _plain_around(a, m):
-						plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
+						plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0 | (PLAIN_BUILT if built else 0))
 						continue
 					around = float(a)
 					if bare:
@@ -457,6 +471,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				var edges := _top_edges(c, cov, i, dy, dz, y == sea_level)
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
 					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0, c[i + dy])
+	if built_from >= 0:
+		mark_built(solid, built_from)
 	return true
 
 
@@ -732,6 +748,24 @@ static func _plain_around(a: int, m: int) -> bool:
 	return true
 
 
+## The vertex colour's blue of the faces of a built cell (one the generator did not leave in
+## place, WorldData.WILD): the build mode's cut of the floors hides them above it and keeps
+## natural ground (world.gdshader, ChunkStreamer.build_cut). The shader takes the blue as
+## the red for its colour. The faces of the ground are white or grey, a trunk's a little
+## warm: their blue is never this low.
+const BUILT_BLUE := 0.0
+const BUILT_WHITE := Color(1, 1, BUILT_BLUE)
+## A plain top's key (see _plain_rows) of a built cell: built and natural tops are never
+## merged into one quad. Levels are the bits under it.
+const PLAIN_BUILT := 1 << 29
+const PLAIN_LEVELS := (1 << 11) - 1
+
+
+## Marks the colours of `buf` from vertex `from` on as a built cell's (BUILT_BLUE).
+static func mark_built(buf, from: int) -> void:
+	buf.set_blue(from, BUILT_BLUE)
+
+
 ## Draws the plain tops (sorted keys from build_chunk: level, top material or water depth, z
 ## and x in the chunk) as one quad per row of neighbours with the same tile, up to
 ## `runs` quads from key `from` on; returns the key to go on from. The shaders texture
@@ -757,7 +791,7 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 		var sea := water and tile >= SEA_TILE
 		if sea:
 			tile -= SEA_TILE
-		var y := first >> 18
+		var y := first >> 18 & PLAIN_LEVELS
 		var height := water_top(y) if water else 1.0
 		var base := Vector3(x0 + lx, y, z0 + lz)
 		var pts := []
@@ -765,7 +799,8 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 		for v: Vector3 in corners:
 			pts.append(base + Vector3(v.x * length, v.y * height, v.z))
 			uvs.append(Vector2(v.x * length, v.z))
-		buf.quad(pts, Vector3.UP, uvs, Water.water_color(tile - 1.0 + height, 1.0, 0.0, sea) if water else white,
+		buf.quad(pts, Vector3.UP, uvs, Water.water_color(tile - 1.0 + height, 1.0, 0.0, sea) if water
+			else (BUILT_WHITE if first & PLAIN_BUILT else white),
 			Vector2(0.0, tile) if water else Vector2(pack(tile * 3, 0, 0), no_tiles))
 		j = end
 	return j
@@ -980,6 +1015,9 @@ static func _exposed_tile(c: PackedByteArray, cov: PackedByteArray, i: int, dz: 
 	return Vector2(pack(me * 3, _quarter_edges(k, edges, halves), flag), float(NO_TILES))
 
 
+## The colour of the caps: dark, a cross-section (world.gdshader). The blueprint's ghost
+## blocks have white ones, their tops at the cut (PlanBlocks).
+const CAP_SHADE := Color(0.4, 0.4, 0.4)
 ## How far under the cut the caps lie, in cells: a slope going down beside a cap meets
 ## it at its edge, and a cap at the very height pokes through the slope there in dark
 ## lines a pixel wide, along a diagonal corner most of all.
@@ -991,8 +1029,10 @@ const CAP_SINK := 0.01
 ## fills sliced by the cut show as dark triangles. Rows of whole tops of the same
 ## material are merged. Covers the cells x0..x0+size, z0..z0+size (a chunk from the
 ## origin by default), so the game can rebuild the cap chunk by chunk. The caps sit
-## CAP_SINK under the cells' tops.
-static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) -> ArrayMesh:
+## CAP_SINK under the cells' tops. `built`: only under built cells (not WorldData.WILD), the
+## build mode's cut of the floors, which leaves natural ground whole; `shade` their colour.
+static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK, built := false,
+		shade := CAP_SHADE) -> ArrayMesh:
 	if level < 0 or level >= w.size_y - 1:
 		return null
 	w.refresh_shapes()
@@ -1004,7 +1044,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 	var row: int = level * layer
 	var bit := 1 << level
 	var both := bit | bit << 1
-	var dark := Color(0.4, 0.4, 0.4)
+	var dark := shade
 	var no_tiles := float(NO_TILES)
 	var corners: Array = face_table()[FACE_TOP].corners
 	var cells := PackedByteArray()
@@ -1024,7 +1064,8 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 				cells = c.cells
 				shapes = c.shapes
 				open = c.air[col] | c.water[col] | c.leaf[col]
-				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16 and shapes[i] & 15 == 0:
+				if open & both == 0 and (shapes[i] | shapes[i + layer]) < 16 and shapes[i] & 15 == 0 \
+						and not (built and c.natural[i + layer] & WorldData.WILD != 0):
 					tile = cells[i] * 3
 			# (A run is marked by its tile: x may be negative.)
 			if tile != run_tile and run_tile >= 0:
@@ -1042,7 +1083,8 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 					run_tile = tile
 				continue
 			run_tile = -1
-			if c == null:
+			# Built cells are whole cubes: their cuts and fills are natural ground's.
+			if c == null or built:
 				continue
 			var base := Vector3(x, level - CAP_SINK, z)
 			var packed := Vector2(pack(cells[i] * 3, 0, 0), no_tiles)

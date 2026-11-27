@@ -533,12 +533,16 @@ func update_state(all := false) -> void:
 		_camera_text = text
 		_camera_label.text = text
 		_camera_label.add_theme_color_override("font_color", UiStyle.INK if view.is_default() else UiStyle.ACCENT)
-	var cut: bool = game.chunks.manual_level >= 0
-	var reach: Vector2i = game.chunks.view_range()
-	_level_up.disabled = game.chunks.cut_base() + 1 > reach.y
-	_level_down.disabled = game.chunks.cut_base() - 1 < reach.x
-	# On two lines, so the column is one button wide.
-	_level_text.text = Lang.f("[cut]", [game.chunks.cut_level]) if cut else Lang.f("[lv]", [game.player.level()])
+	var floors: bool = game.chunks.by_floors()
+	var cut: bool = game.chunks.manual_level >= 0 or game.chunks.build_floor != 0
+	_level_up.disabled = not game.chunks.can_shift(1)
+	_level_down.disabled = not game.chunks.can_shift(-1)
+	# On two lines, so the column is one button wide. In the build mode the buttons step by
+	# floors, the player's the first (ChunkStreamer.build_floor).
+	if floors:
+		_level_text.text = Lang.f("[floor_n]", [game.chunks.build_floor + 1])
+	else:
+		_level_text.text = Lang.f("[cut]", [game.chunks.cut_level]) if cut else Lang.f("[lv]", [game.player.level()])
 	var ink := UiStyle.ACCENT if cut else UiStyle.INK
 	# A colour set anew tells the label its theme changed, which lays it out again.
 	if _level_ink != ink:

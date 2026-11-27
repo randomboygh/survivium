@@ -615,6 +615,7 @@
 "[d_n2]": "%s · %d° · g. %d · %02d:%02d"
 "[cut]": "Kesit\n%d"
 "[lv]": "Kat\n%d"
+"[floor_n]": "Kat\n%d"
 
 # src/client/ui/hud_layout.gd
 "[w]": "G"

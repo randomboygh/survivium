@@ -5,6 +5,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_mesher()
 	_test_cap()
+	_test_built()
 	_test_bank_trunk()
 	_test_diagonal_step()
 	_test_patch()
@@ -107,6 +108,52 @@ func _test_cap() -> void:
 	var key := WorldData.chunk_key(-6, -5)
 	var west := _mesh_area(ChunkMesher.build_cap(w, 0, key.x * WorldData.CHUNK, key.y * WorldData.CHUNK))
 	_check(absf(west - 4.0 * WorldData.CELL * WorldData.CELL) < 0.001, "cap closes whole tops at negative x as well")
+
+
+## The build cut of the floors (ChunkStreamer.build_cut) leaves out only built cells: their
+## faces carry ChunkMesher.BUILT_BLUE, the generator's (WorldData.WILD) do not; plain tops
+## of the two are never one quad; a cap of the cut closes only what was built.
+func _test_built() -> void:
+	var w := WorldData.new(4, Vector2i(8, 8))
+	w.set_cell(1, 1, 1, Mat.STONE)
+	w.set_natural(1, 1, 1, true)
+	w.set_cell(4, 1, 1, Mat.STONE)
+	var arrays: Array = (ChunkMesher.build_chunk(w, 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+	var marked := true
+	for v in verts.size():
+		var built := verts[v].x > 1.0 * WorldData.CELL * 3.0
+		marked = marked and (colors[v].b == ChunkMesher.BUILT_BLUE) == built and colors[v].r == 1.0
+	_check(verts.size() == 48 and marked, "a built cell's faces are marked, a natural one's not")
+	# A floor of 8 × 8, its middle rows natural in the west half and built in the east one.
+	var f := WorldData.new(4, Vector2i(8, 8))
+	for z in 8:
+		for x in 8:
+			f.set_cell(x, 0, z, Mat.STONE)
+			f.set_natural(x, 0, z, x > 0 and x < 4 and z > 0 and z < 7)
+	var rows := (ChunkMesher.build_chunk(f, 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)
+	var tops := 0
+	var built_tops := 0
+	for k in rows[Mesh.ARRAY_NORMAL].size():
+		if rows[Mesh.ARRAY_NORMAL][k].y > 0.9:
+			tops += 1
+			built_tops += int(rows[Mesh.ARRAY_COLOR][k].b == ChunkMesher.BUILT_BLUE)
+	# 28 tops on the rim, then each of the 6 rows inside in two quads: 3 natural, 3 built.
+	_check(tops == (28 + 6 * 2) * 4 and built_tops == (28 + 6) * 4,
+		"plain tops of built and natural cells are merged apart (%d tops, %d built)" % [tops, built_tops])
+	# A cut over level 0 of two solid levels 8 × 8, the upper natural in the west half: the
+	# build cut's caps close only the built east half.
+	var c := WorldData.new(4, Vector2i(8, 8))
+	for z in 8:
+		for x in 8:
+			c.set_cell(x, 0, z, Mat.STONE)
+			c.set_cell(x, 1, z, Mat.STONE)
+			c.set_natural(x, 1, z, x < 4)
+	var built_area := _mesh_area(ChunkMesher.build_cap(c, 0, 0, 0, WorldData.CHUNK, true))
+	var all_area := _mesh_area(ChunkMesher.build_cap(c, 0))
+	_check(absf(built_area - 32.0 * WorldData.CELL * WorldData.CELL) < 0.001 and all_area > built_area * 1.5,
+		"the build cut's caps close only built cells (%.2f of %.2f)" % [built_area, all_area])
 
 
 ## A tree's foot against a bank a level higher on its west and north, as by a river: its

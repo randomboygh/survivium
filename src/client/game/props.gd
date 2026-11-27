@@ -188,7 +188,7 @@ func remodel() -> void:
 ## cut, through the server; true if it was placed (over the loop the reply is in at once).
 func put_from_bag(id: String, slot := -1) -> bool:
 	game.land.expect_post(id)
-	var r = game.net.request(Protocol.PROP_PUT, [id, slot, game.chunks.cut_level, view_turn()])
+	var r = game.net.request(Protocol.PROP_PUT, [id, slot, game.chunks.top_level(), view_turn()])
 	return r.done and r.value is bool and r.value
 
 
@@ -201,7 +201,7 @@ static func view_turn() -> int:
 ## The player sets light `id` down in front (see Placed.put_light_from_bag) below the
 ## level cut, through the server; true if it was set down.
 func put_light(id: String) -> bool:
-	var r = game.net.request(Protocol.LIGHT_PUT, [id, game.chunks.cut_level])
+	var r = game.net.request(Protocol.LIGHT_PUT, [id, game.chunks.top_level()])
 	return r.done and r.value is bool and r.value
 
 
