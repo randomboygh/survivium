@@ -58,6 +58,10 @@ const float SPORE_TIME = 9.0;
 const float SPORE_RISE = 1.1;
 
 varying vec3 root;
+// Where the fog over the plant is taken from: its root, or FOG_AHEAD in front of the tree
+// for a plant of a pictured tree's foot (on the trunk's axis the trunk's column is taken
+// for ground and the plant stood clear of the fog).
+varying vec3 fog_root;
 varying flat vec3 custom;
 varying flat float snow_here;
 varying flat float sky;
@@ -165,6 +169,7 @@ void vertex() {
 	custom = INSTANCE_CUSTOM.xyz;
 	kind = kind_of(int(custom.x + 0.5));
 	root = VERTEX - vec3((UV.x - 0.5) * WIDTH, (1.0 - UV.y) * HEIGHT, 0.0) * (kind == HALO ? HALO_SCALE : 1.0);
+	fog_root = root;
 	// A plant drawn as cards side by side (a sapling, Plants `across`): each stands on the
 	// plant's root, shifted aside, so all face the view and sway as one picture.
 	// Tall grass takes the 4th float as its height instead (foliage.gd): lower toward a
@@ -179,6 +184,7 @@ void vertex() {
 		float ahead = floor(INSTANCE_CUSTOM.w / FOOT_MARK);
 		VERTEX.x += INSTANCE_CUSTOM.w - ahead * FOOT_MARK - FOOT_ASIDE;
 		VERTEX.z += (ahead - 1.0) / TEXELS;
+		fog_root = root - vec3(view_up.x, 0.0, view_up.y) * FOG_AHEAD;
 	} else {
 		VERTEX.x += INSTANCE_CUSTOM.w;
 	}
@@ -376,7 +382,7 @@ void fragment() {
 	col *= 1.0 - 0.3 * sky * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
 	// Blades bent by a gust catch the light, the more toward the tip (wind_wave).
 	col *= 1.0 + GUST_LIGHT * gust * (1.0 - 0.5 * UV.y);
-	vec4 veiled = veil(vec3(root.x, root.y + (1.0 - UV.y) * HEIGHT, root.z), depth_fade(root.y));
+	vec4 veiled = veil(vec3(fog_root.x, root.y + (1.0 - UV.y) * HEIGHT, fog_root.z), depth_fade(root.y));
 	// The share of the sun's and the sky's light that comes down this deep; light()
 	// undoes it for torches and fires (lamp_gain).
 	float sun_part = sea_bright(root.y);
