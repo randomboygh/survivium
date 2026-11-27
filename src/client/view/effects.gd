@@ -346,6 +346,7 @@ func torch_flame() -> CPUParticles3D:
 	torch_flame.initial_velocity_max = 0.8
 	torch_flame.gravity = Vector3(0.0, 0.4, 0.0)
 	torch_flame.color_ramp = _ramp([Color(1.0, 0.95, 0.65, 1.0), Color(1.0, 0.65, 0.22, 1.0), Color(0.8, 0.28, 0.08, 0.0)])
+	_fogged(torch_flame)
 	return torch_flame
 
 
@@ -420,6 +421,9 @@ func add_campfire(corner: Vector3, material: Material, hearth := Vector3.INF) ->
 	smoke.color_ramp = _ramp([Color(0.5, 0.5, 0.52, 0.0), Color(0.55, 0.55, 0.58, 0.45), Color(0.6, 0.6, 0.62, 0.0)])
 	smoke.emitting = true
 
+	_fogged(flames)
+	_fogged(sparks)
+	_fogged(smoke, 1.0)
 	if model == null:
 		flames.lifetime = 0.35
 		smoke.emitting = false
@@ -467,6 +471,17 @@ func fire_strength(rec: Dictionary, share: float) -> void:
 	rec.fire.base = FIRE_ENERGY * lerpf(0.35, 1.0, k)
 	# What it has left to burn, as it is: the air over it trembles by it (AirEffects).
 	rec.fire.fuel = clampf(share, 0.0, 1.0)
+
+
+## How much the fog on the ground veils a fire's flames and sparks (particle.gdshader
+## `fogged`; smoke takes it fully): half, so a fire's own light still shows through it.
+const FLAME_FOG := 0.5
+
+
+## Lets the fog on the ground veil `p` by `share` (particle.gdshader `fogged`), as it veils
+## the campfire's stones and the player beside it.
+static func _fogged(p: CPUParticles3D, share := FLAME_FOG) -> void:
+	((p.mesh as QuadMesh).material as ShaderMaterial).set_shader_parameter("fogged", share)
 
 
 ## Sets how bright emitter `p` (made by _emitter) draws its particles.

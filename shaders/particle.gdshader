@@ -15,6 +15,11 @@ uniform float light = 1.0;
 // World units this is drawn farther from the camera in depth alone (the flames of a light
 // a hand holds behind the body, Effects.flame_behind, so the body hides them).
 uniform float behind = 0.0;
+// How much the fog on the ground veils this, 0..1: smoke fully, a fire's or a torch's
+// flames and sparks half (they burn inside the fog, but their own light shines through
+// it: fully veiled, a fire at night faded to a grey smudge), the rest (weather, falling
+// through the air above the fog) not at all.
+uniform float fogged = 0.0;
 uniform sampler2D shape : filter_nearest, hint_default_white SRGB_HINT;
 // World units a streak's top lies upwind of its foot per unit of height:
 // rain driven by the wind leans along its fall (see Effects.rain_lean).
@@ -58,6 +63,10 @@ void fragment() {
 		discard;
 	}
 	ALBEDO = COLOR.rgb * s.rgb * brightness * light;
+	if (fogged > 0.0) {
+		vec4 veiled = veil(world_pos, depth_fade(world_pos.y)) * fogged;
+		ALBEDO = ALBEDO * (1.0 - veiled.a) + veiled.rgb;
+	}
 	ALPHA = COLOR.a;
 	COMPAT_ALBEDO
 }

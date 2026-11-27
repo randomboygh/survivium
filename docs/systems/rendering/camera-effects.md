@@ -92,7 +92,9 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   where the figure draws the hand behind the body (seen from behind, the far hand seen from the side) its
   flame is drawn `FLAME_BEHIND` (0.3) units farther in depth alone (`Effects.flame_behind`, `behind` in
   `particle.gdshader`), so the body hides its sparks (the shots `torch-back`, `tar-torch-far`). A campfire's
-  sparks start within `SPARK_START` (0.4) of its middle, about the fire's own size. Rain is carried by the wind (`Effects.rain_lean`: in a storm the drops fly
+  sparks start within `SPARK_START` (0.4) of its middle, about the fire's own size. The ground fog veils a fire's
+  smoke fully and its flames and sparks (a torch's and a lamp's too) by half, `FLAME_FOG`, so their own light
+  still shows through it (`fogged` in `particle.gdshader`, `Effects._fogged`); the weather's particles take none. Rain is carried by the wind (`Effects.rain_lean`: in a storm the drops fly
   sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
   `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
   texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
