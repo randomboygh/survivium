@@ -140,6 +140,33 @@ func _held_props(main: Node) -> void:
 	await _frames(2)
 
 
+## The playtest keys Z (next season), X (rain) and T (time ×100) act only in developer mode
+## (2026-11-27 audit UI-5, the owner's pick): a player's stray key changes nothing.
+func _playtest_keys(main: Node) -> void:
+	var Settings = main.settings.get_script()
+	var was: bool = Settings.testing_unlocked
+	var press := func(code: int) -> void:
+		var ev := InputEventKey.new()
+		ev.pressed = true
+		ev.physical_keycode = code
+		main.controls.unhandled_input(ev)
+	var clock = main.session.clock
+	Settings.testing_unlocked = false
+	var season: int = clock.season
+	var raining: bool = main.clock.raining
+	for code in [KEY_Z, KEY_X, KEY_T]:
+		press.call(code)
+	_check(clock.season == season and main.clock.raining == raining and main.settings.time_boost == 1.0,
+		"out of developer mode Z, X and T change neither the season, the rain nor the clock's pace")
+	Settings.testing_unlocked = true
+	press.call(KEY_Z)
+	press.call(KEY_T)
+	_check(clock.season == (season + 1) % 4 and main.settings.time_boost > 1.0, "in developer mode Z turns the season and T speeds the clock")
+	press.call(KEY_T)
+	clock.season = season
+	Settings.testing_unlocked = was
+
+
 ## A door from the bag held where it cannot go (no wall near) is not shown, and let go there,
 ## held or tapped, by blueprint or at once, nothing is set and nothing is said (the user's ask,
 ## 2026-11-27: no [no_room_here], no door drawn where none can stand).
@@ -899,6 +926,7 @@ func _run() -> void:
 	await _every_window(main)
 	await _held_props(main)
 	await _body_by_button(main)
+	_playtest_keys(main)
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()

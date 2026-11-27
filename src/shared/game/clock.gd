@@ -513,9 +513,14 @@ static func shroom_place(x: int, z: int) -> float:
 
 
 ## The time of the clock as plain data for the save.
+## The weather is kept by its id (WEATHERS' order may change), with its strengths now and
+## what it left on the ground, so a reload does not melt the snow or clear the sky (2026-11-27
+## audit GAME-12); a pin of the playtest page or the real weather is not kept.
 func to_dict() -> Dictionary:
 	return {"day": day, "time": time_of_day, "season": season, "season_clock": season_clock, "leaf_fall": leaf_fall,
-		"warm_days": warm_days, "soak": soak, "shrooms": shrooms}
+		"warm_days": warm_days, "soak": soak, "shrooms": shrooms, "weather": WEATHERS[weather].id,
+		"weather_left": weather_left, "rain": rain, "snowing": snowing, "hail": hail, "sand": sand, "fog": fog,
+		"clouds": clouds, "snow": snow, "wet": wet, "puddles": puddles}
 
 
 ## Puts back the time of a save (see to_dict).
@@ -528,6 +533,11 @@ func from_dict(d: Dictionary) -> void:
 	warm_days = maxi(0, int(d.get("warm_days", warm_days)))
 	soak = clampf(float(d.get("soak", 0.0)), 0.0, SOAK_DAYS)
 	shrooms = clampf(float(d.get("shrooms", 0.0)), 0.0, 1.0)
+	if d.has("weather"):
+		weather = maxi(0, WEATHERS.map(func(w: Dictionary) -> String: return w.id).find(str(d.weather)))
+		weather_left = clampf(float(d.get("weather_left", weather_left)), 0.01, WEATHER_DAYS.y)
+		for k: String in ["rain", "snowing", "hail", "sand", "fog", "clouds", "snow", "wet", "puddles"]:
+			set(k, clampf(float(d.get(k, get(k))), 0.0, 1.0))
 
 
 ## The names of the fields a snapshot carries, in its order (see snapshot).

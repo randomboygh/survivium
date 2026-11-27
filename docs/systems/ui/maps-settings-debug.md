@@ -21,6 +21,8 @@ Part of [Interface and settings](../ui.md). The maps, the settings, the performa
   changes under the strip «Update <version>», then the ones that came since the build run before on this device
   under «New since <version>» (`user://versions.cfg`), then the rest, dimmed, under «Earlier»; «Update» beside
   «Back» reloads the web page or downloads the latest release's APK or PC archive (shot `ui-main-menu-changes-update`).
+- Playtest keys (`Controls._playtest_keys`): Z — the next season, X — rain on/off, T — the clock ×100; only in
+  developer mode (`Settings.testing_unlocked`) where the switches work (`Settings.may_cheat`), else nothing.
 - Debugging: `perf_panel.gd` (F3; the graph button in the top row only with the setting «Interface» →
   «Statistics button», hidden by default, decision 186, `Hud.show_stats_button`; the panel is opened by F3 and
   by «Testing» → «Debug» → «Statistics»), `freeze_log.gd` and `gl_watch.gd` (`GlWatch.software()` — the

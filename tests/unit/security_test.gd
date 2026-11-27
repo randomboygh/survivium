@@ -37,6 +37,7 @@ func run() -> void:
 	_test_dye()
 	_test_redye()
 	_test_silent_sockets()
+	_test_revive_where_fell()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -828,3 +829,28 @@ func _test_silent_sockets() -> void:
 	net.stop()
 	for s in socks:
 		s.disconnect_from_host()
+
+
+## Over a socket the dead come back at a respawn point, not where they fell beside their
+## sack; where they fell only with the playtest switches (2026-11-27 audit NET-6, the
+## owner's pick).
+func _test_revive_where_fell() -> void:
+	var made := _socket_player()
+	var a = made[2]
+	var host = made[1]
+	var req: Requests = host.link.requests
+	var home := Vector3(4.5, 2.0, 4.5) * WorldData.CELL
+	var fell := Vector3(20.5, 2.0, 20.5) * WorldData.CELL
+	a.home = home
+	a.teleport(fell)
+	a.die()
+	_check(a.is_dead() and a.death.get("at", []).size() == 3, "the character dies where it stands")
+	req.handle([Protocol.REVIVE, 1, [fell]])
+	_check(not a.is_dead() and Vector2(a.position.x - fell.x, a.position.z - fell.z).length() > 1.0, "over a socket it does not come back where it fell")
+	a.teleport(fell)
+	a.die()
+	req.handle([Protocol.PREPARE, 2, [fell]])
+	_check(Vector2(a.going.x - fell.x, a.going.z - fell.z).length() > 1.0, "nor is it prepared there")
+	req.may_cheat = true
+	req.handle([Protocol.REVIVE, 3, [fell]])
+	_check(not a.is_dead() and Vector2(a.position.x - fell.x, a.position.z - fell.z).length() < 0.01, "with the playtest switches it may")

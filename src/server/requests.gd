@@ -471,8 +471,8 @@ func _rule(kind: String, args: Array) -> Variant:
 				return session.fights.give_up(who.id)
 		Protocol.REVIVE:
 			# Only the dead come back, at one of their places (the nearest to the one
-			# asked for: the fires are looked at anew), or where they fell when the
-			# test page lets them.
+			# asked for: the fires are looked at anew), or where they fell with the
+			# playtest switches or in one's own game (see _revive_at).
 			if _fit(args, [TYPE_VECTOR3]) and who.is_dead():
 				who.revive(_revive_at(args[0]))
 				return true
@@ -496,11 +496,13 @@ func _rule(kind: String, args: Array) -> Variant:
 
 
 ## Where the dead `who` comes back when asking for `at`: the respawn point nearest to it,
-## or `at` itself when it is where they fell (the test page's «и где упали»).
+## or `at` itself when it is where they fell (the test page's «и где упали») and the
+## playtest switches allow it, or in one's own game (not over a socket: `paced`); else a
+## crafted client would come back beside its sack (2026-11-27 audit NET-6).
 func _revive_at(at: Vector3) -> Vector3:
 	who.find_respawns(session.placed, session.teams)
 	var fell: Array = who.death.get("at", [])
-	if fell.size() == 3 and at.distance_to(Vector3(fell[0], fell[1], fell[2])) < REVIVE_NEAR:
+	if (may_cheat or not paced) and fell.size() == 3 and at.distance_to(Vector3(fell[0], fell[1], fell[2])) < REVIVE_NEAR:
 		return at
 	var best: Vector3 = who.home
 	for p: Array in who.respawn_points():

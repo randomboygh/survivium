@@ -246,3 +246,22 @@ func _test_shrooms() -> void:
 	clock.soak = 1.0
 	saved.from_dict(clock.to_dict())
 	_check(is_equal_approx(saved.shrooms, 0.6) and is_equal_approx(saved.soak, 1.0), "they are kept in the save")
+	# The weather and what it left on the ground are kept too (2026-11-27 audit GAME-12, the
+	# owner's pick): a reload in winter keeps its snow cover and its snowfall.
+	var snowy := Clock.new()
+	snowy.season = Clock.WINTER
+	snowy.set_weather(Clock.WEATHERS.map(func(w: Dictionary) -> String: return w.id).find("snow"), true)
+	snowy.weather_left = 0.2
+	snowy.snowing = 0.8
+	snowy.snow = 0.9
+	snowy.wet = 0.3
+	snowy.puddles = 0.4
+	snowy.clouds = 0.85
+	var back := Clock.new()
+	back.from_dict(JSON.parse_string(JSON.stringify(snowy.to_dict())))
+	_check(back.weather == snowy.weather and is_equal_approx(back.weather_left, 0.2) and is_equal_approx(back.snowing, 0.8)
+		and is_equal_approx(back.snow, 0.9) and is_equal_approx(back.wet, 0.3) and is_equal_approx(back.puddles, 0.4)
+		and is_equal_approx(back.clouds, 0.85), "the weather, its snowfall and the snow lying are kept in the save: %s" % [snowy.to_dict()])
+	var odd := Clock.new()
+	odd.from_dict({"weather": "nonsense", "snow": 7.0, "weather_left": -3.0})
+	_check(odd.weather == Clock.CLEAR and odd.snow == 1.0 and odd.weather_left > 0.0, "a save's odd weather is read safely")
