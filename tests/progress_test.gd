@@ -129,10 +129,18 @@ func _run() -> void:
 	# A backpack's room (plan/design/character.md): with hides, bones, glue and the tools
 	# that work them the long chains no longer fit 16 slots, and what is tested here is
 	# that every recipe can be made, not how a bag is packed.
-	inv.slots.resize(BAG)
+	# Grown by the bag's own rule, which the copy on the client follows (Inventory.grow,
+	# kept as `grown`): slots added past it by hand were left out of the copy, and the
+	# client emptied a hand holding a tool that lay in them (Controls._check_hands, main
+	# red twice on 2026-11-27, an axe made late in a crowded bag).
+	inv.grow(BAG - inv.base)
 	inv.changed.emit()
 	main.controls.hands[0] = ""
 	main.controls.hands[1] = ""
+	for i in 3:
+		await process_frame
+	_check(main.character.inventory.slots.size() == inv.slots.size(), "the client's copy of the bag has its %d slots, not %d" % [
+			inv.slots.size(), main.character.inventory.slots.size()])
 	camp = main.player.position
 	raw = _raw()
 	order = _order()
@@ -1099,9 +1107,10 @@ func _fell(seed := "") -> bool:
 					for an in main.session.wildlife.animals:
 						if Vector2(an.pos.x / CELL - best.x - 0.5, an.pos.z / CELL - best.y - 0.5).length() < 2.0:
 							near.append(an)
-					print("chopping %s missed %d times: body at %s, trunk %s, hand %s, animals at the trunk %s" % [
-							best, missed, main.host.player.position / CELL, trunk, main.host.player.held(),
-							near.map(func(an) -> String: return an.kind)])
+					var axe := _tool_of_kind("axe")
+					print("chopping %s missed %d times: body at %s, trunk %s, hand %s (on the client %s), %s in the bag (%d on the client), animals at the trunk %s" % [
+							best, missed, main.host.player.position / CELL, trunk, main.host.player.held(), main.controls.held(),
+							axe, main.character.inventory.count(axe), near.map(func(an) -> String: return an.kind)])
 					# How animals come is not tested here: those at the trunk are let go.
 					for an in near:
 						main.session.wildlife._remove(an)
