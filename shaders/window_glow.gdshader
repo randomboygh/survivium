@@ -38,7 +38,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (facing < 0.3 || gone_above(world_pos)) {
+	if (facing < 0.3 || gone_above(world_pos) || above_build_cut(world_pos)) {
 		discard;
 	}
 	float dither = bayer4(light_texel(sheared_xz));

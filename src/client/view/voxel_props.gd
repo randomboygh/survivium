@@ -18,8 +18,44 @@ static var _read := {}
 ## world unit, the front to the south, the file's pixels as voxel columns), a plain
 ## crate for a prop without a model file.
 static func prop(kind: String) -> VoxelModel:
-	var m := of_item(Items.get_item(Items.with_prop(kind)), false)
-	return m if m != null else crate()
+	var item := Items.get_item(Items.with_prop(kind))
+	var m := of_item(item, false)
+	if m == null:
+		return crate()
+	if (item.get("door", false) or item.get("window", false)) and not item.get("hatch", false) and not item.get("fence", false):
+		var key := "two-faced|" + kind
+		if not _read.has(key):
+			_read[key] = two_faced(m)
+		return _read[key]
+	return m
+
+
+## Upright leaf model `m` (a door's, a window's) alike from both sides (user 2026-11-27: the
+## back had no handle): its front half (south of the middle of its leaf, the layers along z
+## holding a quarter of the voxels of the fullest one at least, and what stands before them:
+## the handle) mirrored across that middle onto the back.
+static func two_faced(m: VoxelModel) -> VoxelModel:
+	var count := {}
+	var most := 0
+	for p: Vector3i in m.voxels:
+		count[p.z] = count.get(p.z, 0) + 1
+		most = maxi(most, count[p.z])
+	var lo := 1 << 20
+	var hi := -(1 << 20)
+	for z: int in count:
+		if count[z] * 4 >= most:
+			lo = mini(lo, z)
+			hi = maxi(hi, z)
+	if lo > hi:
+		return m
+	# Twice the middle, so an odd leaf keeps its middle layer.
+	var mid2 := lo + hi
+	var out := VoxelModel.new()
+	for p: Vector3i in m.voxels:
+		if p.z * 2 >= mid2:
+			out.set_voxel(p, m.voxels[p], m.foliage.has(p))
+			out.set_voxel(Vector3i(p.x, p.y, mid2 - p.z), m.voxels[p], m.foliage.has(p))
+	return out
 
 
 ## The model of item `item` lying on the ground, centred on the origin (see

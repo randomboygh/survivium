@@ -11,6 +11,9 @@ const RES := 16
 var voxels := {}
 ## Vector3i -> true for voxels tinted by the season (leaves).
 var foliage := {}
+## Vector3i -> true for voxels whose top is a dark cap of the build mode's cut of the floors
+## (cut_below): a cross-section, shaded as the walls' caps (ChunkMesher.CAP_SHADE).
+var capped := {}
 
 
 ## In a model's PNG a voxel tinted by the season has this alpha (opaque voxels 255).
@@ -74,6 +77,28 @@ func to_image(centred: bool) -> Image:
 
 
 ## Mesh in voxel units (0..16); scale the instance by 1/16 to fit a cell.
+## The model's height in voxels: its top voxel's level and one.
+func top() -> int:
+	var out := 0
+	for p: Vector3i in voxels:
+		out = maxi(out, p.y + 1)
+	return out
+
+
+## The model cut at voxel level `rows` (the build mode's cut of the floors, Props): its voxels
+## below it, those cut over closed by a dark cap (`capped`), not left hollow (user
+## 2026-11-27: a door cut by the floors' cut showed its inside).
+func cut_below(rows: int):
+	var out = get_script().new()
+	for p: Vector3i in voxels:
+		if p.y >= rows:
+			continue
+		out.set_voxel(p, voxels[p], foliage.has(p))
+		if voxels.has(p + Vector3i.UP) and p.y + 1 >= rows:
+			out.capped[p] = true
+	return out
+
+
 func build_mesh() -> ArrayMesh:
 	var faces := ChunkMesher.face_table()
 	var buf := MeshBuffers.new()
@@ -94,6 +119,8 @@ func build_mesh() -> ArrayMesh:
 			# The world shader doubles the colour by its alpha (a snowdrift's relief shade,
 			# see world.gdshader): half alpha keeps the voxel's own colour.
 			var col: Color = voxels[p]
+			if dir == Vector3i.UP and capped.has(p):
+				col = Color(col.r * ChunkMesher.CAP_SHADE.r, col.g * ChunkMesher.CAP_SHADE.g, col.b * ChunkMesher.CAP_SHADE.b)
 			col.a = 0.5
 			buf.quad(pts, face.normal, zero_uv, col, Vector2(ChunkMesher.pack(ChunkMesher.NO_TILE, 0, flag), no_tiles))
 	return buf.to_mesh()

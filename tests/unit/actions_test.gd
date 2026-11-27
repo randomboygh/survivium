@@ -33,6 +33,7 @@ func run() -> void:
 	_test_best_turn()
 	_test_move_openings()
 	_test_dye_sources()
+	_test_door_in_room()
 
 
 func _test_felling() -> void:
@@ -1615,3 +1616,63 @@ func _test_dye_sources() -> void:
 		if Items.is_dye(r.makes):
 			dyes[r.makes] = true
 	_check(dyes.size() == 12, "all twelve dyes are boiled of something: %d" % dyes.size())
+
+## A door moved along the wall of a small room (user 2026-11-27): wherever it is held near a
+## corner or inside the room it goes into a wall, in that wall's plane, never across it or
+## out in the room.
+func _test_door_in_room() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	# A room of stone walls three high, x 10..16, z 10..16.
+	for y in range(1, 4):
+		for x in range(10, 17):
+			for z in range(10, 17):
+				if x == 10 or x == 16 or z == 10 or z == 16:
+					w.set_cell(x, y, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var who := Who.new()
+	who.position = Vector3(13.5, 1.0, 13.5) * WorldData.CELL
+	who.inventory.add("tools:door", 1)
+	_check(placed.put_at(who, "tools:door", Vector3i(15, 1, 10), 40, -1, false, 2), "a door is set into the north wall by its corner")
+	var door: Dictionary = placed.things[-1]
+	_check(door.cell == Vector3i(15, 1, 10) and door.turn % 2 == 0, "in the wall's plane: %s" % [door])
+	var own := placed.opening_cells(door)
+	var wrong: Array = []
+	for y in range(1, 5):
+		for z in range(9, 18):
+			for x in range(9, 18):
+				for face in range(-1, 4):
+					var found: Array = placed.opening_spot(who, door, Vector3i(x, y, z), face)
+					if found[0] == null:
+						continue
+					var spot: Vector3i = found[0]
+					var turn: int = found[1]
+					var in_wall := true
+					for c: Vector3i in placed.volume_of(door.item, spot, turn):
+						if not (w.is_solid(c.x, c.y, c.z) or own.has(c)):
+							in_wall = false
+					var plane_ok := turn % 2 == 0 if spot.z == 10 or spot.z == 16 else turn % 2 == 1
+					if not in_wall or not plane_ok:
+						wrong.append([Vector3i(x, y, z), face, found])
+	_check(wrong.is_empty(), "held anywhere near, it goes into a wall in its plane: %s" % [wrong.slice(0, 4)])
+	_check(placed.opening_spot(who, door, Vector3i(16, 1, 10), -1)[1] % 2 == 0,
+		"held over the corner's top, it stays in the plane of the wall it was in")
+	_check(placed.opening_spot(who, door, Vector3i(16, 1, 10), 2)[1] % 2 == 0
+		and placed.opening_spot(who, door, Vector3i(16, 1, 10), 3)[1] % 2 == 1,
+		"over the corner's face, in the plane of that face's wall")
+	_check(placed.opening_spot(who, door, Vector3i(13, 1, 13), -1)[0] == null, "in the middle of the room it has no place")
+	# A door cut into the end of a wall (x 30..34 at z 30), held over its own cell, stays.
+	for y in range(1, 4):
+		for x in range(30, 35):
+			w.set_cell(x, y, 30, Mat.STONE)
+	who.position = Vector3(32.5, 1.0, 32.5) * WorldData.CELL
+	who.inventory.add("tools:door", 1)
+	_check(placed.put_at(who, "tools:door", Vector3i(34, 1, 30), 40, -1, false, 2) and placed.things[-1].cell == Vector3i(34, 1, 30),
+		"a door is set into a wall's end: %s" % [placed.things[-1]])
+	var end: Dictionary = placed.things[-1]
+	var kept: Array = placed.opening_spot(who, end, Vector3i(34, 1, 30), 2)
+	_check(kept[0] == end.cell and kept[1] % 2 == 0, "held over its own cell it stays there: %s" % [kept])

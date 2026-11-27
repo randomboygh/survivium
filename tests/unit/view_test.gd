@@ -94,6 +94,7 @@ func run() -> void:
 	_test_fire_shadows_blank()
 	_test_glow_lights()
 	_test_window_glow()
+	_test_two_faced_and_cut()
 	_test_small_effects()
 	_test_hot_ground()
 	_test_rays_dissolve()
@@ -1570,6 +1571,52 @@ func _test_fire_shadows_blank() -> void:
 	_check(not f.visible and b.size() == FireShadows.MAX_SHADOWS * 20 and b.count(0.0) == b.size(),
 		"fire shadows start hidden with every instance zeroed")
 	f.free()
+
+
+## A door and a window look alike from both sides (user 2026-11-27: the back had no handle),
+## and a thing cut by the build mode's cut of the floors is closed by dark caps, not hollow.
+func _test_two_faced_and_cut() -> void:
+	var door = VoxelProps.prop("door")
+	var drawn = VoxelProps.of_item(Items.get_item("tools:door"), false)
+	var back := 0
+	var same := true
+	for p: Vector3i in door.voxels:
+		var twin := Vector3i(p.x, p.y, 1 - p.z)
+		if not door.voxels.has(twin) or door.voxels[twin] != door.voxels[p]:
+			same = false
+		if p.z < 0:
+			back += 1
+	var handles := 0
+	for p: Vector3i in drawn.voxels:
+		if p.z > 1:
+			handles += 1
+	_check(same and back == handles and back > 0, "a door's back is its front mirrored, its handle too: %d, %d" % [back, handles])
+	var window = VoxelProps.prop("window_1x2")
+	var mirrored := true
+	for p: Vector3i in window.voxels:
+		var twin := Vector3i(p.x, p.y, 7 - p.z)
+		if not window.voxels.has(twin) or window.voxels[twin] != window.voxels[p]:
+			mirrored = false
+	_check(mirrored, "a window's two faces are alike")
+	var cut = door.cut_below(8)
+	var over := 0
+	for p: Vector3i in cut.voxels:
+		if p.y >= 8:
+			over += 1
+	var capped := 0
+	for p: Vector3i in door.voxels:
+		if p.y == 7 and door.voxels.has(p + Vector3i.UP):
+			capped += 1
+	_check(over == 0 and cut.top() == 8 and door.top() == 16 and cut.capped.size() == capped and capped > 0,
+		"cut at a cell's height it keeps its voxels below, each cut over capped: %d of %d" % [cut.capped.size(), capped])
+	var colours := {}
+	for v in door.cut_below(8).build_mesh().surface_get_arrays(0)[Mesh.ARRAY_COLOR]:
+		colours[v] = true
+	var dark := 0
+	for v: Color in colours:
+		if v.r < 0.2 and v.g < 0.2:
+			dark += 1
+	_check(dark > 0, "the caps are darker than the wood")
 
 
 ## How light it is round a window, for WindowGlow.

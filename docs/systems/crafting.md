@@ -144,7 +144,11 @@ is taken by itself where there is one (the user's pick 2026-11-26): a door, a wi
 the plane of the wall or the fence it is set into or stands in, its front to the player (`Placed.plane_turn`:
 the way with more solid cells or fences beside the cell tapped, so a door set into a doorway left in a wall or
 at a wall's end goes on along it; at a tie — a corner, a pillar — across the face tapped, the last arg of
-`PROP_PUT_AT`, a `Placed.SIDES` index; in the open as the player faces); a thing that faces the view and a
+`PROP_PUT_AT`, a `Placed.SIDES` index, an opening moved over a corner's top in the plane of the wall it was
+in; in the open as the player faces; never across its wall: of the spots round the cell, `_wall_spot`, one with
+more wall beside its cells across its plane than along it, or in a corner's cell, is skipped, `_across`, and a
+moved opening's own cells count as its wall, `_moving_cells`; user 2026-11-27, a door dragged by a corner stood
+across the wall); a thing that faces the view and a
 ladder set down by a wall turn their back to it (`Placed._backed`: of the four turns the one whose spot has the
 most solid cells right behind its back edge, then the fewest open ones, so a bed lies along the wall; a tie
 keeps the view's or the kept turn), in the open they take the view's (or the kept) turn as before; a ladder put
@@ -154,7 +158,9 @@ is an item with `steps`: its solid parts are boxes by quarters of a cell (`World
 for a cell), the body steps up the half-cell steps with no jump; it is placed over a void too, a tap takes it
 back, it is not counted a station. A door is an item with `door`: the leaf is drawn along the north edge of
 its cell and stands shut in the middle of its depth, between the wall's faces as a window does
-(`Placed.shut_voxels`, `DOOR_SHUT`, 2026-11-27), a tap (`Protocol.PROP_OPEN`, `Placed.swing`, the plot's right «Open doors») turns it on a hinge in
+(`Placed.shut_voxels`, `DOOR_SHUT`, 2026-11-27); a door and a window are drawn alike from both sides, the
+front half of the model's leaf (and the handle before it) mirrored onto the back (`VoxelProps.two_faced`, user
+2026-11-27), a tap (`Protocol.PROP_OPEN`, `Placed.swing`, the plot's right «Open doors») turns it on a hinge in
 the north-west corner to the west edge (`Placed.open_voxels`, as it is drawn); an open door is solid nowhere
 (`opened_boxes` are empty: a thrown-back leaf would occupy a quarter of the opening that a body barely passes
 and would stand into the one who opens), nothing is placed in its opening (`Placed._in_open_door`), with a

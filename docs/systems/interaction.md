@@ -254,7 +254,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   its wall by the face pressed, `face_of`, furniture with its back to a wall; a door or a window aimed over a
   wall's top, before its face or by it sticks to the nearest wall cell, `Placed._wall_near`, `WALL_SNAP` cells
   round, a door down to the floor, and of the spots there the one with most cells in the wall, `_wall_spot`,
-  2026-11-26; a gap in a wall, `_in_gap`, keeps the cell aimed at; a door stands on a floor, built or of the
+  2026-11-26; a gap in a wall, `_in_gap`, keeps the cell aimed at: wall cells on both sides along a row, each
+  the end of a wall going that way, not of one across it, so the middle of a small room is no gap, 2026-11-27; a door stands on a floor, built or of the
   blueprint, never in it or down to the ground under it, `_floor_cell`, `_sunk`; with no wall near a door or a
   window is not set at all: only into a wall or a gap in one, never in the open, 2026-11-26), its cells shown red only where
   it does not fit (2026-11-23: no body over a thing that fits; a door or a window held into a wall is drawn
@@ -369,7 +370,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   the player (under a roof, in a pit: the layers) looks only at natural ground there (`_natural_only`, `_roof`;
   `indoor` still counts any roof) and only on the player's own floor. A finger passes through the built cells
   above (`Controls.pick` skips them), and the requests that take the cut get `ChunkStreamer.top_level`. Leaving
-  build mode (or the first-person view) brings the ordinary cut back.
+  build mode (or the first-person view) brings the ordinary cut back. A placed thing standing across the cut is
+  drawn cut there, closed by dark caps as the walls (`Props._cut_model`, `VoxelModel.cut_below`, `capped`), not
+  hollow, its whole model only casting the shadow (`WholeShadow`); a window's glow is left out above it too.
 
 - `src/client/game/gathering.gd` — what a touch gathers and the hint for it, picking up near the player (a
   beast's body lying is hit round its middle, `BODY_UP`, `BODY_GROW` px farther).

@@ -73,6 +73,12 @@ var drop_nodes := {}
 ## in Effects (see Effects.add_campfire) by the thing's cell (see Placed.things).
 var _models := {}
 var _nodes := {}
+## The level the build mode's cut of the floors lies at (ChunkStreamer.build_cut: what is
+## built above it is left out), in cells; -1 for none. A thing standing across it is drawn
+## cut there, closed by dark caps (_cut_model).
+var _cut_at := -1
+## A cell's height in a model's voxels (16 to a world unit).
+const CELL_VOXELS := 8
 var _fires := {}
 ## The lights set down (Placed.lights): their records in Effects (Effects.add_lamp) by
 ## their cell; their models are in _nodes.
@@ -263,7 +269,7 @@ func _on_added(e: Dictionary, still := false) -> void:
 		return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
-	var model = _model(kind, e.get("turn", 0), e.get("open", false), e.get("join", -1), _water_step(e), e.get("wreath", ""))
+	var model = _model_of(e, e.get("turn", 0))
 	node.mesh = model.build_mesh()
 	node.material_override = game.low_mat if node.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 	if kind in THIN_PROPS:
@@ -281,8 +287,79 @@ func _on_added(e: Dictionary, still := false) -> void:
 	_nodes[e.cell] = node
 	if Placed.lets_light(e):
 		game.effects.windows.add(e.cell, node, model)
+	_cut_model(node, e, model)
 	if not still:
 		_arrive(e, node)
+
+
+## The model `model` of thing `e` drawn by `node`, whole, or cut at the build mode's cut of
+## the floors where it stands across it (_cut_at): its voxels below it, closed by dark caps
+## as the walls cut there (VoxelModel.cut_below; user 2026-11-27: a door cut showed its
+## inside), while a copy of its whole model casts its shadow (as the walls cut still do).
+func _cut_model(node: MeshInstance3D, e: Dictionary, model) -> void:
+	var rows: int = (_cut_at - int(e.cell.y)) * CELL_VOXELS
+	if _cut_at < 0 or rows <= 0 or rows >= model.top():
+		# Whole, or wholly above the cut (left out by the shader, its shadow kept).
+		rows = -1
+	if node.get_meta("cut_rows", -1) == rows and node.get_meta("cut_model", null) == model:
+		return
+	_uncut(node)
+	node.set_meta("cut_rows", rows)
+	node.set_meta("cut_model", model)
+	if rows < 0:
+		return
+	var whole: Mesh = node.mesh
+	var casts := node.cast_shadow
+	node.set_meta("whole", whole)
+	node.set_meta("whole_shadow", casts)
+	node.set_meta("box", whole.get_aabb())
+	node.mesh = model.cut_below(rows).build_mesh()
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if casts != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+		var shadow := MeshInstance3D.new()
+		shadow.name = "WholeShadow"
+		shadow.mesh = whole
+		shadow.material_override = node.material_override
+		shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		shadow.layers = node.layers
+		node.add_child(shadow)
+	fit(node)
+
+
+## Thing model `node` drawn whole again as it was before _cut_model cut it.
+func _uncut(node: MeshInstance3D) -> void:
+	var caster: Node = node.get_node_or_null(^"WholeShadow")
+	if caster != null:
+		node.remove_child(caster)
+		caster.queue_free()
+	if node.has_meta("whole"):
+		node.mesh = node.get_meta("whole")
+		node.cast_shadow = node.get_meta("whole_shadow")
+		node.remove_meta("whole")
+		node.remove_meta("whole_shadow")
+		node.remove_meta("box")
+		fit(node)
+	node.set_meta("cut_rows", -1)
+	node.set_meta("cut_model", null)
+
+
+## The build mode's cut of the floors moved from level `_cut_at` to `cut` (cells, -1 for
+## none): the things standing across either are drawn anew, cut or whole (_cut_model).
+func _recut(cut: int) -> void:
+	var was := _cut_at
+	_cut_at = cut
+	for e: Dictionary in game.placed.things:
+		var node: Node = _nodes.get(e.cell)
+		if node == null or not is_instance_valid(node) or not node is MeshInstance3D or not node.has_meta("cut_rows"):
+			continue
+		if e.cell.y >= maxi(was, cut):
+			continue
+		_cut_model(node, e, _model_of(e, int(node.get_meta("turn", e.get("turn", 0)))))
+
+
+## The model thing `e` is drawn with, turned `turn`.
+func _model_of(e: Dictionary, turn: int):
+	return _model(Items.get_item(e.item).prop, turn, e.get("open", false), e.get("join", -1), _water_step(e), e.get("wreath", ""))
 
 
 ## Door model `m` with the wreath `wreath` (an item's, Placed.hang_wreath) on its front: the
@@ -380,9 +457,13 @@ static func sprite_view(turn: int) -> int:
 	return SPRITE_RIGHT if to_right > 0.0 else SPRITE_LEFT
 
 
-## Each frame: once the camera has turned, the things drawn as pictures show the view
-## of them it looks at now.
+## Each frame: the things standing across the build mode's cut of the floors are cut there
+## once it moves (_recut); once the camera has turned, the things drawn as pictures show
+## the view of them it looks at now.
 func update() -> void:
+	var cut: int = game.chunks.build_cut + 1 if game.chunks.build_cut >= 0 else -1
+	if cut != _cut_at:
+		_recut(cut)
 	if _sprite_things.is_empty() or PixelView.up == _sprite_up:
 		return
 	_sprite_up = PixelView.up
@@ -634,9 +715,11 @@ func _turn_model(node: MeshInstance3D, e: Dictionary, turn: int) -> void:
 	var was: int = node.get_meta("turn", int(e.get("turn", 0)))
 	if was == turn:
 		return
-	var kind: String = Items.get_item(e.item).prop
-	node.mesh = _model(kind, turn, e.get("open", false), e.get("join", -1)).build_mesh()
+	var model = _model_of(e, turn)
+	_uncut(node)
+	node.mesh = model.build_mesh()
 	node.set_meta("turn", turn)
+	_cut_model(node, e, model)
 
 
 ## Whether thing `id` has a model of its own to show held up or as a ghost of the blueprint
