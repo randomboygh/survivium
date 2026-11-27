@@ -408,6 +408,10 @@ func _test_fishing(w: WorldData) -> void:
 	# On the shore south of the pond, facing north over it.
 	who.position = Vector3(px + 8.5, 6.0, pz + side + 0.5) * WorldData.CELL
 	life.people = [who]
+	# Only the test's fish swim here. The animals that come round the angler meanwhile are
+	# drawn from the unseeded numbers, and now and then a flock of perches came into the
+	# pond, ate the roach and bit at the float itself (CI, 2026-11-26; seed 3738 does it).
+	life.density = 0.0
 	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
 	actions.wildlife = life
 	var fishing := Fishing.new()
