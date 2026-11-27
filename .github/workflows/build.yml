@@ -103,6 +103,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The trees' look.yaml check in the lint (tools/tree_feet.py --check) reads PNGs.
+      - name: Pillow
+        run: python3 -c 'import PIL' 2>/dev/null || python3 -m pip install --quiet --break-system-packages pillow
       - name: Lint
         run: python3 tools/lint.py
       - name: Docs

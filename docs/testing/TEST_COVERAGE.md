@@ -12,7 +12,7 @@ checked by calls of the game itself.
 
 | Layer | What | Where |
 |---|---|---|
-| Static | the scripts' rules (no `class_name`, autoloads, plugins), texts (trailing spaces, CRLF, merge conflicts), the paths `load("res://…")` and of scenes' resources, Python/shell/JS/JSON/workflow are parsed | `tools/lint.py` |
+| Static | the scripts' rules (no `class_name`, autoloads, plugins), texts (trailing spaces, CRLF, merge conflicts), the paths `load("res://…")` and of scenes' resources, Python/shell/JS/JSON/workflow are parsed, the art a `hand` list names exists, the trees' look.yaml holds what their pictures measure (`tools/tree_feet.py --check`) | `tools/lint.py` |
 | Compilation | each of ~200 GDScript scripts compiles, also those that no test loads | `tools/parse_check.gd` |
 | Documents | the paths in `docs/` exist, the code index is fresh | `tools/doc_index.py --check` |
 | Data | schemas, references, each bundle separately, assets, the content graph, eras | `tools/validate.gd`, `tools/content_report.gd --check` |

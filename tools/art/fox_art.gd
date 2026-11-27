@@ -5,6 +5,7 @@ extends RefCounted
 ## user's rule for every animal, 2026-11-21: standing, the side 22×15, the front 9×13, the back 9×16).
 ## tools/make_sprites.gd saves it as the fox bundle's picture
 ## (content/animals/fox/sprites/creatures/fox.png), the sheet Creatures draws from.
+## The frames as letters (fox_a.py) and this table's writer (write_fox_art.py) are in tools/art/animals/.
 ##
 ## Each state has four frames (the user's rule: at most four) for the south (as it comes at the
 ## camera), the north (as it goes away) and the west; the east is the west mirrored, as the game

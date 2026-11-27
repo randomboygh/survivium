@@ -13,8 +13,8 @@ extends RefCounted
 ## waistband's row `hips`, the hands' places `hands` ([the hand holding the axe: its grip,
 ## the other: its lowest pixel next to the body], less the bob) and how the axe is held:
 ## `a` the way it points (PlayerArt.WORKS), `ccw` its edge the other way, `f` in front of
-## the body. Made with the review tools in the project library
-## (survivium-builds/character/anim/src/gen_chop_gd.py).
+## the body. Made with the review tools in the project library,
+## written by tools/art/character/gen_chop_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 

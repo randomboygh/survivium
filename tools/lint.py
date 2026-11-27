@@ -10,7 +10,10 @@
 - no 3D shader declares more than MAX_VARYINGS varying slots, its includes' and every
   `#ifdef` variant's counted together;
 - the Python tools compile, the shell scripts parse (`bash -n`), the browser test parses
-  (`node --check`, when node is there), the JSON files and the workflows parse.
+  (`node --check`, when node is there), the JSON files and the workflows parse;
+- every file a `hand` list names (a bundle.yaml, a mod.yaml, assets/hand.yaml: the art made
+  by hand, tools/hand_art.py) exists, and the trees' look.yaml files hold what their pictures
+  measure (`tools/tree_feet.py --check`, which needs Pillow).
 
     python3 tools/lint.py          check, print each problem as path:line: what, fail on any
 """
@@ -144,6 +147,27 @@ def main() -> int:
             r = subprocess.run(["node", "--check", str(path)], capture_output=True, text=True)
             if r.returncode != 0:
                 bad(path, 1, f"node --check: {r.stderr.strip()}")
+
+    # The art made by hand: each name a `hand` list gives is a file of its folder.
+    sys.path.insert(0, str(ROOT / "tools"))
+    import hand_art
+    for path in files:
+        rel = path.relative_to(ROOT).as_posix()
+        if path.name in ("bundle.yaml", "mod.yaml", "hand.yaml") and rel.startswith(("content/", "assets/")):
+            for name in sorted(hand_art._names(rel)):
+                if not (path.parent / name).is_file():
+                    bad(path, 1, f"`hand` names {name}, which is not a file of {path.parent.relative_to(ROOT).as_posix()}/")
+
+    # The trees' look.yaml against their pictures (tools/tree_feet.py, after a tree is packed again).
+    try:
+        import PIL  # noqa: F401
+    except ImportError:
+        bad(ROOT / "tools/tree_feet.py", 1, "needs Pillow to check the trees' look.yaml (pip install pillow)")
+    else:
+        r = subprocess.run([sys.executable, "tools/tree_feet.py", "--check"], cwd=ROOT, capture_output=True, text=True)
+        if r.returncode != 0:
+            for line in (r.stdout + r.stderr).strip().splitlines()[-10:]:
+                bad(ROOT / "tools/tree_feet.py", 1, f"--check: {line}")
 
     try:
         import yaml  # PyYAML is on GitHub's runners; the workflows are checked where it is.

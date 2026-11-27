@@ -13,6 +13,7 @@ import os
 import sys
 
 from creature_kit import at_row, DARK, HIGH, LIGHT, MID, OUTLINE, View, compose, flat, flyer, poses, ramp, sheet, walker
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "content", "animals")
 EYE = flat("#1c1214")
@@ -96,7 +97,7 @@ def main():
             continue
         path = os.path.join(ROOT, name, "sprites", "creatures", "%s.png" % name)
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        sheet(SHEETS[name]()).save(path)
+        hand_art.save(sheet(SHEETS[name]()), path)
         print(path)
 
 

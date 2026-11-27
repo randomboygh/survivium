@@ -13,6 +13,7 @@ a blink and the throat puffed.
 import os
 
 from PIL import Image
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 PAL = {
     "O": "#16220e", "L": "#16220e",
@@ -153,5 +154,5 @@ PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "content",
                     "sprites", "creatures", "frog.png")
 
 if __name__ == "__main__":
-    sheet().save(PATH)
+    hand_art.save(sheet(), PATH)
     print(PATH)

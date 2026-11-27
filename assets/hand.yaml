@@ -1,0 +1,3 @@
+# The pictures of assets/ made or finished by hand, as paths inside assets/: the generators of tools/ leave them as
+# they are (tools/hand_art.gd, tools/hand_art.py). A bundle's own are listed in its bundle.yaml the same way.
+hand: [splash.png, ui/thermo.png]

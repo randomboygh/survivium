@@ -54,8 +54,8 @@ added after the system by eras, each with the user's consent.
 Unchanged:
 
 ```
-content/<mod>/mod.yaml                      id, title, version, api, requires, wants
-content/<mod>/<bundle>/bundle.yaml          title, requires, wants
+content/<mod>/mod.yaml                      id, title, version, api, requires, wants, hand
+content/<mod>/<bundle>/bundle.yaml          title, requires, wants, hand (art made by hand, for the tools)
 content/<mod>/<bundle>/data/<kind>.yaml     entities
 content/<mod>/<bundle>/{icons,models,sprites,textures,sounds}/
 content/<mod>/lang/<code>.yaml, content/<mod>/<bundle>/lang/<code>.yaml   the keys' texts (docs/TRANSLATION.md)

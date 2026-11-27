@@ -1,12 +1,14 @@
 extends SceneTree
 ## Draws the voxel models of the things (tools/art/voxel_art.gd) and saves them as PNG
 ## slices in the mod of each item that names one as its `model`:
-## content/<mod>/models/<model>.png (see VoxelModel.from_image). A model painted over by
-## hand is overwritten, so name the models to make:
+## content/<mod>/models/<model>.png (see VoxelModel.from_image). A model made or finished
+## by hand is named in its bundle's `hand` list and left as it is (tools/hand_art.gd); name
+## the models to make or make them all:
 ## godot --headless --path . --script res://tools/make_models.gd -- <model ...> | --all
 
 const Items := preload("res://src/shared/content/items.gd")
 const VoxelArt := preload("res://tools/art/voxel_art.gd")
+const HandArt := preload("res://tools/hand_art.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 
 
@@ -31,6 +33,8 @@ func _init() -> void:
 		if done.has(path):
 			continue
 		done[path] = true
+		if HandArt.kept(path):
+			continue
 		var model = VoxelArt.prop(prop, name) if prop != "none" else VoxelArt.drop(name)
 		if model == null:
 			print("no drawing for %s" % path)

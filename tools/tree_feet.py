@@ -17,7 +17,7 @@ stumps they leave (the look.yaml's `stump_frames`), and writes what it finds int
     python3 tools/tree_feet.py --check  exit 1 when a look.yaml's `foot`, `taper`, `cut` or `top` is missing or
                                         differs
 
-Run it after the pictures are packed again (survivium-builds/trees-redraw/integration/*/src/pack_*.py).
+Run it after the pictures are packed again (tools/art/trees/src/pack_*.py); tools/lint.py runs --check.
 
 The bark is a frame pixel of alpha 2 (a palm trunk's soft outline: 3), stored 64 higher (66, 67;
 tree_pictures.gdshaderinc); the cut wood of a stump 4, 5 and the resin 6, stored 64 higher (tree.gdshader). `foot`:

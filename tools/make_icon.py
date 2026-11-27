@@ -26,6 +26,7 @@ import random
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 N = 32
 FONT = "assets/fonts/PressStart2P.ttf"
@@ -415,11 +416,11 @@ def app_icons(icon: Image.Image) -> None:
 	os.makedirs(APP, exist_ok=True)
 	sizes = [16, 24, 32, 48, 64, 128, 256]
 	frames = [icon.resize((s, s), Image.NEAREST) for s in sizes]
-	frames[-1].save(os.path.join(APP, "icon.ico"), sizes=[(s, s) for s in sizes], append_images=frames[:-1])
-	on_night(icon, LAUNCHER, 5).save(os.path.join(APP, "android_192.png"))
-	on_night(icon, LAYER, 8, back=False).save(os.path.join(APP, "android_front.png"))
-	Image.new("RGBA", (LAYER, LAYER), NIGHT[3] + (255,)).save(os.path.join(APP, "android_back.png"))
-	on_night(monochrome(icon), LAYER, 8, back=False).save(os.path.join(APP, "android_mono.png"))
+	hand_art.save(frames[-1], os.path.join(APP, "icon.ico"), sizes=[(s, s) for s in sizes], append_images=frames[:-1])
+	hand_art.save(on_night(icon, LAUNCHER, 5), os.path.join(APP, "android_192.png"))
+	hand_art.save(on_night(icon, LAYER, 8, back=False), os.path.join(APP, "android_front.png"))
+	hand_art.save(Image.new("RGBA", (LAYER, LAYER), NIGHT[3] + (255,)), os.path.join(APP, "android_back.png"))
+	hand_art.save(on_night(monochrome(icon), LAYER, 8, back=False), os.path.join(APP, "android_mono.png"))
 
 
 def monochrome(icon: Image.Image) -> Image.Image:
@@ -491,8 +492,8 @@ def main() -> None:
 		return
 	icon = ICON().image()
 	icon.save("icon.png")
-	touch_icon(icon).save(os.path.join(WEB, "apple-touch-icon.png"))
-	card(icon).convert("RGB").save(os.path.join(WEB, "og.png"))
+	hand_art.save(touch_icon(icon), os.path.join(WEB, "apple-touch-icon.png"))
+	hand_art.save(card(icon).convert("RGB"), os.path.join(WEB, "og.png"))
 	app_icons(icon)
 
 

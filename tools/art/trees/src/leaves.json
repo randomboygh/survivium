@@ -1,0 +1,177 @@
+[
+ {
+  "x": 4,
+  "y": 9,
+  "rows": [
+   "...OOOO..",
+   "..OBBVBBO",
+   ".OBBVBBBO",
+   "OBBVBBBO.",
+   "OBBBBBO..",
+   "OOOOOO..."
+  ]
+ },
+ {
+  "x": 12,
+  "y": 10,
+  "rows": [
+   ".OOOO.....",
+   "OBVBBO....",
+   "OBBVBBO...",
+   ".OBBVBBO..",
+   "..OBBBBBO.",
+   "...OBBBBBO",
+   "....OOOOOO"
+  ]
+ },
+ {
+  "x": 15,
+  "y": 7,
+  "rows": [
+   ".OOOOO..OO",
+   "OBBBBBOOBO",
+   "OVVVBBBBBO",
+   ".OBBVVBBBO",
+   "..OBBBBBO.",
+   "...OOOOO.."
+  ]
+ },
+ {
+  "x": 3,
+  "y": 5,
+  "rows": [
+   "OO...OOOO..",
+   "OBOOOBBBBO.",
+   "OBBBBBVBBBO",
+   "OBBBBBBOBBO",
+   ".OBBOOO.OBO",
+   "..OO.....O."
+  ]
+ },
+ {
+  "x": 12,
+  "y": 3,
+  "rows": [
+   "...OOOOOOO",
+   "..OBBBBBBO",
+   ".OBBVBBOO.",
+   "OBBVBBO...",
+   ".OVBOO....",
+   ".OBO......",
+   "..O......."
+  ]
+ },
+ {
+  "x": 6,
+  "y": 2,
+  "rows": [
+   "OOOOO..",
+   "OBBBBO.",
+   ".OBBBBO",
+   ".OOOOO."
+  ]
+ },
+ {
+  "x": 10,
+  "y": 13,
+  "rows": [
+   ".OO......",
+   "OBBOO....",
+   "OBBVBO...",
+   "OBBVBBO..",
+   "OBBVBBO..",
+   "OBBBBBBO.",
+   ".OBBBBBBO",
+   "..OOOOOOO"
+  ]
+ },
+ {
+  "x": 1,
+  "y": 14,
+  "rows": [
+   ".....OO...",
+   "....OBBO..",
+   "...OBBVBBO",
+   "OOOBBVBBO.",
+   "OBBBBBBO..",
+   ".OOOOOO..."
+  ]
+ },
+ {
+  "x": 0,
+  "y": 10,
+  "rows": [
+   "OO..O.",
+   "OBOOBO",
+   "OBBBO.",
+   "OBBBO.",
+   ".OBBO.",
+   "..OOO."
+  ]
+ },
+ {
+  "x": 19,
+  "y": 12,
+  "rows": [
+   ".OO....",
+   "OBBO...",
+   ".OBBO..",
+   ".BVBBO.",
+   ".OVBBBO",
+   "OBBBBBO",
+   ".OOOOOO"
+  ]
+ },
+ {
+  "x": 7,
+  "y": 17,
+  "rows": [
+   "..O....",
+   ".OBO...",
+   "OBBVO..",
+   "OBBVBO.",
+   "OBBVBBO",
+   "OBVBBO.",
+   "OBBBO..",
+   "OBBO...",
+   "OOO...."
+  ]
+ },
+ {
+  "x": 2,
+  "y": 19,
+  "rows": [
+   "...OO.",
+   "..OBBO",
+   ".OBBBO",
+   "OBBBBO",
+   "OOOOO."
+  ]
+ },
+ {
+  "x": 16,
+  "y": 16,
+  "rows": [
+   ".OO.....",
+   "OBBO....",
+   ".OBBOO..",
+   "..OBBBO.",
+   "..OBBBBO",
+   "..OBBBBO",
+   "...OOOOO"
+  ]
+ },
+ {
+  "x": 13,
+  "y": 20,
+  "rows": [
+   ".O.OO..",
+   "OBOBBO.",
+   "OBBVBBO",
+   ".OBBBBO",
+   "..OBBBO",
+   "...OBBO",
+   "....OOO"
+  ]
+ }
+]

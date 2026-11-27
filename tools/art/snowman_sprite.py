@@ -106,4 +106,6 @@ sheet=Image.new('RGBA',(W*4,H*4),(0,0,0,0))
 for r,v in enumerate('snwe'):
     for s in range(4):
         sheet.paste(draw(v,s),(s*W,r*H))
-sheet.save(sys.argv[1] if len(sys.argv)>1 else os.path.join(HERE,'../../content/plants/snowman/sprites/things/snowman.png'))
+sys.path.insert(0, os.path.join(HERE, '..'))
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
+hand_art.save(sheet, sys.argv[1] if len(sys.argv)>1 else os.path.join(HERE,'../../content/plants/snowman/sprites/things/snowman.png'))
