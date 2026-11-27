@@ -790,6 +790,8 @@ func _process(delta: float) -> void:
 				var spawn: Vector3i = WorldGen.find_spawn(world, Vector3i((player.position / CELL).floor()))
 				player.position = (Vector3(spawn) + Vector3(0.5, 0.0, 0.5)) * CELL
 			view.look_at_player()
+			if session != null:
+				save.restore_world()
 			props.place()
 			creatures.watch(wildlife)
 			if host != null:

@@ -28,7 +28,10 @@ convert the saves of old versions.
   by `save.track(name, object)`. Choosing a world (`choose_world`, `switch_world`; `replace_world` — «New world»
   over a saved one: its save deleted, even the one played, so it is made anew with the mods chosen; a server's
   `access.json` stays, its players' records go, and the warning says so), restoring
-  (`restore_player`, `restore_clock`). Off in tests and tools (`enabled`).
+  (`restore_player`, `restore_clock`, `restore_world`). Off in tests and tools (`enabled`).
+- `src/shared/game/session.gd` — the one save code of the session's state for single player and the server
+  (`to_saved`, `read_clock`, `from_saved`, [session.md](session.md) «Saving»); `WorldStore.settings_of(meta)`
+  reads the world's settings for both and for `list_worlds`.
 - `src/server/server_store.gd` — the same for a server without a window: writes the world every 10 s and on
   `stop`, with the commands, fights and players by their keys ([network.md](network.md)); the next player's
   number is past every number the world knows (`known_players`: the players' files, the teams, the land).

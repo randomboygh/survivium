@@ -14,9 +14,8 @@ extends RefCounted
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
-const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
-const Mat := preload("res://src/shared/content/materials.gd")
+const Session := preload("res://src/shared/game/session.gd")
 
 const PLAYER := "players/local.json"
 ## Seconds between saves while playing.
@@ -113,9 +112,7 @@ func choose_world() -> void:
 		game.world_options = game.settings.world_options()
 	else:
 		game.world_seed = int(current.seed)
-		game.world_options = {}
-		for k: String in WorldGen.DEFAULT_SETTINGS:
-			game.world_options[k] = int(current.settings.get(k, WorldGen.DEFAULT_SETTINGS[k]))
+		game.world_options = WorldStore.settings_of(current)
 	if not enabled:
 		return
 	store = WorldStore.new(WorldStore.world_dir(game.world_seed, game.world_options))
@@ -180,20 +177,22 @@ func restore_player() -> void:
 		player_placed = true
 
 
-## Puts the saved clock and season back into `clock` (the server's; the save keeps
-## them as "sky").
+## Puts the saved clock and season back into `clock` (the server's), before the session
+## is made over it (Session.read_clock).
 func restore_clock(clock) -> void:
-	if has_save and meta.get("sky") is Dictionary:
-		clock.from_dict(meta.sky)
+	Session.read_clock(clock, meta if has_save else {})
 
 
-## The cell of a prop ("chest", "campfire") in a save from before things could be
-## placed (see Props.place), or null.
-func prop_cell(name: String) -> Variant:
-	var c: Variant = meta.get("props", {}).get(name)
-	if c is Array and c.size() == 3:
-		return Vector3i(int(c[0]), int(c[1]), int(c[2]))
-	return null
+## Puts what the save holds into the session (Session.from_saved, the code the server
+## opens its worlds with): the land, the plans, the tamed animals, the boats, the ice, the
+## decay and the things placed, or the camp of the start next to the player in a new world
+## (the near chunks are built by then, so the ground under it is known). A new world's
+## decay is as «Новый мир» set it. The teams and fights a server kept stay in `meta`.
+func restore_world() -> void:
+	var session = game.session
+	session.from_saved(meta if has_save else {}, game.player.position, false)
+	if not has_save:
+		session.decay.on = int(game.settings.values.get("world_decay", 1)) != 0
 
 
 ## Keeps `obj` (with to_dict() and from_dict(d)) in the player's section `name`; it
@@ -277,31 +276,12 @@ func _write_chunk(key: Vector2i) -> void:
 
 ## world.json and the player, and this world as the one to start next time.
 func _write_world() -> void:
-	# What this world holds that single player does not keep (a server's teams, fights,
-	# next player's number, ServerStore._world_meta: the folder is the same) stays as it
-	# was saved; only what single player keeps is written over (WA-020).
-	var own := {
-		"format": WorldStore.FORMAT,
-		"seed": game.world_seed,
-		"settings": game.world_options,
-		"mods": game.world_mods,
-		"known": Mods.all(),
-		"content": WorldStore.CONTENT,
-		"materials": Array(Mat.IDS),
-		"numberings": game.gen.numberings,
-		"levels": game.world.size_y,
-		"created": meta.get("created", Time.get_datetime_string_from_system()),
-		"saved": Time.get_datetime_string_from_system(),
-		"played": played,
-		"sky": game.session.clock.to_dict(),
-		"placed": game.session.placed.to_list(),
-		"territory": game.session.territory.to_dict(),
-		"plans": game.session.plans.to_list(),
-		"tame": game.session.wildlife.tamed_list(),
-		"vessels": game.session.actions.vessels.to_list(),
-		"ice_holes": game.session.ice.to_saved(),
-		"decay": game.session.decay.to_dict(),
-	}
+	# What the session saves, the same code as the server's (Session.to_saved). What a
+	# server keeps in this world that single player does not (its teams, fights and next
+	# player's number, ServerStore._world_meta: the folder is the same) stays as it was
+	# saved; only single player's part is written over (WA-020).
+	var info := {"seed": game.world_seed, "settings": game.world_options, "mods": game.world_mods}
+	var own: Dictionary = game.session.to_saved(info, str(meta.get("created", "")), played, false)
 	meta = meta.duplicate()
 	meta.merge(own, true)
 	var p: Vector3 = game.player.position

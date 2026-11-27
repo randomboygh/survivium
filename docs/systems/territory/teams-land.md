@@ -53,7 +53,7 @@ Part of [Teams and territory](../territory.md). Teams, the boundary post and plo
   for a team — the budget of the biggest member and half of each other. The post removed (`Placed.removed`) —
   the claim goes with all its plots. The numbers are in `Rules`. Stored in the server's `world.json` and in
   the single-player save (`to_dict` / `from_dict`). `from_dict` sends `claims_changed` and `squares_changed`
-  again: in single player the player enters before the save is read (`Props.place`), and without this their
+  again: in single player the player enters before the save is read (`SaveGame.restore_world`), and without this their
   post after re-entering looked nobody's. «Clearing the territory» on the page «Testing» → «Player»
   (`Settings.clear_land`, two presses, only in one's own world) — `clear_painted`: of each claim only the
   post's plot stays.

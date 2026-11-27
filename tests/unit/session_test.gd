@@ -12,6 +12,7 @@ func run() -> void:
 	_test_wanted()
 	_test_reach()
 	_test_way_order()
+	_test_saved()
 
 
 func _test_rules() -> void:
@@ -257,3 +258,55 @@ func _test_way_order() -> void:
 	_check(S._way_score(Vector2(0, 1), Vector2.ZERO) < S._way_score(Vector2(1, 1), Vector2.ZERO)
 		and S._way_score(Vector2(1, 1), Vector2.ZERO) < S._way_score(Vector2(2, 0), Vector2.ZERO),
 		"standing, ring by ring round the player, a ring's corners last, never from a corner of the square")
+
+
+## The session writes and reads its own part of world.json, the same for single player and
+## the server (audit GAME-3/UI-1/DATA-5): what one session saved comes back whole into a
+## fresh one; the teams and fights only on a server; a save from before things could be
+## placed gets its chest and campfire back on either; a world with nothing saved gets the
+## camp of the start.
+func _test_saved() -> void:
+	var gen := WorldGen.new(42, 40)
+	var clock := Clock.new()
+	var s := Session.new(gen.world, gen, clock, Rules.new(), Placed.new())
+	var key := WorldData.chunk_key(gen.spawn_guess.x, gen.spawn_guess.z)
+	s.make_chunk(key)
+	var spot := WorldGen.find_spawn(gen.world, gen.spawn_guess)
+	clock.day = 7
+	clock.season = 2
+	s.placed.put(Placed.CAMPFIRE, spot)
+	s.teams.from_dict({"teams": [{"id": 1, "name": "Fox", "lead": 2, "members": [2, 3]}], "names": {"2": "Ann", "3": "Bob"}, "next": 2})
+	s.decay.on = false
+	var info := {"seed": 42, "settings": {}, "mods": ["core"]}
+	var saved: Dictionary = s.to_saved(info, "2026-01-01 10:00:00", 12.0, true)
+	_check(saved.get("created") == "2026-01-01 10:00:00" and saved.get("played") == 12.0 and saved.has("teams")
+		and saved.has("fights") and saved.get("seed") == 42 and saved.get("numberings") == gen.numberings,
+		"a session's save names the world and holds its parts, the teams on a server")
+	_check(not s.to_saved(info, "", 0.0, false).has("teams"), "single player's save leaves the teams to the server's")
+	var json: Dictionary = JSON.parse_string(JSON.stringify(saved))
+	var clock2 := Clock.new()
+	Session.read_clock(clock2, json)
+	var gen2 := WorldGen.new(42, 40)
+	var s2 := Session.new(gen2.world, gen2, clock2, Rules.new(), Placed.new())
+	s2.make_chunk(key)
+	s2.from_saved(json, Vector3.ZERO, true)
+	var again: Dictionary = s2.to_saved(info, str(json.created), float(json.played), true)
+	var a: Dictionary = JSON.parse_string(JSON.stringify(saved))
+	var b: Dictionary = JSON.parse_string(JSON.stringify(again))
+	a.erase("saved")
+	b.erase("saved")
+	_check(clock2.day == 7 and s2.placed.things.size() == 1 and not s2.decay.on and s2.teams.names.size() == 2,
+		"a fresh session gets the clock, the things, the decay and the teams back")
+	_check(a == b, "what a session saved comes back whole: saved again it is the same")
+	var s3 := Session.new(gen2.world, gen2, Clock.new(), Rules.new(), Placed.new())
+	s3.from_saved(json, Vector3.ZERO, false)
+	_check(s3.teams.names.is_empty(), "single player does not take a server's teams")
+	var c := [spot.x, spot.y, spot.z]
+	for server in [true, false]:
+		var old := Session.new(gen2.world, gen2, Clock.new(), Rules.new(), Placed.new())
+		old.from_saved({"props": {"chest": c}, "chest": {"slots": []}}, Vector3.ZERO, server)
+		_check(old.placed.things.size() == 1 and old.placed.things[0].item == Items.with_prop("chest"),
+			"a save from before things could be placed gets its chest back (%s)" % ("server" if server else "single player"))
+	var fresh := Session.new(gen2.world, gen2, Clock.new(), Rules.new(), Placed.new())
+	fresh.from_saved({}, (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL, true)
+	_check(not fresh.placed.things.is_empty(), "a world with nothing saved gets the camp of the start")

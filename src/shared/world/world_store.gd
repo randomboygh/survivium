@@ -113,15 +113,23 @@ static func list_worlds() -> Array:
 		var meta := read_json_at("%s/%s/%s" % [root, name, WORLD])
 		if meta.get("format") != float(FORMAT) or not meta.get("seed") is float:
 			continue
-		var settings := {}
-		var saved_settings: Dictionary = meta.get("settings", {})
-		for k in LandLayout.SETTING_KEYS:
-			settings[k] = int(saved_settings.get(k, LandLayout.DEFAULT_SETTINGS[k]))
+		var settings := settings_of(meta)
 		var mods: Array = Array(meta.get("mods", [])).filter(func(m) -> bool: return m is String)
 		out.append({"dir": "%s/%s" % [root, name], "seed": int(meta.seed), "settings": settings, "mods": mods,
 			"day": int(meta.get("sky", {}).get("day", 1)), "saved": str(meta.get("saved", "")),
 			"played": float(meta.get("played", 0.0))})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.saved > b.saved)
+	return out
+
+
+## The WorldGen settings of world.json `meta`: every one there is, as saved or by default
+## (a world saved before a setting was made has its default); the one reading of them for
+## single player, the server and the list of worlds.
+static func settings_of(meta: Dictionary) -> Dictionary:
+	var out := {}
+	var saved: Variant = meta.get("settings")
+	for k: String in LandLayout.DEFAULT_SETTINGS:
+		out[k] = int(saved.get(k, LandLayout.DEFAULT_SETTINGS[k])) if saved is Dictionary else int(LandLayout.DEFAULT_SETTINGS[k])
 	return out
 
 
