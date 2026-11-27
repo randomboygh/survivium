@@ -35,6 +35,10 @@ static func foam(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, 
 		var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
 		if cov[c[n]] and sh[n] & 15 != 0 and not cov[c[n + dy]] and shore(c, cov, n, dy, dz):
 			shores |= 1 << e
+		# A corner on the diagonal of a slope a level up going on down under this water
+		# (see deep_shore): its water goes on over it, with the foam at its foot.
+		elif deep_diag(c, sh, cov, n + dy, dy, dz) >= 0:
+			shores |= 1 << e
 	for h in 8:
 		var e := h >> 1
 		var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
@@ -311,13 +315,16 @@ static func _fall_spray(buf, root: Vector3, k: int, seed: float) -> void:
 ## the filled corners, then the cut corners of the land beside, see water.gdshader) and
 ## the depth to the bottom in cells (UV2.y); `corners` are the vertex colours at the
 ## top's corners NW, NE, SE, SW (see water_color). Filled corners, and `cuts`, those the
-## lip of a step cuts off (see lip_cuts), are left out of the top.
+## lip of a step cuts off (see lip_cuts), are left out of the top; `fills`, the filled
+## corners, from `foam` unless given.
 static func water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, depth: int, foam: int,
-		corners: PackedColorArray, cuts := 0) -> void:
+		corners: PackedColorArray, cuts := 0, fills := -1) -> void:
 	if nb[0] != AIR and nb[1] != AIR and nb[2] != AIR and nb[4] != AIR and nb[5] != AIR:
 		return
 	var h := water_top(int(base.y)) if nb[2] == AIR else 1.0
-	var fills := foam >> 8 & 15
+	# The filled corners, when `foam` has the foam of others (deep_foam) too.
+	if fills < 0:
+		fills = foam >> 8 & 15
 	var data := Vector2(float(foam), float(depth))
 	var mid: Color = corners[0].lerp(corners[1], 0.5).lerp(corners[3].lerp(corners[2], 0.5), 0.5)
 	for d in 6:
@@ -395,6 +402,10 @@ static func level_bed(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteAr
 static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, n: int, dy: int, k: int) -> float:
 	var m := c[n]
 	if m != WATER:
+		# A slope a level up going on down into the cell (see deep_shore) lies at its
+		# bottom at this corner, under the water.
+		if cov[m] and cov[c[n + dy]] and sh[n] & (1 << k) != 0:
+			return 0.0
 		if not cov[m] or cov[c[n + dy]]:
 			return NAN
 		var h := OldSlopes.corner_height(sh, n, dy, k)
@@ -474,6 +485,51 @@ static func shore(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz:
 	return wet
 
 
+## True when the sloping top of padded cell `i` goes on down (its corners into the cell
+## below, see WorldData._update_deep) under water a level lower: open air beside it over
+## that water, and nothing else open around it (see WorldData.shore_top). The water's
+## surface lies over the slope there (shore_water, `deep`); without it the slope showed
+## bare under the water's level, and the water's edge went round the cells in stairs.
+static func deep_shore(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int,
+		dz: int) -> bool:
+	if sh[i - dy] & 15 == 0 or not cov[c[i - dy]]:
+		return false
+	var wet := false
+	for o: int in [1, -1, dz, -dz, dz + 1, dz - 1, 1 - dz, -1 - dz]:
+		var n := c[i + o]
+		if n == AIR and c[i + o - dy] == WATER:
+			wet = true
+		elif not cov[n]:
+			return false
+	return wet
+
+
+## The corner on the diagonal (WorldData.diag_corner) of the top of padded cell `i` when
+## it is a deep shore (see deep_shore), else -1.
+static func deep_diag(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int,
+		dz: int) -> int:
+	if i + dy >= c.size() or sh[i] & 15 == 0 or not cov[c[i]] or cov[c[i + dy]]:
+		return -1
+	var h := PackedInt32Array()
+	for k in 4:
+		h.append(OldSlopes.corner_height(sh, i, dy, k))
+	var diag := WorldData.diag_corner(h)
+	return diag if diag >= 0 and deep_shore(c, sh, cov, i, dy, dz) else -1
+
+
+## Foam bits for water cell `i` at the low corner of an inner corner of a deep shore
+## across its corner (see deep_diag): the bank's foot runs through that corner from the
+## outer corners beside (shore_water), round it as the inner corner's own foam is.
+static func deep_foam(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int,
+		dz: int) -> int:
+	var foam := 0
+	for k in 4:
+		var o: Vector2i = CORNER_DIRS[k]
+		if deep_diag(c, sh, cov, i + o.x + o.y * dz + dy, dy, dz) == 4 + ((k + 2) & 3):
+			foam |= 1 << (8 + k) | 3 << (16 + 2 * k)
+	return foam
+
+
 ## The water over the sloping top of shore cell `i` (see shore): a level surface over
 ## the whole cell, which the ground hides where it rises out of it, its points telling
 ## the shader how far under the surface the ground lies there (foam where it comes up).
@@ -492,13 +548,18 @@ static func shore(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz:
 ## on the diagonal, it went into sharp corners where a shore turned from straight to
 ## diagonal, thread «Исправить диагональный берег»).
 static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int,
-		base: Vector3, foam := 0) -> void:
-	var murks := murk_corners(w, c, i, dz, base)
-	var top := water_top(int(base.y))
-	var sea := sea_near(w, int(base.x), int(base.y), int(base.z))
+		base: Vector3, foam := 0, deep := false) -> void:
+	# `deep`: the water lies a level lower (see deep_shore), its surface under this level.
+	var wi := i - dy if deep else i
+	var wy := int(base.y) - (1 if deep else 0)
+	var murks := murk_corners(w, c, wi, dz, Vector3(base.x, wy, base.z))
+	var top := water_top(wy) - (1.0 if deep else 0.0)
+	var sea := sea_near(w, int(base.x), wy, int(base.z)) and not deep
 	# The sea's top level is flush with the land (water_top): the slope of a beach down
 	# into it lies all under the water, and the surf (swash) outlines it, not a foam line.
-	var surf := surf_here(sea, int(base.y))
+	# Under a bank a level up the surf does not run on (a wall rising out of the sea keeps
+	# its foam, see ChunkMesher).
+	var surf := surf_here(sea, wy) and not deep
 	if surf:
 		foam = 0
 	var steps := Vector2i(OldSlopes.PATCH_STEPS, OldSlopes.PATCH_STEPS)
@@ -517,6 +578,14 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 		# diagonals beside meets (water.gdshader, corner shape 3).
 		var k := diag & 3
 		foam |= (1 << (12 + k) if diag >= 4 else 1 << (8 + k)) | 3 << (16 + 2 * k)
+	elif deep and not surf and p.size() > WorldData.PATCH_DIAG:
+		# Under a bank a level up the ground crosses the surface halfway across the
+		# diagonal corner, behind the bank as the view looks at it; the foam lies at the
+		# bank's foot, as the water's beside a straight bank does at the cell's side (see
+		# deep_foam): along the diagonal through the corners beside an outer corner (both
+		# bits, water.gdshader), round the low corner of an inner one (corner shape 3).
+		var k := int(p[WorldData.PATCH_DIAG]) & 3
+		foam |= 1 << (8 + k) | (3 << (16 + 2 * k) if int(p[WorldData.PATCH_DIAG]) >= 4 else 1 << (12 + k))
 	var data := Vector2(float(foam), 1.0)
 	for b in steps.y + 1:
 		var z := float(b) / steps.y
@@ -528,7 +597,8 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 			buf.uvs.append(Vector2(x, z))
 			buf.uv2s.append(data)
 			var murk := lerpf(lerpf(murks[0], murks[1], x), lerpf(murks[3], murks[2], x), z)
-			buf.colors.append(water_color(maxf(under, 0.0), under, kind(true, murk), sea, surf))
+			# Under a bank its foam is at the foot (see above), not where the ground comes up.
+			buf.colors.append(water_color(maxf(under, 0.0), 1.0 if deep else under, kind(true, murk), sea, surf))
 			if not level.is_empty():
 				level[b * nu + a] = 1 if WorldData.diag_reach(p, x, z) > 1.0 + OldSlopes.DIAG_EPS else 0
 	# A square's two triangles, split as the ground's grid is (OldSlopes.crease_flip), so

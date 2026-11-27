@@ -20,17 +20,20 @@ static func patch(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: 
 			_patch_far(c, sh, diag, dy, d, 3 - k, h[k]), h[k])
 		far[2 * k + 1] = WorldData.far_corner(_patch_far(c, sh, i + o.y * dz, dy, 3 - k, k, h[k]),
 			_patch_far(c, sh, diag, dy, d, k ^ 1, h[k]), h[k])
-	return WorldData.make_patch(h, far, shore_top(c, i, dy, dz))
+	return WorldData.make_patch(h, far, shore_top(c, sh, i, dy, dz))
 
 
 ## True when the top of padded ground cell `i` lies at the shore of water on its level
 ## (see WorldData.shore_top, which tells the same from the world).
-static func shore_top(c: PackedByteArray, i: int, dy: int, dz: int) -> bool:
+static func shore_top(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int) -> bool:
 	var wet := false
+	var deep := sh[i - dy] & 15 != 0 and c[i - dy] != AIR and c[i - dy] != WATER
 	for o: int in [1, -1, dz, -dz, dz + 1, dz - 1, 1 - dz, -1 - dz]:
 		var n := c[i + o]
 		if n == WATER:
 			wet = wet or c[i + o + dy] == AIR
+		elif n == AIR and deep and c[i + o - dy] == WATER:
+			wet = true
 		elif n == AIR or n == LEAVES:
 			return false
 	return wet

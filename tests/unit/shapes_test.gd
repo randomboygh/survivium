@@ -4,12 +4,14 @@ extends "res://tests/unit/test_case.gd"
 
 const OldSlopeMesher := preload("res://src/client/world/old_slope_mesher.gd")
 const RoofMap := preload("res://src/client/world/roof_map.gd")
+const WaterMesher := preload("res://src/client/world/water_mesher.gd")
 
 
 func run() -> void:
 	_test_corners()
 	_test_diagonal_ridge()
 	_test_diagonal_shore()
+	_test_deep_shore()
 	_test_shapes()
 
 
@@ -233,6 +235,106 @@ func _test_flush_shore() -> void:
 	_check(wet, "water flush with the land lies wherever a shore's ground is under it, and only there")
 	_check(bent, "the ground of a shore's inner corner bends along its diagonal")
 	_check(dry and marked, "an islet and a sheer bank level with the water stay dry and unmarked, a shore's slopes marked")
+
+
+## A bank a level over the water on the diagonal (land where x + z >= 12 on levels 1 and
+## 2, water on level 1 below that line, a dirt floor under it all), the water flush with
+## the land (a river at the sea's level, the user's spot 2026-11-28) and half a cell
+## lower: the bank's corners go on down under the water (WorldData._update_deep) and
+## rise along the diagonal (WorldData.PATCH_DIAG), so the water's line runs straight, not
+## in stairs; the water lies over the bank wherever its ground is under the surface, no
+## filled corner of the water stands as a step of the shore, and the foam runs along the
+## bank's foot instead of round the water's cells.
+func _test_deep_shore() -> void:
+	for flush in [true, false]:
+		var w := WorldData.new(6, Vector2i(16, 16))
+		w.sea_level = 1 if flush else 0
+		var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+		c.natural.fill(WorldData.WILD)
+		for z in 16:
+			for x in 16:
+				c.cells[z * 16 + x] = Mat.DIRT
+				c.cells[(16 + z) * 16 + x] = Mat.DIRT if x + z >= 12 else Mat.WATER
+				if x + z >= 12:
+					c.cells[(32 + z) * 16 + x] = Mat.DIRT
+		w.rebuild_columns()
+		w.refresh_shapes()
+		var name := "flush" if flush else "half a cell lower"
+		# The water's surface above level 2.
+		var surface := w.water_top(1) - 1.0
+		# (6, 6): an outer corner, high in the south-east; (7, 6): an inner corner, low in
+		# the north-west (as in _test_diagonal_shore), a level up.
+		var outer := w.surface_patch(6, 2, 6)
+		var inner := w.surface_patch(7, 2, 6)
+		_check(outer.size() == WorldData.PATCH_DIAG + 1 and int(outer[WorldData.PATCH_DIAG]) == 2
+			and outer[0] == -1.0 and inner.size() == WorldData.PATCH_DIAG + 1
+			and int(inner[WorldData.PATCH_DIAG]) == 4 and inner[0] == -1.0,
+			"the corners of a bank on the diagonal go down under the water along it (%s)" % name)
+		var straight := true
+		for t in 5:
+			var f := t / 4.0
+			# Lines parallel to the diagonal: the height is the same all along each.
+			for s: float in [0.25, 0.5, 0.75]:
+				var a := WorldData.patch_height(outer, 1.0 - s * f, 1.0 - s * (1.0 - f))
+				var b := WorldData.patch_height(outer, 1.0 - s * 0.5, 1.0 - s * 0.5)
+				straight = straight and absf(a - b) < 0.02
+				a = WorldData.patch_height(inner, s * f, s * (1.0 - f))
+				b = WorldData.patch_height(inner, s * 0.5, s * 0.5)
+				straight = straight and absf(a - b) < 0.02
+		_check(straight, "the water meets a bank's corners on the diagonal in a straight line (%s)" % name)
+		var no_fills := true
+		for z in 16:
+			for x in 16:
+				if x + z < 12:
+					no_fills = no_fills and w._shape(x, 1, z) >> 4 == 0
+		_check(no_fills, "the water under a bank has no filled corners (%s)" % name)
+		var cp := w.padded(false, Mat.STONE, -2, -2, 18, 18)
+		var sh := w.padded(true, 0, -2, -2, 18, 18)
+		var dz := 16 + 4
+		var dy := dz * (16 + 4)
+		var same := true
+		for z in range(3, 10):
+			for x in range(3, 10):
+				if w.slope_mask(x, 2, z) == WorldData.FULL or w.get_cell(x, 2, z) != Mat.DIRT:
+					continue
+				var a: PackedFloat32Array = OldSlopeMesher.patch(cp, sh, 3 * dy + (z + 2) * dz + x + 2, dy, dz)
+				same = same and a == w.surface_patch(x, 2, z)
+		_check(same, "the mesher draws a bank's corners as the walkers stand on them (%s)" % name)
+		var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
+		var tris := _triangles(meshes[1])
+		var wet := true
+		for z in range(2, 11):
+			for x in range(2, 11):
+				if w.get_cell(x, 2, z) != Mat.DIRT or w.slope_mask(x, 2, z) == WorldData.FULL:
+					continue
+				var p := w.surface_patch(x, 2, z)
+				for b in 7:
+					for a in 7:
+						var u := (a + 0.5) / 7.0
+						var v := (b + 0.5) / 7.0
+						if WorldData.patch_height(p, u, v) > surface - 0.02:
+							continue
+						var drawn := false
+						for t: PackedVector2Array in tris:
+							drawn = drawn or _inside(Vector2(x + u, z + v), t)
+						wet = wet and drawn
+		_check(wet, "the water lies over a bank wherever its ground is under the surface (%s)" % name)
+		# The foam: both bits of the outer corner's high corner (its foot along the
+		# diagonal through the corners beside, water.gdshader) on its water, none of the
+		# half edges of the water's cells along the bank.
+		var arrays: Array = (meshes[1] as ArrayMesh).surface_get_arrays(0)
+		var vs: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var uv2: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
+		var foot := false
+		for n in vs.size():
+			var q: Vector3 = vs[n] / WorldData.CELL
+			if q.x > 6.01 and q.x < 6.99 and q.z > 6.01 and q.z < 6.99:
+				foot = foot or int(uv2[n].x) & (1 << 10 | 1 << 14) == 1 << 10 | 1 << 14
+		# The water cells west of and north of the outer corner: their sides toward it.
+		var cov := WaterMesher.covers_table()
+		var edges: int = WaterMesher.foam(cp, sh, cov, 2 * dy + 8 * dz + 7, dy, dz) & 3 << 6 \
+			| WaterMesher.foam(cp, sh, cov, 2 * dy + 7 * dz + 8, dy, dz) & 3 << 2
+		_check(foot and edges == 0, "the foam runs along a bank's foot on the diagonal (%s)" % name)
 
 
 ## True when point `q` lies in triangle `t` or on its edges.

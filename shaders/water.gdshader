@@ -673,15 +673,21 @@ void fragment() {
 			// side of a cut one. Shape 3: a straight line half a cell on toward the land,
 			// the corner itself (filled) or the diagonal through the corners beside (cut),
 			// where water flush with the land meets a shore's corner on the diagonal
-			// (WaterMesher.shore_water).
+			// (WaterMesher.shore_water). Both bits: the foot of a bank a level up on the
+			// diagonal, both sides of the diagonal through the corners beside (the bank
+			// hides the water's own line behind it; WaterMesher.deep_shore).
 			for (int k = 0; k < 4 && sw < 1.5; k++) {
 				bool filled = ((foam >> (8 + k)) & 1) != 0;
-				if (!filled && ((foam >> (12 + k)) & 1) == 0) {
+				bool cut = ((foam >> (12 + k)) & 1) != 0;
+				if (!filled && !cut) {
 					continue;
 				}
 				int shape = (foam >> (16 + 2 * k)) & 3;
 				int sd = shape == 3 ? corner_distance(t, k, 0) + (filled ? mid : -mid) : corner_distance(t, k, shape);
 				float d = float(filled ? sd : -sd);
+				if (filled && cut) {
+					d = float(abs(corner_distance(t, k, 0) - mid));
+				}
 				float wash = 1.0 + shore_wind + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
 				if (d < wash) {
 					col = foam_c;
