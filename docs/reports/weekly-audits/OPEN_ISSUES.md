@@ -4,8 +4,8 @@ The problems found by the weekly audits that are not fixed yet, the most urgent 
 adds the new ones, checks the old ones again, closes those fixed and changes a priority when there is
 a reason; the history of each status stays in the weekly reports ([INDEX.md](INDEX.md)).
 
-Last checked: 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.md)), at commit
-`b35d371` with that audit's fixes in the working tree. The fixes went into `main` on top of `e395528`: of the
+Last checked: 2026-11-28 ([WEEKLY_AUDIT_2026-11-28.md](WEEKLY_AUDIT_2026-11-28.md)), at commit `e78f09f` (#958);
+before it 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.md)), at commit `b35d371` with that audit's fixes in the working tree. The fixes went into `main` on top of `e395528`: of the
 four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 and WA-043, noted there.
 Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
 WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585),
@@ -23,10 +23,11 @@ WA-052 (the owner picked "move now": vessels' `seats`/`board_swing`, seeds' `sow
 WA-058 (the owner, 2026-11-15: keep ws:// on a local network, TLS only through the tunnel), WA-059 (the owner: no player accounts).
 WA-025 (#696: `settings_menu._section_rows` one function per tab, `hud._ready` eight build steps, `land_layout._layout_row` two passes `_water_row` and `_cover_row`, the layout byte-identical and as fast on a bench).
 WA-060 (checked 2026-11-15 on the `main protection` ruleset: a pull request and the checks lint, checks, tests, progress (hunting), progress (other), frames, export, pc, android are required).
+Closed 2026-11-28: WA-044 (no queued run is left), WA-065 (the phone list was gone through by the owner on 2026-11-10, closed in the backlog 2026-11-16); WA-046 narrowed to the pinned Python versions.
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 0 | 5 | 7 | 12 |
+| 0 | 0 | 5 | 5 | 10 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -74,35 +75,15 @@ recommendations.
 - **Recommended fix:** Find the cause (see WA-034).
 - **Status:** Open: needs plan; first found 2026-11-14 (stage 5); due backlog.
 
-### WA-065 · Medium · Process
-
-- **Description:** The phone checklist that closes stage 1 is not confirmed.
-- **Cause:** 18 items in `plan/backlog.md` wait for the user's phone.
-- **Confirmation:** `plan/backlog.md` «Проверить на телефоне».
-- **Files and systems:** the whole game on a phone
-- **Consequences:** Stage 1 behaviour on a phone is unconfirmed while stage 2 goes on.
-- **Recommended fix:** The user goes through the list on the phone.
-- **Status:** Open: user action; first found 2026-11-14 (stage 1); due backlog.
-
-### WA-044 · Low · CI
-
-- **Description:** Runs stuck in «queued».
-- **Cause:** GitHub never started them.
-- **Confirmation:** GitHub runs: main 43097752659 (#510) and three PR runs queued since 2026-11-11; one startup failure.
-- **Files and systems:** GitHub Actions
-- **Consequences:** #510 has no CI verdict of its own (later runs cover it).
-- **Recommended fix:** Cancel them in the GitHub interface.
-- **Status:** Open: owner action; first found 2026-11-14 (new); due 2026-11-20.
-
 ### WA-046 · Low · Dependencies
 
-- **Description:** No licence file and no list of external dependencies.
-- **Cause:** `docs/DEPENDENCIES.md` is the code-layer map only.
-- **Confirmation:** `ls LICENSE*` finds nothing (only `assets/fonts/OFL.txt`); the Python tools import Pillow with no requirements file.
-- **Files and systems:** the repository root, `docs/DEPENDENCIES.md`
-- **Consequences:** Unclear terms of use; a new machine needs guesswork.
-- **Recommended fix:** The owner picks a licence; list Godot, templates, Android SDK and JDK, cloudflared, Python and Pillow, Node and playwright-core, Chrome, the font.
-- **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
+- **Description:** The Python tools' dependencies (Pillow, NumPy) have no pinned versions.
+- **Cause:** There is no `requirements.txt`; `THIRD_PARTY.md` says so itself. (The licence and the list of external components were added since 2026-11-14: `LICENSE`, `LICENSE-ASSETS`, `LICENSING.md`, `THIRD_PARTY.md`.)
+- **Confirmation:** `ls requirements*` finds nothing; `THIRD_PARTY.md` last line; the CI job installs Pillow by name.
+- **Files and systems:** the repository root, `.github/workflows/build.yml`
+- **Consequences:** A new machine may get other versions than CI.
+- **Recommended fix:** A `requirements.txt` with the versions CI uses.
+- **Status:** Open: backlog; narrowed 2026-11-28; first found 2026-11-14 (new); due backlog.
 
 ### WA-047 · Low · Tests
 
@@ -143,3 +124,13 @@ recommendations.
 - **Consequences:** An error line on the phone's console; harmless so far.
 - **Recommended fix:** Find which call meets a node outside the tree and guard it.
 - **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
+
+### WA-068 · Medium · Game rules
+
+- **Description:** A baited trap far from every player catches nothing once its chunk has been forgotten.
+- **Cause:** `ActionsTame.far_catch_chance` (#955) reads the trap's biome with `world.biome_at`, which gives `NO_BIOME` for a chunk that is not loaded, and then returns 0. The server forgets the chunks the players have not changed beyond `Session.drop()` (the zone plus 4 chunks, 144 cells or more; `Session.forget_far`, `WorldGen.forget`), and a placed trap does not mark its chunk edited (only a cell change does, `WorldData._touch`). `SPAWN_REACH` is 80 cells, so the trap works only between 80 cells and the forgetting distance.
+- **Confirmation:** Read in the code, not run (no Godot in the audit container): `actions_tame.gd` `far_catch_chance`, `world_cells.gd` `biome_at`, `session.gd` `forget_far`. The unit test `_test_far_trap` uses a loaded world, so it cannot see this.
+- **Files and systems:** `src/shared/game/actions_tame.gd`, `src/shared/game/session.gd`, `tests/unit/wildlife_test.gd`
+- **Consequences:** The feature's purpose (a trap left far away has a rabbit on return) fails for most far traps; nothing is lost or broken, the trap simply stays empty.
+- **Recommended fix:** Ask the generator's biome for the trap's cell (`WorldGen.biome_of`) instead of the loaded chunk, and add a test with the trap's chunk forgotten.
+- **Status:** Open: backlog (small, to be done with the trap thread); first found 2026-11-28 (new); due 2026-12-05.

@@ -11,5 +11,6 @@ changed later but for plain slips in form or links. The problems still open are 
 | Date | Report | Critical | High | Medium | Low | Fixed | Open | Critical or High open | Against the previous one |
 |---|---|---|---|---|---|---|---|---|---|
 | 2026-11-14 | [WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.md) | 0 | 3 | 31 | 33 | 11 | 56 | High: 1 (WA-020) | the first: the baseline, against the stage audits of 2026-10-30…11-07 |
+| 2026-11-28 | [WEEKLY_AUDIT_2026-11-28.md](WEEKLY_AUDIT_2026-11-28.md) | 0 | 0 | 1 | 0 | 0 | 10 | none | manual run, diff `4abe839..e78f09f` + re-check; open 11 → 10 (WA-068 new; WA-044, WA-065 closed) |
 
 The counts are of the problems found by that audit (new and carried); «Fixed» are those fixed in it.
