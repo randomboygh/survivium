@@ -3,9 +3,10 @@
 CI's `release` job runs it after a release is made. Kept: the newest KEEP releases `v<stage>.<PR>` (by
 the version, stage first, then the PR number), the last release of every stage (the one that closed it),
 the release marked "Latest", the release just made, and the rolling prereleases (any tag that is not
-`v<stage>.<PR>`). Everything else goes, with its tag.
+`v<stage>.<PR>`). Everything else goes, with its tag, the oldest first and at most MAX a run: GitHub
+limits a token to about 80 writes a minute, so the first runs after a long time clear the backlog in turns.
 
-    python3 tools/prune_releases.py [--keep 50] [--dry-run] [--current v0.5.950]   (GH_TOKEN, GITHUB_REPOSITORY)
+    python3 tools/prune_releases.py [--keep 50] [--max 30] [--dry-run] [--current v0.5.950]   (GH_TOKEN, GITHUB_REPOSITORY)
 
 With --dry-run only the lists are printed. Stdlib and `gh api` only.
 """
@@ -45,6 +46,7 @@ def gh_api(*args: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--keep", type=int, default=50)
+    ap.add_argument("--max", type=int, default=30, help="releases deleted in one run at most (two writes each)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--current", default="")
     a = ap.parse_args()
@@ -55,8 +57,9 @@ def main() -> int:
     latest = json.loads(gh_api(f"repos/{repo}/releases/latest"))["tag_name"]
     releases = [{"tagName": t, "isLatest": t == latest} for t in ids]
     doomed = to_delete(releases, a.keep, a.current)
-    print(f"{len(releases)} releases (Latest {latest}), {len(doomed)} to delete; "
+    print(f"{len(releases)} releases (Latest {latest}), {len(doomed)} to delete, {min(len(doomed), a.max)} now; "
           f"kept: the {a.keep} newest, each stage's last, Latest, the current one, the rolling ones")
+    doomed = doomed[::-1][:a.max]  # the oldest first
     failed = 0
     for t in doomed:
         print(("would delete " if a.dry_run else "deleting ") + t)

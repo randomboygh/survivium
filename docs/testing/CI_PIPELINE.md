@@ -74,7 +74,9 @@ Every build of `main` that passed every job is a release on GitHub (Releases), m
 - **Old releases are deleted.** After a release `tools/prune_releases.py --keep 50` keeps the 50 newest
   `v<stage>.<PR>` (by the version), the last release of every stage (the one that closed it: `v0.3.777`,
   `v0.4.904`), the one marked "Latest", the one just made and the rolling prereleases; every other release is
-  deleted with its tag (the owner's pick, 2026-11-27). A failed delete only logs and waits for the next run.
+  deleted with its tag (the owner's pick, 2026-11-27), the oldest first and at most 30 a run (`--max`: GitHub
+  limits a token to about 80 writes a minute, two a release), so a backlog clears over a few runs. A failed
+  delete only logs and waits for the next run.
   `--dry-run` prints the list without deleting (`GH_TOKEN`, `GITHUB_REPOSITORY`; REST only).
 
 ## Results and logs

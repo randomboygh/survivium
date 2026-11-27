@@ -505,12 +505,13 @@ jobs:
 
       - name: Old releases are deleted
         # The newest 50 stay, with the last release of each stage, Latest and the rolling prereleases
-        # (tools/prune_releases.py); the rest go with their tags. A failed delete waits for the next run.
+        # (tools/prune_releases.py); the rest go with their tags, the oldest first, at most 30 a run (GitHub
+        # limits a token's writes a minute). A failed delete waits for the next run.
         if: steps.docs.outputs.only != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.notes.outputs.tag }}
-        run: python3 tools/prune_releases.py --keep 50 --current "$TAG"
+        run: python3 tools/prune_releases.py --keep 50 --max 30 --current "$TAG"
 
   # The web build of main to Pages, one deploy at a time, and only the build of main's newest commit:
   # an older run finishing late (main's runs are never cancelled) or rerun leaves Pages alone.
