@@ -78,6 +78,12 @@ var _held_on := false
 ## stroke of the build mode's blueprint has "plan" (the shape's kind, BuildMode.start_stroke)
 ## and draws when it ends.
 var _stroke := {}
+## A placed thing pressed on (a chest, a station, a door, a sign: see tap), {"prop", "button"}
+## while the button or finger is held, else {}. It acts as the press lifts over it, as a
+## button does (_lift_on_prop): opened at the press, the bag had the rest of the touch, its
+## list kept the finger (no glide to the chest, DragScroll.glide_to) and the slot under it
+## picked on the lift (the user's report of 2026-11-27).
+var _prop_press := {}
 ## Seconds until the hands can swing again.
 var _cooldown := 0.0
 var _cursor_clock := 0.0
@@ -147,6 +153,12 @@ func input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and not event.pressed and not _stroke.is_empty() \
 			and event.button_index == _stroke.button:
 		_stroke.held = false
+	# A placed thing acts as the press on it lifts; a new press forgets one whose lift was lost.
+	if event is InputEventMouseButton and not _prop_press.is_empty():
+		if event.pressed:
+			_prop_press = {}
+		elif event.button_index == _prop_press.button:
+			_lift_on_prop(event.position)
 
 
 func unhandled_input(event: InputEvent) -> void:
@@ -244,7 +256,7 @@ func unhandled_input(event: InputEvent) -> void:
 
 ## A tap or a click at `pos` with hand `hand` (pressed with mouse `button`, which may
 ## stay held): another player there opens their card (PersonCard), else something to take or open there first (a thing on the ground or set
-## on it with any hand, a bush with a tool that fells or digs it out), else what the hand's item is
+## on it with any hand, a bush with a tool that fells or digs it out; a thing set on it acts as the press lifts, _prop_press), else what the hand's item is
 ## for (see Tools.use_of): a tool or bare hands work the cell (or the bush) as the action
 ## button works in front, in its order (WorldActions.dig_at).
 func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
@@ -289,12 +301,12 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		_start_stroke(button, pos, true, target.bush)
 		return
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
-		if _cooldown <= 0.0 and game.gathering.gather(target):
-			_cooldown = _hasted(tool_record().swing)
-			game.player.work("", _cooldown, target.at)
-			if target.has("bush") or target.has("tree"):
-				game.effects.burst(target.at, Mat.LEAVES, _cooldown * STRIKE)
-			game.sound.play_later(0.0 if target.has("drop") else _cooldown * STRIKE, _gather_sound(target), target.at)
+		if target.has("prop") and Input.is_mouse_button_pressed(button):
+			# A placed thing acts as the press lifts over it (_prop_press); a tap that came as
+			# the press lifted (the first-person view's, LookSwipe) acts at once.
+			_prop_press = {"prop": target.prop, "button": button}
+			return
+		_gather(target)
 		return
 	match use:
 		"place":
@@ -310,6 +322,29 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 			_eat_held()
 		_:
 			_start_stroke(button, pos, true)
+
+
+## Gathers or opens `target` (see Gathering.gather) with the hand in use, its swing
+## played, unless the hands still wait for the last one.
+func _gather(target: Dictionary) -> void:
+	if _cooldown <= 0.0 and game.gathering.gather(target):
+		_cooldown = _hasted(tool_record().swing)
+		game.player.work("", _cooldown, target.at)
+		if target.has("bush") or target.has("tree"):
+			game.effects.burst(target.at, Mat.LEAVES, _cooldown * STRIKE)
+		game.sound.play_later(0.0 if target.has("drop") else _cooldown * STRIKE, _gather_sound(target), target.at)
+
+
+## The press on a placed thing (_prop_press) lifted at `pos`: the thing acts if the lift is
+## over it still, not over the interface, and nothing has changed the hands' mode meanwhile.
+func _lift_on_prop(pos: Vector2) -> void:
+	var e: Dictionary = _prop_press.prop
+	_prop_press = {}
+	if game.world == null or game.character.is_dead() or mode().on or game.hud.covers(pos):
+		return
+	var target: Dictionary = game.gathering.target_at(pos)
+	if is_same(target.get("prop"), e):
+		_gather(target)
 
 
 ## What gathering `target` sounds like: a thing taken off the ground, an axe into a
