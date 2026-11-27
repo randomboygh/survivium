@@ -12,6 +12,7 @@ func run() -> void:
 	_test_diagonal_ridge()
 	_test_diagonal_shore()
 	_test_deep_shore()
+	_test_underwater_bed()
 	_test_shapes()
 
 
@@ -335,6 +336,73 @@ func _test_deep_shore() -> void:
 		var edges: int = WaterMesher.foam(cp, sh, cov, 2 * dy + 8 * dz + 7, dy, dz) & 3 << 6 \
 			| WaterMesher.foam(cp, sh, cov, 2 * dy + 7 * dz + 8, dy, dz) & 3 << 2
 		_check(foot and edges == 0, "the foam runs along a bank's foot on the diagonal (%s)" % name)
+
+
+## The diagonal of _test_diagonal_shore a level under water, on a stone bed: the bank's
+## corners on the diagonal rise along it as a shore's do, for the walkers and the mesher
+## alike, and an outer corner's level part takes the bed's stone, so the bank and the bed
+## meet on the diagonal (in the bank's dirt that part stood in the bed in stairs round
+## the cells, which shallow water showed, the user 2026-11-28). On dry land it keeps the
+## bank's own.
+func _test_underwater_bed() -> void:
+	var worlds := []
+	for wet in [true, false]:
+		var w := WorldData.new(6, Vector2i(16, 16))
+		var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+		c.natural.fill(WorldData.WILD)
+		for z in 16:
+			for x in 16:
+				c.cells[z * 16 + x] = Mat.STONE
+				c.cells[(16 + z) * 16 + x] = Mat.DIRT if x + z >= 12 else (Mat.WATER if wet else Mat.AIR)
+				c.cells[(32 + z) * 16 + x] = Mat.WATER if wet else Mat.AIR
+		w.rebuild_columns()
+		w.refresh_shapes()
+		worlds.append(w)
+	var w: WorldData = worlds[0]
+	var outer := w.surface_patch(6, 1, 6)
+	var inner := w.surface_patch(7, 1, 6)
+	_check(outer.size() == WorldData.PATCH_DIAG + 1 and int(outer[WorldData.PATCH_DIAG]) == 2
+		and inner.size() == WorldData.PATCH_DIAG + 1 and int(inner[WorldData.PATCH_DIAG]) == 4,
+		"the corners of a bank on the diagonal under water rise along it")
+	var cp := w.padded(false, Mat.STONE, -2, -2, 18, 18)
+	var sh := w.padded(true, 0, -2, -2, 18, 18)
+	var dz := 16 + 4
+	var dy := dz * (16 + 4)
+	var same := true
+	for z in range(3, 10):
+		for x in range(3, 10):
+			if w.slope_mask(x, 1, z) == WorldData.FULL or w.get_cell(x, 1, z) != Mat.DIRT:
+				continue
+			var a: PackedFloat32Array = OldSlopeMesher.patch(cp, sh, 2 * dy + (z + 2) * dz + x + 2, dy, dz)
+			same = same and a == w.surface_patch(x, 1, z)
+	_check(same, "the mesher draws a bank under water as the walkers stand on it")
+	# Triangles of the outer corner (6, 6): past its diagonal (u + v under 1) and level with
+	# the bed, in the bed's stone (its cut corner's, drawn by the stone under it, too) and
+	# in another material; of its sloping top in the bank's dirt and in another.
+	var counts := []
+	for n in 2:
+		var arrays: Array = (ChunkMesher.build_chunk(worlds[n], 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)
+		var vs: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var uv2: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
+		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+		var count := [0, 0, 0, 0]
+		for i in range(0, idx.size(), 3):
+			var cell := true
+			var level := true
+			for t in 3:
+				var q: Vector3 = vs[idx[i + t]] / WorldData.CELL
+				cell = cell and q.x > 5.999 and q.x < 7.001 and q.z > 5.999 and q.z < 7.001 and q.y > 0.999
+				level = level and q.x - 6.0 + q.z - 6.0 < 1.001 and absf(q.y - 1.0) < 0.001
+			var packed := int(uv2[idx[i]].x)
+			var material := packed % 64
+			if cell and level:
+				count[0 if material == Mat.STONE else 1] += 1
+			elif cell and (packed >> 14) & OldSlopeMesher.SLOPE != 0:
+				count[2 if material == Mat.DIRT else 3] += 1
+		counts.append(count)
+	_check(counts[0][0] > 0 and counts[0][1] == 0 and counts[0][2] > 0 and counts[0][3] == 0,
+		"an outer corner's level part under water takes the bed's material, its slope the bank's")
+	_check(counts[1][2] > 0 and counts[1][3] == 0, "on dry land an outer corner's top keeps the bank's material")
 
 
 ## True when point `q` lies in triangle `t` or on its edges.

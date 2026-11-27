@@ -473,8 +473,11 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			var exposed := sh[i + dy] >> 4 & ~cuts if cov[c[i + dy]] else 0
 			if exposed != 0:
 				var edges := _top_edges(c, cov, i, dy, dz, y == sea_level)
+				# Under a bank's corner on the diagonal in the water, the bed's material
+				# as its level part's (OldSlopes.level_bed_material).
+				var bed := OldSlopes.level_bed_under(c, sh, i, dy, dz)
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
-					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0, c[i + dy])
+					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0, c[i + dy] if bed < 0 else bed)
 	if built_from >= 0:
 		mark_built(solid, built_from)
 	return true

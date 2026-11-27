@@ -814,8 +814,9 @@ static func patch_tangent(d1: float, d2: float) -> float:
 
 ## The patch from the heights of the corners `h` and those one step on along x and
 ## along z from each, `far` (two per corner; see far_corner), above the cell's level.
-## `shore`: the top lies at the shore of water on its level (see shore_top), where a
-## corner is cut on the diagonal (see diag_corner).
+## `shore`: the top lies at the shore of water on its level (see shore_top) or under
+## water, where a corner is cut on the diagonal (see diag_corner): under shallow water
+## a bed's steps on the diagonal showed through in stairs too (the user, 2026-11-28).
 static func make_patch(h: PackedInt32Array, far: PackedInt32Array, shore := false) -> PackedFloat32Array:
 	var p := PackedFloat32Array()
 	var diag := diag_corner(h) if shore else -1
@@ -944,7 +945,7 @@ func surface_patch(x: int, y: int, z: int) -> PackedFloat32Array:
 				_patch_far(x + o.x, y, z + o.y, d, 3 - k, h[k]), h[k])
 			far[2 * k + 1] = far_corner(_patch_far(x, y, z + o.y, 3 - k, k, h[k]),
 				_patch_far(x + o.x, y, z + o.y, d, k ^ 1, h[k]), h[k])
-		p = make_patch(h, far, shore_top(x, y, z))
+		p = make_patch(h, far, up == Mat.WATER or shore_top(x, y, z))
 	if _patches.size() > 4096:
 		_patches.clear()
 	_patches[key] = p
