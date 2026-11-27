@@ -9,7 +9,7 @@ run the same locally — [TESTING_GUIDE.md](TESTING_GUIDE.md). A Russian copy:
 | Event | What goes |
 |---|---|
 | A PR (opened, a new push, reopened, a label set) | everything except, by the job `changes`: the check in a browser, if the PR does not touch what the browser shows differently (the label `smoke` turns it on); the way to every recipe (`progress`), if the PR touches neither the content nor crafting: the mods' `data/`, `bundle.yaml`, `mod.yaml`, `src/shared/content/`, the hands' `actions_*.gd`, `world_actions`, `workshop`, `placed`, `craft_queue`, `inventory`, `felling`, `fishing`, `quality`, the test itself, `run_all.sh`, `.github/` (the jobs `progress (…)` then pass at once with their steps skipped; a rule elsewhere that cuts the way shows in `main`'s run, and the first red run names the merge). The label `full` turns everything on |
-| A push to `main` (a PR's merge) | everything, always: `main` is the safety net for what a PR skipped and for two PRs green apart that break together (#513 + #514); if all jobs succeed — publishing |
+| A push to `main` (a PR's merge) | everything, always: `main` is the safety net for what a PR skipped and for two PRs green apart that break together (#513 + #514); if all jobs succeed — publishing. The one exception: when every file changed since the release marked Latest is docs (`docs/`, a Markdown file at the root, the PR template: none goes into a build, `tools/docs_only.py`), the job `changes` says `build=false` and only `lint` runs — no tests, builds, release or deploy (the PR's run checked the docs; #949 alone took 13 minutes and made a 169 MB release) |
 | By hand: Actions → Test and build → Run workflow | everything, as in `main`, with no publishing (it is only for `main`) |
 | By hand: Actions → Playtest server → Run workflow | not a check: `.github/workflows/playtest.yml` runs the game's server from `main` behind a Cloudflare tunnel for the given minutes (up to 300) with bots (`--join … --bot`, `src/client/input/bot.gd`; by default the test world, 3 bots, 120 minutes, free items), the link for a phone is in the step «Link for the phone: open this step» and in the status `playtest-link`, the game finds it itself («Testing» → «Join the test server»); the world is not saved |
 
@@ -33,8 +33,8 @@ publishing, which waits for everything). The fast ones fail first.
 | `pc` | the Windows and Linux export; the artifacts `survivium-windows`, `survivium-linux` | ~1 min | yes (for publishing) |
 | `android` | the Android APK (arm64), signed by the key from the secrets ([../systems/android.md](../systems/android.md)); the artifact `survivium-android` | ~2 min | yes (for publishing) |
 | `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`); the phones draw the lightest preset (`?quality=0`, `Settings.use_page_quality`), the desktop the default picture | 1–4 min | yes, when it runs |
-| `release` | only `main`: the GitHub release `v<stage>.<PR>` with the notes of `tools/release_notes.py` (the «What's new» lines since the last release) and the APK and PC builds; the same files into the prereleases `android-latest`, `pc-latest` ([Releases](#releases)) | seconds | — |
-| `deploy` | only `main`: the web build to GitHub Pages, one deploy at a time (`concurrency: pages`) and only of `main`'s newest commit: an older run finishing late or rerun leaves Pages alone | seconds | — |
+| `release` | only `main`: the GitHub release `v<stage>.<PR>` with the notes of `tools/release_notes.py` (the «What's new» lines since the last release) and the APK and PC builds; the same files into the prereleases `android-latest`, `pc-latest`; no release for docs only; deletes all but the 50 newest and each stage's last ([Releases](#releases)) | seconds | — |
+| `deploy` | only `main`: the web build to GitHub Pages, one deploy at a time (`concurrency: pages`) and only of `main`'s newest build: its newest commit, or one followed only by docs merges (they build nothing); an older run finishing late or rerun leaves Pages alone | seconds | — |
 
 «Blocks» here means: `release` and `deploy` wait for its success, and by the project's rule a PR is merged
 only on green CI. So that GitHub itself does not let a red PR be merged, in the repository's settings
@@ -68,6 +68,18 @@ Every build of `main` that passed every job is a release on GitHub (Releases), m
 - **Rolling prereleases.** `android-latest` and `pc-latest` keep older links working: the same files as the
   newest release, their tags moved to its commit.
 - A rerun of a main run edits its release (notes and files) instead of failing.
+- **No release for docs only.** A merge into `main` that changed only docs since the release marked Latest builds
+  nothing and makes no release ([When it runs](#when-it-runs)); its «What's new» lines go into the next
+  release's notes, which start at the last release's tag. "Since Latest", not "this commit", so a code merge
+  whose pending run a docs merge replaced is still released by the docs merge's run. Pages keeps the last
+  build, so the game's update check (`latest.json`) never offers a version that has no release.
+- **Old releases are deleted.** After a release `tools/prune_releases.py --keep 50` keeps the 50 newest
+  `v<stage>.<PR>` (by the version), the last release of every stage (the one that closed it: `v0.3.777`,
+  `v0.4.904`), the one marked "Latest", the one just made and the rolling prereleases; every other release is
+  deleted with its tag (the owner's pick, 2026-11-27), the oldest first and at most 30 a run (`--max`: GitHub
+  limits a token to about 80 writes a minute, two a release), so a backlog clears over a few runs. A failed
+  delete only logs and waits for the next run.
+  `--dry-run` prints the list without deleting (`GH_TOKEN`, `GITHUB_REPOSITORY`; REST only).
 
 ## Results and logs
 

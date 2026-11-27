@@ -92,7 +92,9 @@ a phone). On a PR the check in a browser goes only if the PR touches what a brow
 template `web` in the job `changes`), or the PR has the label `smoke`; on `main` — always, and the builds are
 published only when all jobs have passed: the web to Pages (`deploy`), the APK (`android`,
 [android.md](android.md)) and the PC builds into the GitHub release `v<stage>.<PR>` with the changes since the last
-release (`release`, `tools/release_notes.py`; the same files into the rolling prereleases `android-latest`, `pc-latest`). A new push to a PR
+release (`release`, `tools/release_notes.py`; the same files into the rolling prereleases `android-latest`, `pc-latest`;
+only the newest 50 releases and each stage's last are kept, `tools/prune_releases.py`). A merge into `main` that changed
+only docs since the latest release runs only `lint`: no tests, builds, release or deploy (`tools/docs_only.py`). A new push to a PR
 cancels its old run, the runs of `main` are not cancelled. The token's rights are by jobs, the actions are
 pinned to a SHA, Godot is checked against `.github/actions/godot/SHA512-SUMS`; the checks' logs are the
 artifacts `logs-<job>`. The export templates (web, Windows, Linux, Android) are put by `.github/actions/godot` (to the

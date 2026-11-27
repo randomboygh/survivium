@@ -9,7 +9,8 @@ name: Test and build
 # browser shows differently or carries the label `smoke`, and the way to every recipe only
 # when the PR touches the content or crafting (see `changes`; the label `full` runs
 # everything); on main and on a
-# run by hand (Actions → Test and build → Run workflow) everything runs, and on main the
+# run by hand (Actions → Test and build → Run workflow) everything runs (but a merge that changed only
+# docs since the latest release runs only `lint`: tools/docs_only.py), and on main the
 # builds are published only when every job passed: the web one to Pages, the APK and the PC ones
 # to a release v<stage>.<PR> with the changes as its notes (and the rolling `android-latest`,
 # `pc-latest`). Each test job keeps its logs as an artifact `logs-<job>` and writes a table of its checks to the run's summary. docs/testing/CI_PIPELINE.md tells more.
@@ -43,11 +44,16 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
+      contents: read
       pull-requests: read
     outputs:
+      build: ${{ steps.check.outputs.build }}
       smoke: ${{ steps.check.outputs.smoke }}
       progress: ${{ steps.check.outputs.progress }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tools
       - id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,7 +80,18 @@ jobs:
             if [ "$SMOKE" = true ] || grep -Eq "$web" <<<"$files"; then smoke=true; else smoke=false; fi
             if grep -Eq "$recipes" <<<"$files"; then progress=true; else progress=false; fi
           fi
-          echo "smoke test: $smoke, the way to every recipe: $progress"
+          # A merge into main that changed only docs since the release marked Latest builds nothing:
+          # its PR's run checked them, and nothing of them goes into a build (tools/docs_only.py).
+          # Only `lint` runs; there is no release and no deploy, its lines go into the next release.
+          build=true
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$(python3 tools/docs_only.py "$GITHUB_SHA")" = true ]; then
+            build=false
+            smoke=false
+            progress=false
+            echo "Only docs changed since the latest release: nothing is built or released." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "build: $build, smoke test: $smoke, the way to every recipe: $progress"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
           echo "smoke=$smoke" >> "$GITHUB_OUTPUT"
           echo "progress=$progress" >> "$GITHUB_OUTPUT"
 
@@ -97,6 +114,9 @@ jobs:
   # bundle by itself (tools/validate.gd), the content reports in docs/generated and the
   # balance tables in docs/balance are fresh (tools/content_report.gd, balance_report.gd --check).
   checks:
+    needs: changes
+    # A failed `changes` still runs it (a skipped required check would pass).
+    if: ${{ !cancelled() && needs.changes.outputs.build != 'false' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
@@ -115,6 +135,9 @@ jobs:
           if-no-files-found: ignore
 
   tests:
+    needs: changes
+    # A failed `changes` still runs it (a skipped required check would pass).
+    if: ${{ !cancelled() && needs.changes.outputs.build != 'false' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
@@ -138,6 +161,7 @@ jobs:
   # the required checks `progress (hunting)` and `progress (other)` still report.
   progress:
     needs: changes
+    if: needs.changes.outputs.build != 'false'
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
@@ -167,6 +191,9 @@ jobs:
           if-no-files-found: ignore
 
   frames:
+    needs: changes
+    # A failed `changes` still runs it (a skipped required check would pass).
+    if: ${{ !cancelled() && needs.changes.outputs.build != 'false' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
@@ -185,6 +212,9 @@ jobs:
           if-no-files-found: ignore
 
   export:
+    needs: changes
+    # A failed `changes` still runs it (a skipped required check would pass).
+    if: ${{ !cancelled() && needs.changes.outputs.build != 'false' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     # tools/build_info.py reads the merged pull requests for «Что нового».
@@ -238,6 +268,9 @@ jobs:
   # The game for Windows (with the console wrapper, which shows the log of a server run from
   # the terminal) and Linux; the same files run the server with `--headless -- --server`.
   pc:
+    needs: changes
+    # A failed `changes` still runs it (a skipped required check would pass).
+    if: ${{ !cancelled() && needs.changes.outputs.build != 'false' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     # tools/build_info.py reads the merged pull requests for «Что нового».
@@ -292,6 +325,9 @@ jobs:
   # ANDROID_KEYSTORE_PASSWORD; a pull request's, or one without them, by a key made for this run,
   # which a phone will not install over the last APK (docs/systems/android.md).
   android:
+    needs: changes
+    # A failed `changes` still runs it (a skipped required check would pass).
+    if: ${{ !cancelled() && needs.changes.outputs.build != 'false' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 25
     # tools/build_info.py reads the merged pull requests for «Что нового».
@@ -400,10 +436,11 @@ jobs:
   # the game shows) on the merged commit, the notes the «What's new» lines of the PRs merged since the
   # last release (tools/release_notes.py), the APK and the PC builds as its files. The newest one is
   # "Latest", so releases/latest/download/<file> always gives the newest build. The rolling prereleases
-  # `android-latest` and `pc-latest` (older links point at them) get the same files.
+  # `android-latest` and `pc-latest` (older links point at them) get the same files. A merge of docs
+  # only makes no release; after a release only the newest 50 and each stage's last are kept.
   release:
-    if: github.ref == 'refs/heads/main'
-    needs: [lint, checks, tests, progress, frames, export, pc, android, smoke]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.build == 'true'
+    needs: [changes, lint, checks, tests, progress, frames, export, pc, android, smoke]
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
@@ -485,11 +522,20 @@ jobs:
             gh release upload "$rolling" $files --clobber
           done
 
+      - name: Old releases are deleted
+        # The newest 50 stay, with the last release of each stage, Latest and the rolling prereleases
+        # (tools/prune_releases.py); the rest go with their tags, the oldest first, at most 30 a run (GitHub
+        # limits a token's writes a minute). A failed delete waits for the next run.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.notes.outputs.tag }}
+        run: python3 tools/prune_releases.py --keep 50 --max 30 --current "$TAG"
+
   # The web build of main to Pages, one deploy at a time, and only the build of main's newest commit:
   # an older run finishing late (main's runs are never cancelled) or rerun leaves Pages alone.
   deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: [lint, checks, tests, progress, frames, export, smoke]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.build == 'true'
+    needs: [changes, lint, checks, tests, progress, frames, export, smoke]
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     concurrency:
@@ -503,13 +549,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Is this main's newest commit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tools
+      - name: Is this main's newest build
+        # Main's newest commit, or every merge after it changed only docs (their runs build nothing).
         id: head
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
-          if [ "$head" = "$GITHUB_SHA" ]; then
+          if [ "$head" = "$GITHUB_SHA" ] || [ "$(python3 tools/docs_only.py "$GITHUB_SHA" "$head")" = true ]; then
             echo "newest=true" >> "$GITHUB_OUTPUT"
           else
             echo "newest=false" >> "$GITHUB_OUTPUT"
