@@ -533,8 +533,8 @@ func update_state(all := false) -> void:
 		_camera_text = text
 		_camera_label.text = text
 		_camera_label.add_theme_color_override("font_color", UiStyle.INK if view.is_default() else UiStyle.ACCENT)
-	var floors: bool = game.chunks.by_floors()
-	var cut: bool = game.chunks.manual_level >= 0 or game.chunks.build_floor != 0
+	var floors: bool = game.chunks.by_floors() and game.chunks.floors_on
+	var cut: bool = game.chunks.manual_level >= 0 or floors
 	_level_up.disabled = not game.chunks.can_shift(1)
 	_level_down.disabled = not game.chunks.can_shift(-1)
 	# On two lines, so the column is one button wide. In the build mode the buttons step by

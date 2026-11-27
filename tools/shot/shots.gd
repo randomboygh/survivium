@@ -455,6 +455,9 @@ const SHOTS := {
 	# Standing on the upper floor, the floor below looked at.
 	"build-floors-down": {"time": 0.4, "season": 1, "two_floors": true, "upper": true, "build_mode": "draw",
 		"stroke": false, "kind": "cube", "height": 5, "touch": true, "hide": ["chunks: grass"], "build_floor": -1},
+	# Entering the build mode: all floors show until a level button is pressed (2026-11-27).
+	"build-floors-enter": {"time": 0.4, "season": 1, "two_floors": true, "build_mode": "draw", "stroke": false,
+		"kind": "cube", "height": 5, "touch": true, "hide": ["chunks: grass"]},
 	"build-floors-off": {"time": 0.4, "season": 1, "two_floors": true, "touch": true, "hide": ["chunks: grass"]},
 	"build-tap-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-4.75, 0.6, -6.98)]},
