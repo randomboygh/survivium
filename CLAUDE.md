@@ -109,16 +109,16 @@ locally unless the PR touches content or crafting, and leave `frame_test` to CI 
 | The change | Run |
 |---|---|
 | UI only | `run_tests`, screenshots |
-| content data, recipes, stations, tools, materials, hands | + `validate`, `report`, `balance` (regenerate with `tools/content_report.gd`, `tools/balance_report.gd`, no `--check`), `progress_hunting`, `progress_other` |
+| content data, recipes, stations, tools, materials, hands | + `validate`, `report`, `balance` (regenerate with `tools/content_report.gd`, `tools/balance_report.gd`, no `--check`), `progress_hunting`, `progress_metal`, `progress_other` |
 | world, generator, chunks, meshes, every frame | `run_tests -- generation mesher shapes store`, `frame_test` (CI) |
 | saves | `save_test` |
 | network, server, protocol | `run_tests -- net session`, `server_test` |
 
-`tests/run_all.sh [parse validate report balance run_tests save_test progress_hunting progress_other
-server_test frame_test]` runs the Godot checks side by side (`GODOT=path`). Outside GitHub Actions it is quiet:
+`tests/run_all.sh [parse validate report balance run_tests save_test progress_hunting progress_metal
+progress_other server_test frame_test]` runs the Godot checks side by side (`GODOT=path`). Outside GitHub Actions it is quiet:
 one line per check, failures with context, full logs in `logs/` (`LOGS=dir`; `VERBOSE=1` prints them whole). One
 by hand: `timeout 300 godot --headless --path . --script res://tests/save_test.gd 2>&1 | tail -30` (always
-`timeout`: a runtime error in an awaiting script leaves Godot running; `progress_test -- --part hunting|other`
+`timeout`: a runtime error in an awaiting script leaves Godot running; `progress_test -- --part hunting|metal|other`
 1500 s; `--check-only --script res://x.gd` parses one script; `git config core.hooksPath tools/hooks` runs lint
 and doc_index before each commit). Tests, CI, flaky checks: `docs/testing/`.
 

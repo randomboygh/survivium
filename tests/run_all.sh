@@ -7,9 +7,11 @@
 #     tests/run_all.sh                       all of them
 #     tests/run_all.sh run_tests save_test   only these, side by side
 # The checks: parse (every script compiles), validate (the mods' data), report (the content
-# reports in docs/generated are fresh), balance (the balance tables in docs/balance are fresh), run_tests, save_test, progress_hunting and
-# progress_other (the two halves of progress_test, see its --part), progress_test (the whole
-# way in one run), server_test, frame_test.
+# reports in docs/generated are fresh), balance (the balance tables in docs/balance are fresh), run_tests, save_test, progress_hunting,
+# progress_metal and progress_other (the three parts of progress_test, see its --part),
+# progress_test (the whole way in one run), server_test, frame_test.
+# A check that passes but takes more than 3/4 of its time limit is warned of (in GitHub
+# Actions as a warning on the run): split it or raise the limit before it times out.
 # GODOT=path/to/godot if it is not on PATH; LOGS=dir keeps each check's log there (CI
 # uploads them); in GitHub Actions the times and results also go to the job's summary.
 # Quiet by default outside GitHub Actions: one line per check (time, exit code, counts), the
@@ -26,11 +28,12 @@ trap 'rm -rf "$out"' EXIT
 declare -A script=(
 	[parse]=tools/parse_check.gd [validate]=tools/validate.gd [report]=tools/content_report.gd [balance]=tools/balance_report.gd
 	[run_tests]=tests/run_tests.gd [save_test]=tests/save_test.gd [progress_test]=tests/progress_test.gd
-	[progress_hunting]=tests/progress_test.gd [progress_other]=tests/progress_test.gd
+	[progress_hunting]=tests/progress_test.gd [progress_metal]=tests/progress_test.gd [progress_other]=tests/progress_test.gd
 	[frame_test]=tests/frame_test.gd [server_test]=tests/server_test.gd)
-declare -A args=([report]=--check [balance]=--check [progress_hunting]="--part hunting" [progress_other]="--part other")
+declare -A args=([report]=--check [balance]=--check [progress_hunting]="--part hunting" [progress_metal]="--part metal"
+	[progress_other]="--part other")
 declare -A limit=([parse]=120 [validate]=120 [report]=120 [balance]=120 [run_tests]=300 [save_test]=300 [progress_test]=2400
-	[progress_hunting]=1500 [progress_other]=1500 [frame_test]=600 [server_test]=300)
+	[progress_hunting]=1500 [progress_metal]=1500 [progress_other]=1500 [frame_test]=600 [server_test]=300)
 failed=()
 summary=()
 
@@ -53,7 +56,7 @@ batch() {
 		if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::group::$n: $secs s, exit $code"; else echo "=== $n: $secs s, exit $code"; fi
 		[ -n "$verbose" ] && cat "$out/$n.log"
 		[ -n "${GITHUB_ACTIONS:-}" ] && echo "::endgroup::"
-		local result=passed
+		local result=passed note=
 		if [ "$code" = 124 ]; then
 			echo "$n: timed out after ${limit[$n]} s"
 			result="timed out after ${limit[$n]} s"
@@ -68,11 +71,16 @@ batch() {
 			grep -A2 'SCRIPT ERROR' "$out/$n.log" | head -20
 			result="script errors"
 			failed+=("$n")
+		elif [ $((secs * 4)) -gt $((limit[$n] * 3)) ]; then
+			# Passed, but close to the limit: a slower machine or the next change times it out.
+			echo "$n: took $secs s, over 3/4 of its limit of ${limit[$n]} s"
+			[ -n "${GITHUB_ACTIONS:-}" ] && echo "::warning title=$n is close to its time limit::$secs s of ${limit[$n]} s: split it or raise the limit"
+			note=", over 3/4 of the limit (${limit[$n]} s)"
 		fi
 		# The line of counts each check ends with ("3211 checks, 0 failed", "content OK: …").
 		local counts
 		counts=$(grep -E '[0-9]+ checks, [0-9]+ fail|^content OK|content problems|scripts, [0-9]+ do not|^content reports|stale|^fresh' "$out/$n.log" | tail -1)
-		summary+=("| $n | $secs | $result | ${counts//|/\\|} |")
+		summary+=("| $n | $secs | $result$note | ${counts//|/\\|} |")
 		[ -z "$verbose" ] && [ -n "$counts" ] && echo "    $counts"
 		if [ "$result" != passed ]; then
 			[ -n "${GITHUB_ACTIONS:-}" ] && echo "::error title=$n $result::$(grep -m1 -E '^FAIL|^content:|ERROR' "$out/$n.log" | head -c 300)"
@@ -96,7 +104,7 @@ batch() {
 if [ $# -gt 0 ]; then
 	batch "$@"
 else
-	batch parse validate report balance run_tests save_test progress_hunting progress_other server_test
+	batch parse validate report balance run_tests save_test progress_hunting progress_metal progress_other server_test
 	batch frame_test
 fi
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then

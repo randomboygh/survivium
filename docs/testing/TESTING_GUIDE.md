@@ -21,7 +21,7 @@ Without the import the HUD scripts fail with null errors that look like code bug
 | 1. Seconds, no Godot | `python3 tools/lint.py && python3 tools/doc_index.py --check` | ~1 s | after any edit; can be a hook before a commit: `git config core.hooksPath tools/hooks` |
 | 2. Compilation and data | `GODOT=… tests/run_all.sh parse validate report balance` | ~15 s | any edit of code or data |
 | 3. Unit tests | `godot --headless --path . --script res://tests/run_tests.gd [-- topic …]` | 1–2 min (a topic — seconds) | an edit of rules, the generator, meshes, data |
-| 4. Scenarios | `tests/run_all.sh save_test server_test frame_test progress_hunting progress_other` | 2–20 min | see the table below |
+| 4. Scenarios | `tests/run_all.sh save_test server_test frame_test progress_hunting progress_metal progress_other` | 2–20 min | see the table below |
 | 5. Everything | `GODOT=… tests/run_all.sh` | ~20–30 min on 4 cores | before a big PR; CI does it on every push |
 | 6. Browser | only in CI (`smoke`) | 3 min | the client, shaders, export |
 
@@ -39,7 +39,7 @@ runs two files. Each file prints its checks and seconds.
 | rafts and boats (`actions_boat.gd`, `vessels.gd`, `boats.gd`) | 1, 2, `run_tests -- boat body` | `save_test` |
 | farming, nature, growth (`actions_farm.gd`, `actions_nature.gd`, `farm_mode.gd`) | 1, 2, `run_tests -- farming clock` | `progress_other` |
 | the mods' files a server sends, the mod cache, zip import (`mod_files.gd`, `content_host.gd`, `mod_fetch.gd`, `mod_cache.gd`, `mod_import.gd`) | 1, 2, `run_tests -- mod_files content net` | `server_test` |
-| a mod's data, recipes, stations, tools, materials | 1, 2 (`validate`, `report` — after an edit run `tools/content_report.gd` without `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_other` |
+| a mod's data, recipes, stations, tools, materials | 1, 2 (`validate`, `report` — after an edit run `tools/content_report.gd` without `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_metal progress_other` |
 | hands, gathering, crafting, `world_actions.gd`, `workshop.gd`, `placed.gd` | 1, 2, `run_tests` | `progress_*`, `save_test` |
 | building: blueprint, doors, windows, stairs, furniture (`plans.gd`, the things' flags in `placed.gd`) | 1, 2, `run_tests -- actions plans` | `save_test`, screenshots `build-*` |
 | shaders, light, the cave view (`shaders/`, `src/client/view/`) | 1, 2, `run_tests -- view` | `frame_test`; screenshots under xvfb or `smoke` in CI: headless does not compile shaders |
