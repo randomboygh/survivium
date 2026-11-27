@@ -53,7 +53,8 @@ paths in the editor settings (`export/android/android_sdk_path`, `java_sdk_path`
 
 **A crash** leaves no message on a phone: the engine's file log is on for Android
 (`debug/file_logging/enable_file_logging.android`), and «Data for the test» shows the end of the last run's log
-(`src/client/ui/last_log.gd`); a run that ended with no close, pause or «Quit» (the file `user://running` left) is a crash,
+(`src/client/ui/last_log.gd`), after the errors logged before it (`LastLog.errors`, at most `ERRORS`: a driver
+refusing a shader logs it as the world loads, long before the end); a run that ended with no close, pause or «Quit» (the file `user://running` left) is a crash,
 and the main menu then offers «Crash log» with that log to copy; in the developer mode the settings have the tab
 «Debug» with what needs no world: the last run's log, the freeze log, the interface gallery, wiping the data, and «Shader check» (`src/client/view/shader_probe.gd`: each 3D
 shader drawn alone, with and without lights; a step the app crashed on is marked so at the next run); the shader warm-up prints each mix it draws.
@@ -69,6 +70,11 @@ one see them as Compatibility does (`SRGB`, `SRGB_HINT`, `COMPAT_ALBEDO`, `COMPA
 the sun's light with a shadow, which Compatibility adds in sRGB in a pass of its own, goes through `compat_sun`
 (the globals `ambient_light`, `sun_shadowed` set by `sky.gd`); what blends (water, particles) and the torch's and fires'
 light with shadows still mix in linear light there. Shots side by side: `survivium-builds/android/vulkan-colours-*.png`.
+Under Vulkan too the Adreno 840 drew no pictured tree at all, standing or falling, once `tree.gdshader` held the
+felling's code (#912: a search of 24 x 24 texels a crown module in the vertex), while their shadows
+(`tree_shadow.gdshader`) were drawn (v0.5.912 to v0.5.919; desktop GL and lavapipe drew them): the felling went to a
+copy of the shader of its own (`TreeSprites.falling`, [chunks.md](chunks.md)). Keep big loops out of a shader every
+chunk draws with.
 
 **Tests.** No device in CI: the `android` job fails if the export or the signature check fails; how it plays
 is checked on a phone.

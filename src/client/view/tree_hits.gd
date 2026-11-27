@@ -117,7 +117,7 @@ func hit(at: Vector3, delay: float, from: Vector3) -> void:
 ## instance: 20 floats) falls away from where the last blow came (from the player's own
 ## place when none was seen).
 func fall(col: Vector2i, data: PackedFloat32Array) -> void:
-	if game.get("tree_mat") == null or data.size() < 20:
+	if game.get("tree_fall_mat") == null or data.size() < 20:
 		return
 	if _falling.size() >= FALLS:
 		_end_fall(0)
@@ -127,7 +127,8 @@ func fall(col: Vector2i, data: PackedFloat32Array) -> void:
 	var way := Vector2(foot.x - from.x, foot.z - from.z)
 	if way.length() < 0.01:
 		way = Vector2.from_angle(float(hash(col) % 628) / 100.0)
-	var node := Foliage.multimesh(game.tree_mesh, game.tree_mat, true, true)
+	# Drawn by the falling trees' copy of tree.gdshader (TreeSprites.falling).
+	var node := Foliage.multimesh(game.tree_mesh, game.tree_fall_mat, true, true)
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# The trunk, then the crown's modules and their rings (tree.gdshader FALL_MODULE: a grid
 	# one module wider all round), all of the same picture.
@@ -193,7 +194,7 @@ func _landed() -> void:
 
 
 func _process_falls(delta: float) -> void:
-	if _falling.is_empty() and game.get("tree_mat") == null:
+	if _falling.is_empty() and game.get("tree_fall_mat") == null:
 		return
 	var falls := PackedVector4Array()
 	var ways := PackedVector4Array()
@@ -211,8 +212,10 @@ func _process_falls(delta: float) -> void:
 		var at := fall_at(f[3])
 		falls[i] = Vector4(f[1].x, f[1].y, f[1].z, at.x)
 		ways[i] = Vector4(f[2].x, f[2].y, f[3], at.y)
-	if game.tree_mat != null and (not _falling.is_empty() or _fall_set):
-		for mat: ShaderMaterial in [game.tree_mat, game.get("tree_shadow_mat")]:
+	if game.get("tree_fall_mat") != null and (not _falling.is_empty() or _fall_set):
+		# The chunks' trees leave a falling one out (tree.gdshader), the falling trees' copy
+		# draws it falling, and their shadows fall with it.
+		for mat: ShaderMaterial in [game.tree_mat, game.tree_fall_mat, game.get("tree_shadow_mat")]:
 			if mat != null:
 				mat.set_shader_parameter("falls", falls)
 				mat.set_shader_parameter("fall_ways", ways)
@@ -246,8 +249,8 @@ func _process(delta: float) -> void:
 		var lean: float = s[1] * SHAKE_PX * exp(-t * SHAKE_DAMP) * sin(t * SHAKE_HZ * TAU)
 		shakes[i] = Vector4(s[0].x, s[0].y, s[0].z, lean)
 	_set = not _shaking.is_empty()
-	# The crowns of cards and the trees drawn as pictures (tree.gdshader) alike.
-	for mat: ShaderMaterial in [game.leaves_mat, game.tree_mat]:
+	# The crowns of cards and the trees drawn as pictures (tree.gdshader, standing or falling) alike.
+	for mat: ShaderMaterial in [game.leaves_mat, game.tree_mat, game.get("tree_fall_mat")]:
 		if mat != null:
 			mat.set_shader_parameter("shakes", shakes)
 			mat.set_shader_parameter("shake_count", _shaking.size())

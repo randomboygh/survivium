@@ -49,6 +49,13 @@
 // crown and the bark are in their shade. The bark and the leaves take the sun's shadow (the
 // ground's: of the other trees, of hills) a step darker; where the drawing has them in shade
 // already, nothing more.
+// Two shaders are made of this code. As it is, it draws the trees standing, the stumps and
+// the pieces of wood (the chunks', ChunkStreamer). With FALLING defined (TreeSprites.falling
+// makes that copy in the game) it draws the trees falling, felled (TreeHits): the felling's
+// code (FALL_*, its crown's modules) is in that copy alone. While it was in the one shader
+// every tree drew, the Adreno 840 (Android, Vulkan) drew no tree at all, standing or
+// falling, though their shadows (tree_shadow.gdshader) were there (v0.5.912 to v0.5.919,
+// 2026-11-27): the module search alone is a loop of 24 x 24 texels a vertex.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 // Like a crown's for the player's silhouette (sprite_xray).
@@ -197,6 +204,7 @@ const float FALL_MINE = 512.0;
 
 varying vec2 px;
 varying flat vec4 cell;
+#ifdef FALLING
 // How far a falling tree has faded out, -1 for a tree standing.
 varying flat float fading;
 // A falling tree's turn on the screen (fall_screen): the shears' tan and sin of the turn
@@ -206,11 +214,12 @@ varying flat float fading;
 // screen (xy) and how far back of the texel it hangs on its ring draws (z).
 varying flat vec4 fall_turn;
 varying flat vec4 fall_shear;
-varying flat vec2 info;
 // A falling crown's module (FALL_MODULE): the texel it hangs on, -1 for the rest.
 varying flat vec2 tile_mid;
 // 1 for a module's ring round its square (FALL_OVERLAP), drawn behind the modules' squares.
 varying flat float tile_ring;
+#endif
+varying flat vec2 info;
 // How far this tree's top leans now (pixels; a falling tree's: the column of its axis), and
 // its foot's row in the picture.
 varying flat vec2 shake;
@@ -229,6 +238,7 @@ varying vec3 lamp_gain;
 // shadow falls; negative where a shadow changes nothing.
 varying vec3 shaded;
 
+#ifdef FALLING
 // Where a drawn (sheared) point is on the screen, in pixels (x right, y down).
 vec2 screen_px(vec3 v) {
 	return vec2(dot(v.xz, vec2(-view_up.y, view_up.x)), -dot(v.xz, view_up)) * TEXELS;
@@ -255,6 +265,7 @@ float fall_angle(float t) {
 vec2 fall_px(vec3 v) {
 	return screen_px(shear(vec3(v.x, v.y / (view_slope > 0.01 ? view_slope : 1.0), v.z)));
 }
+#endif
 
 // How far a falling crown's module edge is moved at texel `t` (FALL_JAG; by blocks of 4).
 vec2 fall_jag(vec2 t) {
@@ -375,7 +386,9 @@ void vertex() {
 			fall = i;
 		}
 	}
+#ifdef FALLING
 	fading = fall >= 0 ? fall_ways[fall].w : -1.0;
+#endif
 	bool sways = COLOR.a > -0.5 && fall < 0;
 	sway_phase = sways ? hash12(foot.xz * 1.7) * 6.2832 : -1.0;
 	float room = (lean != 0.0 ? SHAKE_ROOM : 0.0) + (sways ? SWAY_ROOM : 0.0) + (fall >= 0 ? FALL_ROOM : 0.0);
@@ -390,6 +403,7 @@ void vertex() {
 	float rise = q.y >= 0.0 ? q.y * (ay + 0.5 + room) : q.y * (c.w - ay - 0.5);
 	px = vec2(wide, ay + 0.5 - rise);
 	vec3 p = foot + vec3(right.x, 0.0, right.y) * (across / TEXELS);
+#ifdef FALLING
 	int tile = fall >= 0 ? (INSTANCE_ID - 1) / 2 : -1;
 	tile_ring = fall >= 0 ? float((INSTANCE_ID - 1) % 2) : 0.0;
 	tile_mid = vec2(-1.0);
@@ -505,23 +519,34 @@ void vertex() {
 			fall_shear = vec4(me, at_px);
 		}
 	} else if (q.y > 0.0 || fall >= 0 && q.y > -0.5) {
+#else
+	if (fall >= 0) {
+		// A tree falling: its chunk draws it standing until rebuilt, while the falling trees'
+		// copy of this shader draws it falling (TreeHits): left out here.
+		VERTEX = foot;
+	} else if (q.y > 0.0) {
+#endif
 		// Upright, kept its height in pixels at any tilt (a falling tree's foot row too,
 		// turned with it).
 		p.y += rise / TEXELS;
+#ifdef FALLING
 		if (fall >= 0) {
 			// Turned over about the stump's top toward the way it falls: the quad covers
 			// where it lies now, and the fragment finds each pixel's texel (FALL_ROOM).
 			vec3 pivot = foot + vec3(0.0, FALL_CUT, 0.0);
 			p = pivot + fall_turned(p - pivot, fall, falls[fall].w);
 		}
+#endif
 		world_pos = p;
 		VERTEX = shear(stand_tall(p, foot));
+#ifdef FALLING
 		if (fall >= 0) {
 			// Kept over the ground in depth only (the view looks straight down on the
 			// sheared world): the crown turning down past the stump's foot is drawn, not cut
 			// off flat by the ground it would sink into as a picture.
 			VERTEX.y = max(VERTEX.y, foot.y + 0.05);
 		}
+#endif
 	} else {
 		// The rows under the ground's row lie on the ground toward the camera (the roots
 		// in front of the trunk), a little over it.
@@ -530,9 +555,11 @@ void vertex() {
 		world_pos = p;
 		VERTEX = shear(p);
 	}
+#ifdef FALLING
 	if (fall >= 0 && tile < 0) {
 		px = screen_px(VERTEX);
 	}
+#endif
 	light_xz = VERTEX.xz;
 	vec4 seen = VIEW_MATRIX * vec4(VERTEX, 1.0);
 	seen.z += DEPTH_TIE * (0.1 + 0.9 * hash12(foot.xz * 3.7 + 11.0));
@@ -937,6 +964,7 @@ vec3 sun_as(vec3 lit, vec3 albedo, vec3 shade) {
 
 void fragment() {
 	vec2 at = px;
+#ifdef FALLING
 	bool tile = tile_mid.x >= 0.0;
 	if (tile) {
 		// A module of a falling crown: its texels as they are about the one it hangs on; its
@@ -965,7 +993,9 @@ void fragment() {
 		float ty = round(e.y / fall_turn.w);
 		float tx = round((e.x - fall_shear.y * ty) / max(fall_shear.x, 0.05));
 		at = vec2(shake.x + tx, shake.y - FALL_CUT * TEXELS + ty);
-	} else if (shake.x != 0.0) {
+	} else
+#endif
+	if (shake.x != 0.0) {
 		// A shaken tree leans in whole pixels, the more the higher (as leaves.gdshader's crowns).
 		at.x -= round(shake.x * clamp((shake.y - px.y) / (SHAKE_RISE * TEXELS), 0.0, 1.0));
 	}
@@ -977,21 +1007,27 @@ void fragment() {
 	if (at.x < 0.0 || at.y < 0.0 || at.x >= cell.z || at.y >= cell.w) {
 		discard;
 	}
+#ifdef FALLING
 	// A falling tree leaves its stump's rows behind, and fades out once it lies.
 	if (fading >= 0.0 && at.y > shake.y - FALL_CUT * TEXELS) {
 		discard;
 	}
+#endif
 	ivec2 t = ivec2(cell.xy + floor(at));
 	vec4 g = texelFetch(frames, t, 0);
 	int a = frame_code(g);
+#ifdef FALLING
 	// A falling tree: the leaves in its modules (FALL_MODULE), the rest turned whole.
 	if (fading >= 0.0 && (a != 0 && a != 2 && a != 3) != tile) {
 		discard;
 	}
+#endif
 	vec2 texel = light_texel(light_xz);
+#ifdef FALLING
 	if (fading > 0.0 && bayer4(texel) < fading) {
 		discard;
 	}
+#endif
 	if (cut_hides(world_pos, texel)) {
 		discard;
 	}

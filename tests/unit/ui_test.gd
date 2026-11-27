@@ -22,6 +22,7 @@ const Vibration := preload("res://src/client/ui/vibration.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const Updates := preload("res://src/client/net/updates.gd")
 const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
+const LastLog := preload("res://src/client/ui/last_log.gd")
 
 
 func run() -> void:
@@ -43,6 +44,7 @@ func run() -> void:
 	_test_fling()
 	_test_updates()
 	_test_typed_coords()
+	_test_last_log_errors()
 
 
 func _test_two_tap() -> void:
@@ -718,3 +720,25 @@ func _test_typed_coords() -> void:
 	_check(SettingsMenu.parse_coords("5", "") == null, "one number is not a place")
 	_check(SettingsMenu.parse_coords("", "abc") == null, "letters are not a place")
 	_check(SettingsMenu.parse_coords("99999999", "1") == null, "too far is refused")
+
+
+## «Данные для теста» shows the errors of the last run's log logged before its last lines
+## (LastLog.errors): each once, with the engine's "at:" line under it, at most ERRORS.
+func _test_last_log_errors() -> void:
+	var lines := PackedStringArray(["Godot Engine v4.5.1.stable.official",
+		"Vulkan 1.4.295 - Forward Mobile - Using Device #0: Qualcomm - Adreno (TM) 840",
+		"ERROR: vkCreateGraphicsPipelines failed with error -13.",
+		"   at: render_pipeline_create (drivers/vulkan/rendering_device_driver_vulkan.cpp:5000)",
+		"fps 60",
+		"ERROR: vkCreateGraphicsPipelines failed with error -13.",
+		"   at: render_pipeline_create (drivers/vulkan/rendering_device_driver_vulkan.cpp:5000)",
+		"SHADER ERROR: Unknown identifier in expression: 'tile'.",
+		"fps 61"])
+	var found := LastLog.errors(lines)
+	_check(found.size() == 3 and found[0].begins_with("ERROR: vkCreateGraphicsPipelines") and found[1].strip_edges().begins_with("at:")
+		and found[2].begins_with("SHADER ERROR:"), "the last run's errors come once each, with where they were: %s" % [found])
+	var many := PackedStringArray()
+	for i in LastLog.ERRORS + 5:
+		many.append("ERROR: error %d" % i)
+	_check(LastLog.errors(many).size() == LastLog.ERRORS, "at most ERRORS of the last run's errors are shown")
+	_check(LastLog.errors(PackedStringArray(["fps 60", "main menu shown"])).is_empty(), "a log with no error shows none")

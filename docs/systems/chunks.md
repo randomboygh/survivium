@@ -117,7 +117,11 @@ slice, to free the far meshes.
   A standing tree that is a stump after a chunk's rebuild falls (`TreeHits.fall`, `tree.gdshader` `falls`): it
   turns over about the stump's top away from the last blow in a second, bounces and fades out, its own MultiMesh
   of `1 + 2 *` modules instances (colour blue + `FALL_MINE`; the chunk's copy at the same foot until rebuilt is
-  left out). Instance 0 draws the trunk and limbs (not leaves) turned on the screen in whole pixels: each pixel
+  left out). It is drawn by the falling trees' copy of `tree.gdshader` (`main.tree_fall_mat`,
+  `TreeSprites.falling`: the code with `FALLING` defined, built ahead by `ShaderWarmup`); the felling's code
+  below is under `#ifdef FALLING`, so the chunks' trees draw without it: in their shader too, the Adreno 840
+  (Android, Vulkan) drew no tree at all, standing or falling, though the shadows were there (v0.5.912 to
+  v0.5.919). Instance 0 draws the trunk and limbs (not leaves) turned on the screen in whole pixels: each pixel
   finds its texel by three shears (Paeth) and whole quarters undone, then the rows' squash (`fall_turn`,
   `fall_shear`, `FALL_ROOM`). The leaves fall as modules (the user's ask): pieces `FALL_MODULE` apart (`FALL_SHAPE`:
   squares, bricks or clumps, the user's pick clumps of 24; `fall_owner` gives a texel's module, edges jagged by

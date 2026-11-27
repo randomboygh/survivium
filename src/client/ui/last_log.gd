@@ -7,6 +7,8 @@ extends RefCounted
 
 const DIR := "user://logs"
 const LINES := 30
+## Errors logged before the last LINES lines that are shown too (errors).
+const ERRORS := 12
 ## Kept while the game runs in front: found at the next start, the last run ended in a
 ## crash, not by quitting or being sent away (main.gd _notification).
 const RUNNING := "user://running"
@@ -38,7 +40,8 @@ static func running(on: bool) -> void:
 		DirAccess.remove_absolute(RUNNING)
 
 
-## The last LINES lines of the last run's log, "" when there is none.
+## The last LINES lines of the last run's log, "" when there is none, after the errors
+## logged before them (errors).
 static func tail() -> String:
 	var dir := DirAccess.open(DIR)
 	if dir == null:
@@ -51,4 +54,29 @@ static func tail() -> String:
 		return ""
 	var text := FileAccess.get_file_as_string(DIR.path_join(newest)).strip_edges()
 	var lines := text.split("\n")
-	return "%s:\n%s" % [newest, "\n".join(lines.slice(maxi(0, lines.size() - LINES)))]
+	var start := maxi(0, lines.size() - LINES)
+	var earlier := errors(lines.slice(0, start))
+	if earlier.is_empty():
+		return "%s:\n%s" % [newest, "\n".join(lines.slice(start))]
+	return "%s:\n%s\n...\n%s" % [newest, "\n".join(earlier), "\n".join(lines.slice(start))]
+
+
+## The errors among log lines `lines`, each once with the line under it where the engine
+## says where it was ("at: ..."), at most ERRORS: a graphics driver's refusal to build a
+## shader is logged as the world loads, long before a playtest's last LINES lines (the
+## trees gone on an Adreno 840, 2026-11-27, showed none of it).
+static func errors(lines: PackedStringArray) -> PackedStringArray:
+	var out := PackedStringArray()
+	var seen := {}
+	for i in lines.size():
+		var line := lines[i]
+		if not (line.begins_with("ERROR:") or line.begins_with("SHADER ERROR:") or line.begins_with("USER ERROR:")) \
+				or seen.has(line):
+			continue
+		if seen.size() >= ERRORS:
+			break
+		seen[line] = true
+		out.append(line)
+		if i + 1 < lines.size() and lines[i + 1].strip_edges().begins_with("at:"):
+			out.append(lines[i + 1])
+	return out

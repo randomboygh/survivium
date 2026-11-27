@@ -255,9 +255,11 @@ var clump_mesh: ArrayMesh
 var disc_mesh: ArrayMesh
 var bush_mesh: ArrayMesh
 var drift_mesh: ArrayMesh
-## The trees drawn as pictures (TreeSprites, tree.gdshader), and their shadows
+## The trees drawn as pictures (TreeSprites, tree.gdshader), the trees falling (TreeHits:
+## its copy with the felling's code, TreeSprites.falling), and their shadows
 ## (tree_shadow.gdshader).
 var tree_mat: ShaderMaterial
+var tree_fall_mat: ShaderMaterial
 var tree_shadow_mat: ShaderMaterial
 var tree_mesh: ArrayMesh
 var ready_to_play := false
@@ -1116,6 +1118,8 @@ func _build_materials() -> void:
 	TreeSprites.setup()
 	tree_mat = _material(TreeShader)
 	TreeSprites.dress(tree_mat)
+	tree_fall_mat = _material(TreeSprites.falling(TreeShader))
+	TreeSprites.dress(tree_fall_mat)
 	tree_shadow_mat = _material(TreeShadowShader)
 	TreeSprites.dress(tree_shadow_mat)
 	tree_mesh = TreeSprites.quad_mesh()
