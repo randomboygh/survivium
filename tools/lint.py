@@ -7,6 +7,8 @@
 - every literal `load("res://…")` of a script and every resource a scene or a `.tres` names
   is a file of the repo (a `preload` is checked by tools/parse_check.gd, which compiles);
 - no shader declares more than MAX_SAMPLERS samplers, its includes' counted;
+- no 3D shader declares more than MAX_VARYINGS varying slots, its includes' and every
+  `#ifdef` variant's counted together;
 - the Python tools compile, the shell scripts parse (`bash -n`), the browser test parses
   (`node --check`, when node is there), the JSON files and the workflows parse.
 
@@ -38,6 +40,18 @@ RESOURCE = re.compile(r'path="(res://[^"]+)"')
 MAX_SAMPLERS = 13
 SAMPLER = re.compile(r"^\s*(?:global\s+|instance\s+)?uniform\s+(?:\w+\s+)?sampler\w*\s+\w+", re.M)
 INCLUDE = re.compile(r'^\s*#include\s+"res://([^"]+)"', re.M)
+# The varying slots a 3D shader may declare: each varying one slot (a float as a vec4, a
+# matN N, an array its length), the fragment-to-light ones too, which Godot counts though it
+# passes them in no slot. Godot's Mobile renderer (Android) starts them at 14
+# (scene_shader_forward_mobile.cpp base_varying_index) and refuses a shader past the GPU's
+# limit, min(vertex outputs, fragment inputs) / 4: 28 on an Adreno 840, whose fragment
+# inputs are 112. Counted over all of a shader's `#ifdef` variants at once (the falling
+# trees' copy of tree.gdshader, TreeSprites.falling): it took 30, failed to build there and
+# no falling tree was drawn (v0.5.912 to v0.5.929). The desktop's 32 and a WebGL's own
+# count (from 0) do not show it.
+MAX_VARYINGS = 14
+VARYING = re.compile(r"^\s*varying\s+(?:(?:flat|smooth|lowp|mediump|highp)\s+)*(\w+)\s+\w+\s*(?:\[\s*(\d+)\s*\])?\s*;", re.M)
+VARYING_SLOTS = {"mat2": 2, "mat3": 3, "mat4": 4}
 
 
 def tracked() -> list[pathlib.Path]:
@@ -92,11 +106,23 @@ def main() -> int:
         text = path.read_text()
         return len(SAMPLER.findall(text)) + sum(samplers(ROOT / m, seen) for m in INCLUDE.findall(text))
 
+    def varyings(path: pathlib.Path, seen: set) -> int:
+        if path in seen or not path.is_file():
+            return 0
+        seen.add(path)
+        text = path.read_text()
+        n = sum(VARYING_SLOTS.get(m.group(1), 1) * int(m.group(2) or 1) for m in VARYING.finditer(text))
+        return n + sum(varyings(ROOT / m, seen) for m in INCLUDE.findall(text))
+
     for path in files:
         if path.suffix == ".gdshader":
             n = samplers(path, set())
             if n > MAX_SAMPLERS:
                 bad(path, 1, f"{n} samplers with its includes, at most {MAX_SAMPLERS}: the web build runs out of texture units (MAX_SAMPLERS in tools/lint.py)")
+            if re.search(r"^\s*shader_type\s+spatial\b", path.read_text(), re.M):
+                n = varyings(path, set())
+                if n > MAX_VARYINGS:
+                    bad(path, 1, f"{n} varying slots with its includes and all its variants, at most {MAX_VARYINGS}: an Adreno phone does not build it (MAX_VARYINGS in tools/lint.py)")
 
     project = (ROOT / "project.godot").read_text()
     if re.search(r"^\[autoload\]", project, re.M):

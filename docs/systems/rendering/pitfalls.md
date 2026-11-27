@@ -126,9 +126,14 @@ One-line forms of the rules; the detail is above and in the other pages of this 
   8 barks).
 - Headless runs never compile shaders: a shader error (a varying named like a uniform or a local)
   shows only in a real render (`xvfb-run … --rendering-driver opengl3`) or the browser smoke test.
-- Varyings are few on phone GPUs: `water.gdshader` with one varying more (16) compiled on the desktop
-  and in the browser but drew the water plain grey on Android (#752; fixed by packing it into
-  `swash`). Pack a new flag into an existing flat varying instead of adding one.
+- Varyings are few on phone GPUs: Godot's Mobile renderer (Android) starts a shader's varyings at slot 14
+  and refuses a shader past the GPU's limit, 28 on an Adreno 840 (`Too many varyings used in shader`, in the
+  log only). Each varying is a slot (a float as a vec4), light()'s fragment-to-light ones too. `water.gdshader`
+  with 16 compiled on the desktop and in the browser but drew the water plain grey on Android (#752; fixed by
+  packing it into `swash`); `tree.gdshader` with the felling's 16 drew no tree there (v0.5.912 to v0.5.919),
+  then its falling trees' copy no falling tree (to v0.5.929; packed into `fall_tile`). `tools/lint.py` holds
+  every 3D shader to `MAX_VARYINGS` (14), all its `#ifdef` variants counted together. Pack a new value into an
+  existing varying of the same interpolation instead of adding one.
 - Samplers are few in the browser: every sampler a shader declares (its includes' too, used or
   not) takes a texture unit from 0, and the Compatibility renderer keeps the top ones for its own
   (`texunit:-3` in Godot's scene.glsl is the sun's shadow atlas). WebGL has 16 units, so

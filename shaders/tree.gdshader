@@ -52,10 +52,10 @@
 // Two shaders are made of this code. As it is, it draws the trees standing, the stumps and
 // the pieces of wood (the chunks', ChunkStreamer). With FALLING defined (TreeSprites.falling
 // makes that copy in the game) it draws the trees falling, felled (TreeHits): the felling's
-// code (FALL_*, its crown's modules) is in that copy alone. While it was in the one shader
-// every tree drew, the Adreno 840 (Android, Vulkan) drew no tree at all, standing or
-// falling, though their shadows (tree_shadow.gdshader) were there (v0.5.912 to v0.5.919,
-// 2026-11-27): the module search alone is a loop of 24 x 24 texels a vertex.
+// code (FALL_*, its crown's modules) and its varyings are in that copy alone. With them the
+// one shader every tree drew took more varyings than the Adreno 840 has (see the varyings
+// below), and that phone (Android, Vulkan) drew no tree at all, standing or falling, though
+// their shadows (tree_shadow.gdshader) were there (v0.5.912 to v0.5.919).
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 // Like a crown's for the player's silhouette (sprite_xray).
@@ -177,6 +177,8 @@ const float FALL_OVERLAP = 6.0;
 const float FALL_JAG = 8.0;
 // How far a module's leaves reach from its home (texels).
 const float FALL_REACH = FALL_MODULE * 0.5 + FALL_JAG * 0.5 + (FALL_SHAPE == 2 ? FALL_MODULE * FALL_SPREAD * 0.5 : 0.0);
+// How many texels a side of the reach a module looks at for its leaves (every other one).
+const int FALL_SEARCH = int(ceil(FALL_REACH));
 // Depth a module gains per pixel lower on the screen.
 const float FALL_ORDER = 0.001;
 // How far behind the modules' squares their rings are drawn: they only fill the gaps.
@@ -202,11 +204,17 @@ const float FALL_LAG = 0.24;
 // its chunk still draws at the same foot until rebuilt is left out instead.
 const float FALL_MINE = 512.0;
 
+// Each varying takes one of the GPU's slots (a float as a vec4), light()'s too: Godot's
+// Mobile renderer keeps 14 for its own and an Adreno has 28 (tools/lint.py MAX_VARYINGS).
+// The falling trees' copy took 30 and was not built there (v0.5.912 to v0.5.929): its own
+// are packed, and it has no sway.
 varying vec2 px;
 varying flat vec4 cell;
 #ifdef FALLING
-// How far a falling tree has faded out, -1 for a tree standing.
-varying flat float fading;
+// A falling crown's module (FALL_MODULE): the texel it hangs on (xy), -1 for the rest; 1
+// for a module's ring round its square (FALL_OVERLAP), drawn behind the modules' squares
+// (z); how far the falling tree has faded out, -1 for a tree standing (w).
+varying flat vec4 fall_tile;
 // A falling tree's turn on the screen (fall_screen): the shears' tan and sin of the turn
 // left after whole quarters, the quarters, and how the turned picture's rows are squashed
 // (fall_turn), the shear of its columns along them and its columns' stretch, and the
@@ -214,22 +222,20 @@ varying flat float fading;
 // screen (xy) and how far back of the texel it hangs on its ring draws (z).
 varying flat vec4 fall_turn;
 varying flat vec4 fall_shear;
-// A falling crown's module (FALL_MODULE): the texel it hangs on, -1 for the rest.
-varying flat vec2 tile_mid;
-// 1 for a module's ring round its square (FALL_OVERLAP), drawn behind the modules' squares.
-varying flat float tile_ring;
 #endif
 varying flat vec2 info;
 // How far this tree's top leans now (pixels; a falling tree's: the column of its axis), and
 // its foot's row in the picture.
 varying flat vec2 shake;
+#ifndef FALLING
 // The phase of this tree's sway (radians), -1 for one not swaying (a stump, a falling tree).
 varying flat float sway_phase;
+#endif
 varying vec3 world_pos;
 varying vec3 foot_pos;
 varying vec2 light_xz;
-varying float clouds;
-varying vec3 lamp_gain;
+// For light(): the lamps' gain (rgb) and how much of the sun the clouds let through (a).
+varying vec4 lamp_gain;
 // The albedo in the sun's shadow (a step darker: the bark's in_shade, the leaves'
 // leaf_steps and frond_steps), as ALBEDO is written, for light() to show it where the
 // shadow falls; negative where a shadow changes nothing.
@@ -384,10 +390,12 @@ void vertex() {
 		}
 	}
 #ifdef FALLING
-	fading = fall >= 0 ? fall_ways[fall].w : -1.0;
+	float fading = fall >= 0 ? fall_ways[fall].w : -1.0;
 #endif
 	bool sways = COLOR.a > -0.5 && fall < 0;
+#ifndef FALLING
 	sway_phase = sways ? hash12(foot.xz * 1.7) * 6.2832 : -1.0;
+#endif
 	float room = (lean != 0.0 ? SHAKE_ROOM : 0.0) + (sways ? SWAY_ROOM : 0.0) + (fall >= 0 ? FALL_ROOM : 0.0);
 	// The foot on the middle of a pixel, so the picture's texels are the screen's.
 	vec2 right = vec2(-view_up.y, view_up.x);
@@ -401,9 +409,12 @@ void vertex() {
 	px = vec2(wide, ay + 0.5 - rise);
 	vec3 p = foot + vec3(right.x, 0.0, right.y) * (across / TEXELS);
 #ifdef FALLING
-	int tile = fall >= 0 ? (INSTANCE_ID - 1) / 2 : -1;
-	tile_ring = fall >= 0 ? float((INSTANCE_ID - 1) % 2) : 0.0;
-	tile_mid = vec2(-1.0);
+	// Instance 0 draws the trunk and limbs, then each module and its ring. (A division of a
+	// negative number rounds toward zero: instance 0 was taken for module 0's ring, and no
+	// trunk fell, v0.5.912 to v0.5.929.)
+	int tile = fall >= 0 && INSTANCE_ID > 0 ? (INSTANCE_ID - 1) / 2 : -1;
+	float tile_ring = fall >= 0 && INSTANCE_ID > 0 ? float((INSTANCE_ID - 1) % 2) : 0.0;
+	vec2 tile_mid = vec2(-1.0);
 	fall_shear = vec4(0.0);
 	fall_turn = vec4(0.0);
 	if (fall >= 0) {
@@ -438,14 +449,16 @@ void vertex() {
 		vec3 sum = vec3(0.0);
 		float low = 0.0;
 		float back = 0.0;
-		for (float y = -FALL_REACH; y < FALL_REACH; y += 2.0) {
-			for (float x = -FALL_REACH; x < FALL_REACH; x += 2.0) {
-				vec2 i = floor(home + vec2(x, y));
-				if (fall_leaf(cell, cut, i) && all(equal(fall_owner(i + 0.5), me))) {
-					back = sum.z < 0.5 ? dot(home - i - 0.5, ahead) : max(back, dot(home - i - 0.5, ahead));
-					sum += vec3(i + 0.5, 1.0);
-					low = max(low, i.y + 1.0);
-				}
+		// One loop, row by row, counted in whole numbers, its length known only as it runs
+		// (fall_count is 1 or more here): 576 steps a vertex, each with fall_owner's nine, that
+		// a compiler does not unroll.
+		int steps = FALL_SEARCH * FALL_SEARCH * min(fall_count, 1);
+		for (int s = 0; s < steps; s++) {
+			vec2 i = floor(home + vec2(float(s % FALL_SEARCH), float(s / FALL_SEARCH)) * 2.0 - FALL_REACH);
+			if (fall_leaf(cell, cut, i) && all(equal(fall_owner(i + 0.5), me))) {
+				back = sum.z < 0.5 ? dot(home - i - 0.5, ahead) : max(back, dot(home - i - 0.5, ahead));
+				sum += vec3(i + 0.5, 1.0);
+				low = max(low, i.y + 1.0);
 			}
 		}
 		if (sum.z < 0.5) {
@@ -466,9 +479,9 @@ void vertex() {
 			float deep = min(d, 0.0);
 			float side = dot(across3, way3) * sin(turn);
 			if (abs(side) > 0.001) {
-				for (float y = me.y * FALL_MODULE + 1.0; y < (me.y + 1.0) * FALL_MODULE; y += 4.0) {
-					for (float k = 0.0; k < c.z; k += 2.0) {
-						vec2 i = vec2(side > 0.0 ? c.z - 1.0 - k : k, y);
+				for (int r = 1; r < int(FALL_MODULE); r += 4) {
+					for (int k = 0; k < int(c.z); k += 2) {
+						vec2 i = vec2(side > 0.0 ? c.z - 1.0 - float(k) : float(k), me.y * FALL_MODULE + float(r));
 						if (fall_leaf(cell, cut, i)) {
 							float up = (ay - i.y) / TEXELS - FALL_CUT;
 							deep = min(deep, FALL_CUT + up * cos(turn) - (i.x - ax) / TEXELS * side);
@@ -485,9 +498,9 @@ void vertex() {
 			// it is carried on the way it falls by as much (`push`), more as it comes down.
 			// The stump: as wide as the picture's foot row.
 			float stump = 0.0;
-			for (float k = 0.0; k < c.z; k += 1.0) {
-				if (frame_code(texelFetch(frames, ivec2(cell.xy + vec2(k, ay)), 0)) != 0) {
-					stump = max(stump, abs(k + 0.5 - ax));
+			for (int k = 0; k < int(c.z); k++) {
+				if (frame_code(texelFetch(frames, ivec2(cell.xy + vec2(float(k), ay)), 0)) != 0) {
+					stump = max(stump, abs(float(k) + 0.5 - ax));
 				}
 			}
 			vec2 foot_px = screen_px(shear(foot));
@@ -556,6 +569,7 @@ void vertex() {
 	if (fall >= 0 && tile < 0) {
 		px = screen_px(VERTEX);
 	}
+	fall_tile = vec4(tile_mid, tile_ring, fading);
 #endif
 	light_xz = VERTEX.xz;
 	vec4 seen = VIEW_MATRIX * vec4(VERTEX, 1.0);
@@ -962,6 +976,9 @@ vec3 sun_as(vec3 lit, vec3 albedo, vec3 shade) {
 void fragment() {
 	vec2 at = px;
 #ifdef FALLING
+	vec2 tile_mid = fall_tile.xy;
+	float tile_ring = fall_tile.z;
+	float fading = fall_tile.w;
 	bool tile = tile_mid.x >= 0.0;
 	if (tile) {
 		// A module of a falling crown: its texels as they are about the one it hangs on; its
@@ -996,11 +1013,13 @@ void fragment() {
 		// A shaken tree leans in whole pixels, the more the higher (as leaves.gdshader's crowns).
 		at.x -= round(shake.x * clamp((shake.y - px.y) / (SHAKE_RISE * TEXELS), 0.0, 1.0));
 	}
+#ifndef FALLING
 	if (sway_phase >= 0.0) {
 		// Swayed by the wind module by module (SWAY_*): the pixel's module moves its leaves by
 		// whole pixels; what is not a leaf stays where it is drawn.
 		at = sway_texel(at, cell, shake.y, sway_phase, TIME);
 	}
+#endif
 	if (at.x < 0.0 || at.y < 0.0 || at.x >= cell.z || at.y >= cell.w) {
 		discard;
 	}
@@ -1204,23 +1223,22 @@ void fragment() {
 	// out brighter than the grass beside it by this much (measured on the oak, 2026-11-25).
 	vec3 lit_col = col * TONE * (1.0 - veiled.a);
 	ALBEDO = lit_col * sun_part;
-	lamp_gain = sea_undo(lit_col, sun_part);
+	lamp_gain = vec4(sea_undo(lit_col, sun_part), cloud_light(world_pos));
 	shaded = shade.r >= 0.0 && shade != col ? shade * TONE * (1.0 - veiled.a) * sun_part : vec3(-1.0);
 	EMISSION = veiled.rgb;
 	// Lit as a sprite: as if facing up and toward the viewer.
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.6, 0.0)).xyz);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
-	clouds = cloud_light(world_pos);
 	COMPAT_COLORS
 }
 
 void light() {
 	float stretch = light_reach;
 	vec3 lit = toon_light(LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT, LIGHT, LIGHT_COLOR,
-		LIGHT_IS_DIRECTIONAL ? 1.0 : ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz), stretch);
+		LIGHT_IS_DIRECTIONAL ? 1.0 : ATTENUATION, LIGHT_IS_DIRECTIONAL, lamp_gain.a, light_texel(light_xz), stretch);
 	if (!LIGHT_IS_DIRECTIONAL) {
-		DIFFUSE_LIGHT += lit * lamp_gain;
+		DIFFUSE_LIGHT += lit * lamp_gain.rgb;
 	} else if (shaded.r >= 0.0 && ATTENUATION < 0.5) {
 		// Bark and leaves in the sun's shadow (as the ground takes it: of another tree, a
 		// hill, the tree's own crown over its bark where the drawing has it lit) show their
