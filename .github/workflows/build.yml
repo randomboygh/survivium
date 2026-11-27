@@ -400,7 +400,8 @@ jobs:
   # the game shows) on the merged commit, the notes the «What's new» lines of the PRs merged since the
   # last release (tools/release_notes.py), the APK and the PC builds as its files. The newest one is
   # "Latest", so releases/latest/download/<file> always gives the newest build. The rolling prereleases
-  # `android-latest` and `pc-latest` (older links point at them) get the same files.
+  # `android-latest` and `pc-latest` (older links point at them) get the same files. A merge of docs
+  # only makes no release; after a release only the newest 50 and each stage's last are kept.
   release:
     if: github.ref == 'refs/heads/main'
     needs: [lint, checks, tests, progress, frames, export, pc, android, smoke]
@@ -415,21 +416,37 @@ jobs:
           # The history and the tags: the notes go from the last release's tag.
           fetch-depth: 0
           fetch-tags: true
+      - name: A merge of docs only makes no release
+        # Its «What's new» lines go into the next release's notes (they start at the last release's tag).
+        id: docs
+        run: |
+          files=$(git diff --name-only HEAD^ HEAD)
+          echo "$files"
+          if grep -Evq '^(docs/|[^/]*\.md$|\.github/pull_request_template\.md$)' <<<"$files"; then
+            echo "only=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "only=true" >> "$GITHUB_OUTPUT"
+            echo "Docs only: no release." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.docs.outputs.only != 'true'
         with:
           name: survivium-windows
           path: build
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.docs.outputs.only != 'true'
         with:
           name: survivium-linux
           path: build
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.docs.outputs.only != 'true'
         with:
           name: survivium-android
           path: build
 
       - name: The release notes
         id: notes
+        if: steps.docs.outputs.only != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -437,6 +454,7 @@ jobs:
           cat build/notes.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: The release
+        if: steps.docs.outputs.only != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.notes.outputs.tag }}
@@ -484,6 +502,15 @@ jobs:
             fi
             gh release upload "$rolling" $files --clobber
           done
+
+      - name: Old releases are deleted
+        # The newest 50 stay, with the last release of each stage, Latest and the rolling prereleases
+        # (tools/prune_releases.py); the rest go with their tags. A failed delete waits for the next run.
+        if: steps.docs.outputs.only != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.notes.outputs.tag }}
+        run: python3 tools/prune_releases.py --keep 50 --current "$TAG"
 
   # The web build of main to Pages, one deploy at a time, and only the build of main's newest commit:
   # an older run finishing late (main's runs are never cancelled) or rerun leaves Pages alone.

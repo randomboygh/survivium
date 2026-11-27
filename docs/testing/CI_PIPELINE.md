@@ -33,7 +33,7 @@ publishing, which waits for everything). The fast ones fail first.
 | `pc` | the Windows and Linux export; the artifacts `survivium-windows`, `survivium-linux` | ~1 min | yes (for publishing) |
 | `android` | the Android APK (arm64), signed by the key from the secrets ([../systems/android.md](../systems/android.md)); the artifact `survivium-android` | ~2 min | yes (for publishing) |
 | `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`); the phones draw the lightest preset (`?quality=0`, `Settings.use_page_quality`), the desktop the default picture | 1–4 min | yes, when it runs |
-| `release` | only `main`: the GitHub release `v<stage>.<PR>` with the notes of `tools/release_notes.py` (the «What's new» lines since the last release) and the APK and PC builds; the same files into the prereleases `android-latest`, `pc-latest` ([Releases](#releases)) | seconds | — |
+| `release` | only `main`: the GitHub release `v<stage>.<PR>` with the notes of `tools/release_notes.py` (the «What's new» lines since the last release) and the APK and PC builds; the same files into the prereleases `android-latest`, `pc-latest`; no release for docs only; deletes all but the 50 newest and each stage's last ([Releases](#releases)) | seconds | — |
 | `deploy` | only `main`: the web build to GitHub Pages, one deploy at a time (`concurrency: pages`) and only of `main`'s newest commit: an older run finishing late or rerun leaves Pages alone | seconds | — |
 
 «Blocks» here means: `release` and `deploy` wait for its success, and by the project's rule a PR is merged
@@ -68,6 +68,14 @@ Every build of `main` that passed every job is a release on GitHub (Releases), m
 - **Rolling prereleases.** `android-latest` and `pc-latest` keep older links working: the same files as the
   newest release, their tags moved to its commit.
 - A rerun of a main run edits its release (notes and files) instead of failing.
+- **No release for docs only.** A merge whose files are all under `docs/`, Markdown files at the root or the PR
+  template makes no release (the step «A merge of docs only makes no release»); its «What's new» lines go into
+  the next release's notes, which start at the last release's tag.
+- **Old releases are deleted.** After a release `tools/prune_releases.py --keep 50` keeps the 50 newest
+  `v<stage>.<PR>` (by the version), the last release of every stage (the one that closed it: `v0.3.777`,
+  `v0.4.904`), the one marked "Latest", the one just made and the rolling prereleases; every other release is
+  deleted with its tag (the owner's pick, 2026-11-27). A failed delete only logs and waits for the next run.
+  `--dry-run` prints the list without deleting (`GH_TOKEN`, `GITHUB_REPOSITORY`; REST only).
 
 ## Results and logs
 
