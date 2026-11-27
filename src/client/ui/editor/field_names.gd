@@ -172,6 +172,7 @@ const NAMES := {
 	"creatures.breed_days": ["[field.creatures.breed_days]", "[field.creatures.breed_days.about]"],
 	"creatures.herd": ["[field.creatures.herd]", "[field.creatures.herd.about]"],
 	"creatures.trapped": ["[field.creatures.trapped]", "[field.creatures.trapped.about]"],
+	"creatures.trap_days": ["[field.creatures.trap_days]", "[field.creatures.trap_days.about]"],
 	"creatures.catch": ["[field.creatures.catch]", "[field.creatures.catch.about]"],
 	"trees.leaves": ["[field.trees.leaves]", "[field.trees.leaves.about]"],
 	"trees.shape": ["[field.trees.shape]", "[field.trees.shape.about]"],
