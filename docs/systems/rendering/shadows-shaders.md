@@ -2,7 +2,9 @@
 
 Part of [The picture](../rendering.md). Files: fire and sun shadows, the atlas, voxel models, shaders, shader globals.
 
-- `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
+- `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground, and the lights nearest to the
+  player for the shaders (`light_spots`: where they stand, their maps while the shadows are drawn, their glow in
+  the fog, the first `fog_glows`; see the ground fog in [camera-effects.md](camera-effects.md)); `sun_rays.gd` — rays among
   trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
   way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light down to the ground
   (`_length`; drawn only where the ground it ends on or its middle shows in the picture, `_seen`, and `HIDDEN_KEPT` of the others, so a thick wood shows a few; which depends on the view, so a camera turn works the light out again), fading away over its lower part, and a fleck of sun lies where it meets the ground (in its crown's shadow, 0.7 of the shaft, crisp and ragged, stretched along the light, breathing with it, only where it shows; no other flecks; specks of dust glint along the shaft, `DUST_SPECKS`; new light never jumps in: it goes into the second of two sets of shafts and flecks and dissolves in texel by texel over `FADE` seconds while the old dissolves out, so a shaft in both stays as it was; the steps of light are dithered by the world's texels, `light_texel`, as `window_glow.gdshader` is, so the dither does not crawl as the camera moves), in bunches of 2–4 through one gap (one wide among narrow ones, bright beside pale), 3 to 13 pixels wide, slowly growing wider and paler and back in the shader; it is drawn at its own depth (lifted only `depth_lift`), so

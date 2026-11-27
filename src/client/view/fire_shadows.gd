@@ -107,6 +107,8 @@ var _atlas_for := []
 var _spots: Image
 var _spots_texture: ImageTexture
 var _spots_for := PackedFloat32Array()
+## How many of them the fog glows round now (the shaders' `fog_glows`).
+var _glows := 0
 ## Sprites drawn darker now, and how dark (see _shade).
 var _shaded := {}
 
@@ -153,9 +155,11 @@ func _ready() -> void:
 	_atlas = Image.create_empty(MAP * MAX_LIGHTS, MAP_ROWS_TALL, false, Image.FORMAT_R8)
 	_atlas_texture = ImageTexture.create_from_image(_atlas)
 	PixelTextures.set_global("light_blocks", _atlas_texture)
-	_spots = Image.create_empty(MAX_LIGHTS, 2, false, Image.FORMAT_RGBAF)
+	_spots = Image.create_empty(MAX_LIGHTS, 3, false, Image.FORMAT_RGBAF)
 	_spots_texture = ImageTexture.create_from_image(_spots)
 	PixelTextures.set_global("light_spots", _spots_texture)
+	# Globals outlive the scene: none glow until this scene's lights are known.
+	RenderingServer.global_shader_parameter_set("fog_glows", 0.0)
 	if game != null and game.actions != null:
 		game.actions.cell_changed.connect(_on_cell_changed)
 		game.placed.cell_changed.connect(_on_cell_changed)
@@ -181,12 +185,17 @@ func _process(_delta: float) -> void:
 	var mm := multimesh
 	var n := 0
 	var shades := {}
-	if enabled and game.ready_to_play and game.effects.dark:
+	var shadows: bool = enabled and game.ready_to_play and game.effects.dark
+	# The lights are wanted for their shadows, and for the fog's glow round them (fog_glow
+	# in common.gdshaderinc) whenever there is a fog, by day too, dim as the fires are then.
+	var lights := []
+	if shadows or (game.ready_to_play and game.sky.ground_fog > 0.0):
+		_ground_y = _player_ground()
+		lights = _lights()
+	if shadows:
 		var moon := clampf(game.sky.sky_light / 0.45, 0.0, 1.0)
 		var night := lerpf(NIGHT_LIGHT.x, NIGHT_LIGHT.y, moon)
 		material_override.set_shader_parameter("night", night)
-		_ground_y = _player_ground()
-		var lights := _lights()
 		_update_maps(lights)
 		n = _fire_trunks(lights)
 		_wedges = _trunk_wedges.duplicate()
@@ -202,7 +211,7 @@ func _process(_delta: float) -> void:
 	else:
 		_last_shades = {}
 		_trunks_for = ""
-		_show_spots([])
+	_show_spots(lights, shadows)
 	_shade(shades)
 	mm.visible_instance_count = n
 	# Nothing drawn at all while there are no shadows (by day, switched off).
@@ -292,29 +301,36 @@ func _show_lights(lights: Array) -> void:
 					Rect2i(0, 0, MAP, MAP_ROWS_TALL), Vector2i(i * MAP, 0))
 		_atlas_texture.update(_atlas)
 		game.hud.perf.mark("shadows")
-	_show_spots(lights)
 	var mat: ShaderMaterial = material_override
 	mat.set_shader_parameter("lights", at)
 	mat.set_shader_parameter("strengths", strengths)
 	mat.set_shader_parameter("light_count", count)
 
 
-## Tells the shaders where the lights with a map stand and where their maps lie
-## (light_spots in common.gdshaderinc); none when `lights` is empty.
-func _show_spots(lights: Array) -> void:
+## Tells the shaders where the lights nearest to the player stand and how they glow in
+## the fog, and, with `maps` (their shadows are drawn), where the maps of those that have
+## one lie (light_spots in common.gdshaderinc, the first `fog_glows` of them); none when
+## `lights` is empty.
+func _show_spots(lights: Array, maps: bool) -> void:
 	var data := PackedFloat32Array()
-	data.resize(MAX_LIGHTS * 8)
-	for i in mini(lights.size(), MAX_LIGHTS):
+	data.resize(MAX_LIGHTS * 12)
+	var count := mini(lights.size(), MAX_LIGHTS)
+	for i in count:
 		var l: Dictionary = lights[i]
-		var m: Dictionary = _maps.get(l.id, {})
-		if not m.has("data"):
-			continue
 		var j := i * 4
 		data[j] = l.at.x
 		data[j + 1] = l.at.y + l.height
 		data[j + 2] = l.at.z
 		data[j + 3] = l.range
-		j += MAX_LIGHTS * 4
+		var glow: Color = l.glow
+		j += MAX_LIGHTS * 8
+		data[j] = glow.r
+		data[j + 1] = glow.g
+		data[j + 2] = glow.b
+		var m: Dictionary = _maps.get(l.id, {})
+		if not maps or not m.has("data"):
+			continue
+		j = i * 4 + MAX_LIGHTS * 4
 		data[j] = m.origin.x
 		data[j + 1] = m.origin.y
 		data[j + 2] = m.level - BELOW
@@ -322,13 +338,17 @@ func _show_spots(lights: Array) -> void:
 	if data == _spots_for:
 		return
 	_spots_for = data
-	_spots.set_data(MAX_LIGHTS, 2, false, Image.FORMAT_RGBAF, data.to_byte_array())
+	_spots.set_data(MAX_LIGHTS, 3, false, Image.FORMAT_RGBAF, data.to_byte_array())
 	_spots_texture.update(_spots)
+	if count != _glows:
+		_glows = count
+		RenderingServer.global_shader_parameter_set("fog_glows", float(count))
 
 
 ## The lights that throw shadows, the nearest to the player first: {"id": the fire's
 ## unit, a light set down's cell + LAMP_ID or TORCH_ID, "at": ground under the light,
-## "height", "range", "strength" 0..1, "torch": bool, "real": it throws a real shadow, "index": its place among the
+## "height", "range", "strength" 0..1, "torch": bool, "real": it throws a real shadow,
+## "glow": the colour of its glow in the fog (see _glow), "index": its place among the
 ## lights the shader knows (MAX_LIGHTS for none)}.
 func _lights() -> Array:
 	var out := []
@@ -338,8 +358,11 @@ func _lights() -> Array:
 		var light: OmniLight3D = f.light
 		var r := light.omni_range / PixelView.light_reach
 		if p.distance_to(f.at) < r + VIEW_REACH:
+			# A fire with a real shadow burns dimmer by shadow_energy, its twin lighting the rest.
+			var full: float = effects.FIRE_ENERGY * (effects.shadow_energy if light.shadow_enabled else 1.0)
 			out.append({"id": f.unit, "at": f.at, "height": FIRE_HEIGHT, "range": r,
-				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled})
+				"strength": light.shadow_opacity, "torch": false, "real": light.shadow_enabled,
+				"glow": _glow(light, full, f.at)})
 	# The lights set down (lanterns, candles) that light the world now (Effects.LAMP_LIGHTS):
 	# walls and shut doors keep their light out as they keep the fires'.
 	for rec: Dictionary in effects.lamps:
@@ -351,7 +374,8 @@ func _lights() -> Array:
 		if p.distance_to(rec.at) < r + VIEW_REACH:
 			var ground := Vector3(rec.at.x, e.cell.y * CELL, rec.at.z)
 			out.append({"id": e.cell + LAMP_ID, "at": ground, "height": rec.at.y - ground.y, "range": r,
-				"strength": lamp.shadow_opacity, "torch": false, "real": false})
+				"strength": lamp.shadow_opacity, "torch": false, "real": false,
+				"glow": _glow(lamp, effects.LAMP_ENERGY, rec.at)})
 	var torch: OmniLight3D = game.player.torch
 	if torch.light_energy > 0.01 and game.player.torch_lit:
 		# In a jump the torch goes up with the hand, its ground stays where it was.
@@ -360,11 +384,20 @@ func _lights() -> Array:
 		out.append({"id": TORCH_ID, "at": _player_feet() + side,
 			"height": game.player.torch_height + p.y - _ground_y,
 			"range": torch.omni_range / PixelView.light_reach, "strength": clampf(torch.light_energy / 1.3, 0.0, 1.0),
-			"torch": true, "real": false})
+			"torch": true, "real": false, "glow": _glow(torch, 1.3, p)})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return p.distance_squared_to(a.at) < p.distance_squared_to(b.at))
 	for i in out.size():
 		out[i].index = mini(i, MAX_LIGHTS)
 	return out
+
+
+## The colour of light `light`'s glow in the fog (fog_glow in common.gdshaderinc): its own,
+## linear, as bright as it burns now against `full` (by its fuel or charge, dim by day,
+## flickering); none under a roof, where the fog round it is outside the walls.
+func _glow(light: OmniLight3D, full: float, at: Vector3) -> Color:
+	if game.effects.roofed(at):
+		return Color(0, 0, 0)
+	return light.light_color.srgb_to_linear() * clampf(light.light_energy / full, 0.0, 1.2)
 
 
 ## Adds the shadows that move, thrown by light `l`, from instance `n` on: the player's

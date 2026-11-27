@@ -112,6 +112,8 @@ var rays_on := true
 ## Fog is drawn on the ground (the «Туман» setting); without it the fog is a plain
 ## haze over the picture.
 var fog_on := true
+## How thick the fog on the ground is now (the shaders' `fog`, 0 none; see _update_fog).
+var ground_fog := 0.0
 ## How far the fog's banks have drifted with the wind.
 var fog_drift := Vector2.ZERO
 ## How far the haze's banks over the picture have drifted (grade.gdshader haze_offset):
@@ -403,6 +405,7 @@ func _update_fog(golden: float, delta: float) -> void:
 		f.x = 0.0
 	var g := RenderingServer
 	g.global_shader_parameter_set("fog", f.x)
+	ground_fog = f.x
 	if f.x <= 0.0:
 		return
 	var col := Color(0.9, 0.92, 0.96).lerp(Color(1.0, 0.9, 0.8), golden * 0.6)
