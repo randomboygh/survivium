@@ -134,9 +134,68 @@ func _held_props(main: Node) -> void:
 	Input.parse_input_event(press)
 	main.controls.set_touch(was_touch)
 	await _hold_to_put(main)
+	await _door_nowhere(main)
 	_cut_cells(main)
 	main.build.leave()
 	await _frames(2)
+
+
+## A door from the bag held where it cannot go (no wall near) is not shown, and let go there,
+## held or tapped, by blueprint or at once, nothing is set and nothing is said (the user's ask,
+## 2026-11-27: no [no_room_here], no door drawn where none can stand).
+func _door_nowhere(main: Node) -> void:
+	var inv = main.host.player.inventory
+	inv.add("tools:door", 1)
+	main.build.choose("tools:door")
+	await _frames(2)
+	var me := Vector3i((main.player.position / main.CELL).floor())
+	var aim := Vector3i.ZERO
+	var found := false
+	for d: Vector3i in [Vector3i(4, 0, 0), Vector3i(-4, 0, 0), Vector3i(0, 0, 4), Vector3i(0, 0, -4), Vector3i(4, 0, 4)]:
+		var a: Vector3i = me + d
+		a.y = main.world.surface_y(a.x, a.z) + 1
+		if not found and main.placed.put_spot(main.character, "tools:door", a, main.world.size_y, 0)[0] == null:
+			aim = a
+			found = true
+	if not found:
+		_check(false, "a place with no wall near the player")
+		return
+	var off := Vector2(-1000, -1000)
+	var by_plan: int = int(main.settings.values.get("build_things", 0))
+	var doors: int = inv.count("tools:door")
+	# The middle button stands for the finger held (the world does nothing with it).
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_MIDDLE
+	press.pressed = true
+	Input.parse_input_event(press)
+	await _frames(2)
+	for way in [0, 1]:
+		main.settings.values.build_things = way
+		var ghosts: int = main.plans.things.size()
+		var things: int = main.placed.things.size()
+		var nagged: float = main.host.player._nagged.get("put", -100.0)
+		var held := {"button": MOUSE_BUTTON_MIDDLE, "dig": false, "pos": off, "held": true, "pending": false,
+			"put": "tools:door", "from": off, "ms": Time.get_ticks_msec() - 1000, "up": false, "aim": aim,
+			"turn": 0, "kept": false, "spot": null, "shown": null}
+		main.controls._stroke = held
+		await _wait_ms(200)
+		_check(held.shown != null and held.spot == null and not main.props.holding_new(),
+			"a door held where it cannot go is not shown (%s)" % ("by blueprint" if way == 0 else "at once"))
+		held.held = false
+		await _wait_ms(300)
+		var tap := held.duplicate()
+		tap.shown = null
+		tap.held = true
+		main.build.release(tap)
+		await _wait_ms(300)
+		_check(main.controls._stroke.is_empty() and main.plans.things.size() == ghosts and main.placed.things.size() == things
+			and inv.count("tools:door") == doors and main.host.player._nagged.get("put", -100.0) == nagged,
+			"let go or tapped there, nothing is set and nothing said (%s)" % ("by blueprint" if way == 0 else "at once"))
+	main.settings.values.build_things = by_plan
+	main.controls._stroke = {}
+	press = press.duplicate()
+	press.pressed = false
+	Input.parse_input_event(press)
 
 
 ## A door or a window held up into blocks (an opening to cut into a wall) stands there, in

@@ -68,6 +68,12 @@ const NO_CUT := 1 << 30
 ## How far (cells) from the cell aimed at a door or a window looks for the wall it sticks to
 ## (_wall_near).
 const WALL_SNAP := 2
+## How much farther a floor's cell counts than a wall's when a door or a window looks for the
+## wall it sticks to (_wall_near): over a floor by a wall it goes into the wall, not the floor.
+const FLOOR_FAR := 2.0 * WALL_SNAP * WALL_SNAP + 1.0
+## What a cell is to an opening set into a wall (_wall_cells): a block it cuts out, a cell of a
+## gap left in the wall (or of the opening moved), or one in the open.
+enum { WALL_OUT, WALL_GAP, WALL_CUT }
 ## The campfire of the camp by the spawn of a new world (see Starts), the place to come
 ## back to after death.
 const CAMPFIRE := "core:campfire"
@@ -1314,7 +1320,7 @@ func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := fals
 		# moved from), never in the open (user 2026-11-26).
 		return [null, turn]
 	var spot: Variant
-	if into_wall and _walled(aim):
+	if into_wall:
 		spot = _wall_spot(who, aim, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from, item.get("door", false), turn)
 	else:
 		spot = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from)
@@ -1334,8 +1340,9 @@ func _walled(c: Vector3i) -> bool:
 
 ## The wall cell a door or a window aimed at cell `aim` goes into (put_spot): `aim` itself
 ## when it is a wall's, else the wall cell nearest it (WALL_SNAP cells round it, over its top
-## or before its face); a door then goes down the wall to the level of the feet `feet` or the
-## wall's foot. `aim` where no wall is near (it stands in the open).
+## or before its face; a floor's farther, FLOOR_FAR); a door then goes down the wall to the
+## level of the feet `feet` or the wall's foot. `aim` where no wall is near (it stands in the
+## open).
 func _wall_near(aim: Vector3i, feet: int, door: bool) -> Vector3i:
 	var at := aim
 	# The opening moved stands in a wall: its own cells are of it (opening_spot).
@@ -1348,7 +1355,7 @@ func _wall_near(aim: Vector3i, feet: int, door: bool) -> Vector3i:
 					var c := aim + Vector3i(dx, dy, dz)
 					if c.y < feet or not (_walled(c) or own.has(c)):
 						continue
-					var d := float(dx * dx + dz * dz) + dy * dy * 0.5
+					var d := float(dx * dx + dz * dz) + dy * dy * 0.5 + (FLOOR_FAR if _floor_cell(c) else 0.0)
 					if best < 0.0 or d < best:
 						best = d
 						at = c
@@ -1387,10 +1394,12 @@ func _in_gap(c: Vector3i) -> bool:
 	return false
 
 
-## The north-west cell of an opening `offsets` (`high` tall) set into the wall at wall cell
-## `aim` (put_spot): of the spots round it that fit (_fits, blocks at `cut_from` or higher cut
-## out), the one with the most of its cells in the wall, then for a door the lowest, then the
-## nearest; never one across its wall (_across, turned `turn`). Null for none.
+## The north-west cell of an opening `offsets` (`high` tall) set into the wall at cell `aim`
+## (put_spot: a wall's, one of a gap left in a wall, or of the opening moved): of the spots
+## round it with every column in the wall (_wall_cells) that fit (_fits, blocks at `cut_from`
+## or higher cut out), the one with the most of its cells in the wall, then (`aim` a gap's: it
+## fills the doorway) the fewest blocks cut, then for a door the lowest, then the nearest;
+## never one across its wall (_across, turned `turn`). Null for none.
 func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], rest: int, high: int, cut_from: int,
 		door: bool, turn: int) -> Variant:
 	var mid := Vector2.ZERO
@@ -1399,7 +1408,10 @@ func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], 
 	mid /= maxi(offsets.size(), 1)
 	var to := Vector2(aim.x + 0.5, aim.z + 0.5)
 	var best: Variant = null
-	var best_by := Vector3.ZERO
+	var best_by := Vector4.ZERO
+	var own := _moving_cells()
+	var fill := not _walled(aim) and not own.has(aim)
+	var kinds := {}
 	for dz in range(-n - 1, 3):
 		for dx in range(-n - 1, 3):
 			var c := Vector2i(aim.x + dx, aim.z + dz)
@@ -1408,38 +1420,71 @@ func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], 
 				continue
 			for dy in range(-high, 2):
 				var corner := Vector3i(c.x, aim.y + dy, c.y)
+				var cells := _wall_cells(corner, offsets, high, own, kinds)
+				if cells.x < 0:
+					continue
 				if not _fits(who, corner, top, offsets, rest, high, cut_from):
 					continue
 				if door and _sunk(corner, offsets):
 					continue
 				if _across(corner, offsets, high, turn):
 					continue
-				var walled := 0
-				for o: Vector3i in offsets:
-					for k in high:
-						if _walled(corner + o + Vector3i(0, k, 0)):
-							walled += 1
-				# Most cells in the wall, then (a door) the lowest or (a window) the level aimed
-				# at, then the nearest.
-				var by := Vector3(-walled, corner.y if door else absi(dy), far)
+				# Most cells in the wall, then (filling a doorway) the fewest cut, then (a door)
+				# the lowest or (a window) the level aimed at, then the nearest.
+				var by := Vector4(-cells.x, cells.y if fill else 0, corner.y if door else absi(dy), far)
 				if best == null or by < best_by:
 					best = corner
 					best_by = by
 	return best
 
 
-## The cells of the opening moved (_moving, opening_spot), none while none is.
+## How many cells of an opening `offsets` (`high` tall) at north-west cell `corner` are of the
+## wall it goes into, x (blocks it cuts out, cells of a gap left in the wall, _in_gap, or of
+## the opening moved, `own`), and how many blocks it cuts out, y; each cell's kind is kept in
+## `kinds` (WALL_CUT, WALL_GAP, WALL_OUT). x is -1 where a column of it has none: it would
+## stand in the open by the wall or on a floor (user 2026-11-27: doors stood on the ground
+## before a house, and on a floor with no walls).
+func _wall_cells(corner: Vector3i, offsets: Array[Vector3i], high: int, own: Array[Vector3i], kinds: Dictionary) -> Vector2i:
+	var out := Vector2i.ZERO
+	for o: Vector3i in offsets:
+		var column := 0
+		for k in high:
+			var c: Vector3i = corner + o + Vector3i(0, k, 0)
+			if not kinds.has(c):
+				kinds[c] = WALL_CUT if _walled(c) else (WALL_GAP if own.has(c) or _in_gap(c) else WALL_OUT)
+			if kinds[c] != WALL_OUT:
+				column += 1
+			if kinds[c] == WALL_CUT:
+				out.y += 1
+		if column == 0:
+			return Vector2i(-1, 0)
+		out.x += column
+	return out
+
+
+## The opening whose new place is looked for: one set down (_moving, opening_spot) or a ghost
+## one of the blueprint (_ghost_self, ghost_move_spot); {} while none is.
+func _moved_opening() -> Dictionary:
+	if not _moving.is_empty():
+		return _moving
+	if not _ghost_self.is_empty() and is_opening(str(_ghost_self.get("item", ""))):
+		return _ghost_self
+	return {}
+
+
+## The cells of the opening moved (_moved_opening), none while none is.
 func _moving_cells() -> Array[Vector3i]:
-	if _moving.is_empty():
+	var e := _moved_opening()
+	if e.is_empty():
 		return []
-	return opening_cells(_moving)
+	return opening_cells(e)
 
 
 ## Whether an opening at north-west cell `corner` (its cells `offsets`, `high` tall) turned
 ## `turn` would stand across the wall it is cut into: more wall beside its cells across its
 ## plane than along it, or one of them a corner's (a door by a corner turned into the other wall's plane; user
 ## 2026-11-27: it stays in the plane of the wall it goes into). The cells of the opening
-## moved (_moving) are of the wall.
+## moved (_moving_cells) are of the wall.
 func _across(corner: Vector3i, offsets: Array[Vector3i], high: int, turn: int) -> bool:
 	var cells := {}
 	for o: Vector3i in offsets:
@@ -1500,9 +1545,9 @@ func plane_turn(aim: Vector3i, turn: int, face: int, p: Vector3) -> int:
 	elif face >= 0 and face < SIDES.size():
 		# A face looking north or south is a wall running along x.
 		flat_x = face % 2 == 0
-	elif not _moving.is_empty():
+	elif not _moved_opening().is_empty():
 		# An opening moved over a corner stays in the plane of the wall it was in.
-		flat_x = int(_moving.get("turn", 0)) % 2 == 0
+		flat_x = int(_moved_opening().get("turn", 0)) % 2 == 0
 	else:
 		return turn
 	# Turn 0 stands along the north edge of its cell, its front south (front_of).
@@ -1550,6 +1595,14 @@ func _backing(spot: Vector3i, offsets: Array, turn: int) -> Vector2i:
 	return Vector2i(solid, -open)
 
 
+## Whether cell `aim` is within the reach of placing of `who` (Tools.PLACE_REACH): a thing
+## is set down there or an opening moved there (put_at, _move_opening); the build mode shows
+## none held up farther.
+static func in_reach(who, aim: Vector3i) -> bool:
+	var p: Vector3 = who.position / CELL
+	return Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() <= Tools.PLACE_REACH and absf(aim.y - p.y) <= Tools.PLACE_REACH
+
+
 ## The build mode (Protocol.PROP_PUT_AT): `who` sets thing `id` from the bag down at cell
 ## `aim` (the cell tapped, within the reach of placing), its front to them or turned as
 ## put_spot finds best (`face`: the side of the face tapped, -1 none): on the free
@@ -1571,8 +1624,7 @@ func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false,
 	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
 		who.nag("put", Lang.line("[to_place_it_you_need]", [Items.tool_title(item.place_tool)]))
 		return false
-	var p: Vector3 = who.position / CELL
-	if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
+	if not in_reach(who, aim):
 		who.nag("put", "[too_far]")
 		return false
 	var found := put_spot(who, item.id, aim, top, view, kept, face)
@@ -2020,8 +2072,7 @@ func _move_opening(who, e: Dictionary, aim: Vector3i, turn: int, face: int) -> b
 	if aim == e.cell and turn == (was_turn + 2) % 4:
 		spot = flip_spot(e, turn)
 	else:
-		var p: Vector3 = who.position / CELL
-		if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
+		if not in_reach(who, aim):
 			who.nag("put", "[too_far]")
 			return false
 		var found := opening_spot(who, e, aim, face)
