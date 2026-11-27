@@ -1022,6 +1022,8 @@ func _did(done: Variant) -> bool:
 			game.effects.burst(done.at, done.stuff, done.time * STRIKE)
 			if not done.has("placed"):
 				Vibration.hit(game, done.time * STRIKE)
+			else:
+				Vibration.play(game, "block", done.time * STRIKE)
 			# A tree shudders and drops a few leaves as the axe meets its trunk.
 			if done.stuff == Mat.LOG and not done.has("placed") and game.effects.trees != null:
 				game.effects.trees.hit(done.at, done.time * STRIKE, game.player.position)
