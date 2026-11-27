@@ -13,11 +13,11 @@
 |---|---|---|
 | `run_tests.gd` + `unit/<тема>_test.gd` | юнит-тесты по темам из `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, graph, bundle_system, character, session, net, security, territory, plans, skills, quality, farming, boat, properties, balance, fences, signs, lang, mod_files, ui; файл `*_test.gd`, которого нет в `FILES`, — провал); каждый файл наследует `unit/test_case.gd` (`_check` и помощники) и печатает свои проверки и секунды; `-- тема …` запускает только их; `properties` — генеративные: сумка под случайными действиями и граф рецептов на случайных наборах от закреплённых семян | 300 с |
 | `save_test.gd` | играет, сохраняет, запускает заново: копки, место, часы, вещи, карта, маркеры, части модулей, старые сохранения | 300 с |
-| `progress_test.gd` | новый мир с пустой сумкой (на 24 места, как с рюкзаком): путь до каждого рецепта через вызовы самой игры; при провале говорит, чего не достать; `-- --part hunting` — только рецепты, которым нужно добытое со зверя (туша, шкуры, мех, кости, жир), `-- --part other` — остальные (в `run_all.sh` — `progress_hunting` и `progress_other`, в CI — на двух машинах); ожидания идут и по часам, и не меньше 30 кадров | 1200 с на половину |
+| `progress_test.gd` | новый мир с пустой сумкой (на 24 места, как с рюкзаком): путь до каждого рецепта через вызовы самой игры; при провале говорит, чего не достать; `-- --part hunting` — только рецепты, которым нужно добытое с животного (туша зверя, шкуры, мех, кости, жир; пойманная рыба), `-- --part metal` — из остальных те, которым нужна руда (слитки, металлические инструменты, сделанное из них), `-- --part other` — остальные (в `run_all.sh` — `progress_hunting`, `progress_metal` и `progress_other`, в CI — на трёх машинах); в конце печатает самые долгие рецепты (`slowest: …`) для следующего деления; ожидания идут и по часам, и не меньше 30 кадров | 1500 с на часть |
 | `frame_test.gd` | играет сценарии без экрана и падает, если работа размером с чанк попала в один кадр; idle и idle у костра судятся медианой кадра против доли чанка, мерянного прямо перед замером, и печатают части кадра игры; тайминги шумят на занятой машине — перезапустите отдельно | 600 с |
 | `server_test.gd` | сцена headless-сервера в том же процессе на порту 7791 и боты через `socket.gd`: вход и отказы (версия, пароль, полный сервер, без hello), события входа, чанки, запрос через сокет, обрыв связи и возврат по ключу; сама игра входит на сервер (`join_url`): мир из присланных чанков, правки ячеек, фигуры других игроков с именами, проверка движения сервером (прыжок через полмира ставится назад, шаг — нет); прощание, команды who / say / kick / stop; свой сервер из меню (`LocalHost.host`: сразу слушает, второй на том же порту — «занят», `stopped`) и команды хозяина give / tp / ban / unban / whitelist; перезапуск сервера над сохранённым миром — недописанное убрано, клетка и вещи те же, Аня возвращается по ключу к своему персонажу | 300 с |
 | `browser_smoke.mjs` | web-сборка в headless Chrome как ПК, как телефон (DPR 3, касания) и как телефон стоя по ссылке `?server=` (экран «Присоединиться», неудачный вход); по машине на каждый; падает на SCRIPT ERROR, SHADER ERROR, Parse Error и `Invalid call/access/get/set`, печатает время загрузки и снимок | в CI |
-| `run_all.sh` | `parse`, `validate`, `report` (свежесть отчётов о контенте), `run_tests`, `save_test`, `progress_hunting`, `progress_other`, `server_test` параллельно, каждая со своим `user://` (`XDG_DATA_HOME`), затем `frame_test` один; `GODOT=путь`; имена аргументами — только они (`progress_test` — весь путь одним прогоном); `LOGS=папка` — журналы туда; в Actions — таблица в сводку запуска и `::error` | — |
+| `run_all.sh` | `parse`, `validate`, `report` (свежесть отчётов о контенте), `run_tests`, `save_test`, `progress_hunting`, `progress_metal`, `progress_other`, `server_test` параллельно, каждая со своим `user://` (`XDG_DATA_HOME`), затем `frame_test` один; `GODOT=путь`; имена аргументами — только они (`progress_test` — весь путь одним прогоном); `LOGS=папка` — журналы туда; в Actions — таблица в сводку запуска и `::error`; проверку, прошедшую дальше 3/4 своего предела времени, предупреждают (`::warning` в Actions) | — |
 
 Строки `ERROR: content: _test…` в выводе `run_tests` — нарочно сломанные данные проверок загрузчика;
 предупреждения об утечках RID при выходе из `save_test` и `progress_test` — давние и безвредные.
@@ -56,7 +56,10 @@
   вызовы отрисовки под xvfb (`-- spikes` — разовые действия); `bench_gen.gd`, `bench_mesh.gd`,
   `bench_edit.gd`, `bench_turn.gd` — замеры; `bench_content.gd [бандлов]` — чтение и загрузка данных модов,
   реестры и граф, сейчас и с придуманным модом в придачу.
-- Ассеты: `make_sprites.gd`, `make_models.gd`, `make_icons.gd`, `make_textures.gd` (рисовалки в
+- Ассеты: `make_sprites.gd`, `make_models.gd`, `make_icons.gd` (значки предметов в стиле листов-образцов пользователя:
+  `art/icon_art.gd` хранит ступени цвета, обводку и картинки интерфейса, его части `art/icon_nature_art.gd`,
+  `icon_material_art.gd`, `icon_tool_art.gd`, `icon_wear_art.gd` (также голые руки и пустые ячейки персонажа),
+  `icon_build_art.gd` — картинки), `make_textures.gd` (рисовалки в
   `art/*.gd`), `make_sounds.gd` (кирпичики в `sound/synth.gd`) — делают только названные
   (`-- <имя> …`), всё разом только с `-- --all`: перезаписывается и нарисованное руками; `sheet.gd` (лист игрока в PNG);
   Python с Pillow: `make_icon.py` (иконка и `assets/web/`; теги `og:` превью ссылки — в `html/head_include`
@@ -80,7 +83,7 @@
 ## CI (`.github/workflows/build.yml`)
 
 Задания идут параллельно, каждое на своей машине: `lint` (без Godot), `checks` (parse, validate,
-report), `tests` (run_tests, save_test, server_test), `progress (hunting)` и `progress (other)`,
+report), `tests` (run_tests, save_test, server_test), `progress (hunting)`, `progress (metal)` и `progress (other)`,
 `frames` (frame_test один), `export` (версия, web-экспорт, патч), `pc` (версия, экспорт Windows —
 `Survivium.exe` с консольной обёрткой `Survivium.console.exe` — и Linux — `Survivium.x86_64`; архивы
 `survivium-windows.zip` и `survivium-linux.tar.gz` как артефакты), затем `smoke` (Chrome как ПК и как
@@ -88,7 +91,9 @@ report), `tests` (run_tests, save_test, server_test), `progress (hunting)` и `p
 (шаблон `web` в задании `changes`), или у PR метка `smoke`; в `main` — всегда, и сборки публикуются,
 только когда прошли все задания: web на Pages (`deploy`), APK (`android`,
 [android.md](android_RU.md)) и ПК-сборки — в релиз GitHub `v<этап>.<PR>` с изменениями с прошлого релиза
-(`release`, `tools/release_notes.py`; те же файлы — в скользящие пререлизы `android-latest`, `pc-latest`). Новый пуш в PR отменяет его старый
+(`release`, `tools/release_notes.py`; те же файлы — в скользящие пререлизы `android-latest`, `pc-latest`;
+хранятся только новейшие 50 релизов и последний каждого этапа, `tools/prune_releases.py`). Слияние в `main`, менявшее
+с последнего релиза только документы, запускает один `lint`: ни тестов, ни сборок, ни релиза, ни деплоя (`tools/docs_only.py`). Новый пуш в PR отменяет его старый
 прогон, прогоны `main` не отменяются. Права токена — по заданиям, actions закреплены на SHA, Godot
 сверяется с `.github/actions/godot/SHA512-SUMS`; журналы проверок — артефакты `logs-<задание>`.
 Шаблоны экспорта (web, Windows, Linux, Android) кладёт `.github/actions/godot` (тестовым заданиям — без них);

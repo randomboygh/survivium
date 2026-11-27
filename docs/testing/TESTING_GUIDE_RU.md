@@ -22,7 +22,7 @@ godot --headless --path . --import
 | 1. Секунды, без Godot | `python3 tools/lint.py && python3 tools/doc_index.py --check` | ~1 с | после любой правки; можно хуком перед коммитом: `git config core.hooksPath tools/hooks` |
 | 2. Компиляция и данные | `GODOT=… tests/run_all.sh parse validate report balance` | ~15 с | любая правка кода или данных |
 | 3. Юнит-тесты | `godot --headless --path . --script res://tests/run_tests.gd [-- тема …]` | 1–2 мин (тема — секунды) | правка правил, генератора, мешей, данных |
-| 4. Сценарии | `tests/run_all.sh save_test server_test frame_test progress_hunting progress_other` | 2–20 мин | см. таблицу ниже |
+| 4. Сценарии | `tests/run_all.sh save_test server_test frame_test progress_hunting progress_metal progress_other` | 2–20 мин | см. таблицу ниже |
 | 5. Всё | `GODOT=… tests/run_all.sh` | ~20–30 мин на 4 ядрах | перед большим PR; CI делает это на каждый пуш |
 | 6. Браузер | только в CI (`smoke`) | 3 мин | клиент, шейдеры, экспорт |
 
@@ -40,7 +40,7 @@ godot --headless --path . --import
 | плоты и лодки (`actions_boat.gd`, `vessels.gd`, `boats.gd`) | 1, 2, `run_tests -- boat body` | `save_test` |
 | огород, природа, рост (`actions_farm.gd`, `actions_nature.gd`, `farm_mode.gd`) | 1, 2, `run_tests -- farming clock` | `progress_other` |
 | файлы модов от сервера, кэш модов, импорт zip (`mod_files.gd`, `content_host.gd`, `mod_fetch.gd`, `mod_cache.gd`, `mod_import.gd`) | 1, 2, `run_tests -- mod_files content net` | `server_test` |
-| данные мода, рецепты, станки, инструменты, материалы | 1, 2 (`validate`, `report` — после правки запустить `tools/content_report.gd` без `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_other` |
+| данные мода, рецепты, станки, инструменты, материалы | 1, 2 (`validate`, `report` — после правки запустить `tools/content_report.gd` без `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_metal progress_other` |
 | руки, сбор, крафт, `world_actions.gd`, `workshop.gd`, `placed.gd` | 1, 2, `run_tests` | `progress_*`, `save_test` |
 | стройка: чертёж, двери, окна, лестницы, мебель (`plans.gd`, флаги вещей в `placed.gd`) | 1, 2, `run_tests -- actions plans` | `save_test`, скриншоты `build-*` |
 | шейдеры, свет, вид в пещере (`shaders/`, `src/client/view/`) | 1, 2, `run_tests -- view` | `frame_test`; скриншоты под xvfb или `smoke` в CI: headless шейдеры не компилирует |
@@ -56,7 +56,7 @@ CI всё равно гоняет всё; таблица — чтобы лока
 ## Как читать результат
 
 - `run_all.sh` печатает журнал каждой проверки под строкой `=== имя: N s, exit код` и в конце
-  `All passed` или `Failed: …`. `exit 124` — проверка не уложилась в свой предел (`limit` в скрипте).
+  `All passed` или `Failed: …`. `exit 124` — проверка не уложилась в свой предел (`limit` в скрипте). При печати целых журналов (CI, `VERBOSE=1`) она повторяет строки `FAIL:` и `SCRIPT ERROR` упавших проверок под `What failed:` прямо перед `Failed: …`, чтобы они были в хвосте журнала задачи (GitHub API отдаёт только его последние 5000 строк).
 - Строка `SCRIPT ERROR` в журнале — провал, даже при коде 0: ошибка выполнения обрывает функцию теста.
 - `ERROR: content: _test…` в `run_tests` и утечки RID при выходе — нарочно сломанные данные и давний
   безвредный шум движка.
