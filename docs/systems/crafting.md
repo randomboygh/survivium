@@ -159,6 +159,10 @@ the north-west corner to the west edge (`Placed.open_voxels`, as it is drawn); a
 (`opened_boxes` are empty: a thrown-back leaf would occupy a quarter of the opening that a body barely passes
 and would stand into the one who opens), nothing is placed in its opening (`Placed._in_open_door`), with a
 body in the opening it does not close; the copies learn from `PROP_OPENED`, the state `open` in the save. A
+door in a wall (`Placed.is_wall_door`: not a hatch, a wicket or a gate) also opens by itself when a player walks
+into it (`Placed.walk_open` from `Session.step_players`, user 2026-11-27): the client's step stops short at it
+(`Body.bumped`, sent in `INPUT`), the server opens a shut door there no farther than `WALK_OPEN_REACH` from the
+feet, where the land gives «Open doors»; it stays open, a tap shuts it, and it stays shut until walked into again. A
 door two cells wide (2×2, 2×3) is double-leaf: the west leaf opens to the west edge, the east one on a hinge
 in the north-east corner to the east. A window is an item with `window`: a frame with glass, solid, a tap
 takes it (`Placed.is_part`), the light of the sun, moon and fires passes through it (`Placed.lets_light`), and

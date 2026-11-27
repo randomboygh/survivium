@@ -954,6 +954,52 @@ func swing(who, e: Dictionary) -> bool:
 	return true
 
 
+## The farthest (cells) the point a step of a body stopped short at (Body.bumped) is from
+## the body's feet for a door there to open as it walks into it (walk_open): a client
+## sends that point and is not believed further.
+const WALK_OPEN_REACH := 1.5
+
+
+## `who` walks into a shut door set in a wall (is_wall_door) and it opens by itself (user
+## 2026-11-27), where the land lets them open doors (Territory "doors"); a tap shuts it
+## again (swing) and it stays shut until walked into again. `who.body.bumped` is where
+## their last step stopped short (world units). True if a door opened.
+func walk_open(who) -> bool:
+	if who == null or who.body == null or world == null or who.is_dead() or who.riding != "":
+		return false
+	var hit: Vector3 = who.body.bumped
+	if not hit.is_finite() or hit.distance_to(who.position) > WALK_OPEN_REACH * CELL:
+		return false
+	var p := hit / CELL
+	for y in range(floori(p.y + 0.001), floori(p.y + Body.HEIGHT) + 1):
+		for x in range(floori(p.x - Body.HALF_WIDTH), floori(p.x + Body.HALF_WIDTH) + 1):
+			for z in range(floori(p.z - Body.HALF_DEPTH), floori(p.z + Body.HALF_DEPTH) + 1):
+				var c := Vector3i(x, y, z)
+				if not world.blockers.has(c):
+					continue
+				var e := _shut_door_on(c)
+				if e.is_empty():
+					continue
+				if territory != null and not territory.may(who, e.cell, "doors"):
+					return false
+				_unblock(e)
+				e.open = true
+				_block(e)
+				opened.emit(e)
+				world.note_edit(e.cell.x, e.cell.z)
+				return true
+	return false
+
+
+## The shut door in a wall (is_wall_door) whose cells hold cell `c`, {} for none.
+func _shut_door_on(c: Vector3i) -> Dictionary:
+	for e: Dictionary in things:
+		if e.cell.y == c.y and not e.get("open", true) and is_door(e) and is_wall_door(Items.get_item(e.item)) \
+				and cells_of(e).has(c):
+			return e
+	return {}
+
+
 ## `who` hangs the wreath in the hand in use (an item with `wreath`) on door `e`, where the
 ## land lets them build: a door holds one, drawn on its front and swinging with it (Props),
 ## given back with the door when it is taken up. True if it was hung.

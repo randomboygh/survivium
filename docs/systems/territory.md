@@ -90,9 +90,10 @@ single player's player is number 0).
   (`place_at`), planting (`plant_at`) — «build»; chopping a tree (`chop`), gathering from a tree and a shrub
   (`gather`), mowing (`mow`) — «harvest»; a blow and a shot at a beast (`_wound`) — «hit beasts». `Placed`:
   placing and taking a thing, placing a light — «build»; `Requests`: taking a campfire apart — «build»,
-  opening a chest (`_bag`) — «chests». Walking: `Territory.step_walk` from `Session.step_players` returns the
+  opening a chest (`_bag`) — «chests»; a door opened by a tap (`Placed.swing`) or by walking into it
+  (`Placed.walk_open`) — «doors». Walking: `Territory.step_walk` from `Session.step_players` returns the
   player to where they last stood on land where they may walk. Blows at players are asked by `Fights` (Т5,
-  below); doors and tame beasts — the code that will introduce them.
+  below); tame beasts — the code that will introduce them.
 - The request `land_rights` [the team's mask, the others' mask]. The caption on entering another's land lists
   what may be done there (`Land.may_here`).
 
