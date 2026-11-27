@@ -482,11 +482,18 @@ func _test_earthwork() -> void:
 	var lid_b := Vector3i(40, 4, 40)
 	var lid := plans.earthwork(actions, who, "plane", lid_a, lid_b, Plans.shape("plane", lid_a, lid_b, 1))
 	_check(lid.fill.is_empty() and lid.cut.is_empty(), "a ceiling over walls fills nothing under it: %s" % [lid])
+	var lid_sorted := plans.sort(actions, who, "plane", lid_a, Plans.shape("plane", lid_a, lid_b, 1),
+		Mat.index(PLANKS), false, lid)
+	_check(lid_sorted.hanging.is_empty() and lid_sorted.fit.size() == 25,
+		"a ceiling over walls is not told as hanging: %s" % [lid_sorted.hanging])
 	for c: Vector3i in Plans.shape("line", Vector3i(42, 2, 36), Vector3i(42, 3, 40), 2):
 		plans.cells[c] = PLANKS
 	var ghost_lid := plans.earthwork(actions, who, "plane", Vector3i(41, 4, 36), Vector3i(43, 4, 40),
 		Plans.shape("plane", Vector3i(41, 4, 36), Vector3i(43, 4, 40), 1))
 	_check(ghost_lid.fill.is_empty(), "a ceiling over ghost walls fills nothing: %s" % [ghost_lid])
+	var ghost_sorted := plans.sort(actions, who, "plane", Vector3i(41, 4, 36),
+		Plans.shape("plane", Vector3i(41, 4, 36), Vector3i(43, 4, 40), 1), Mat.index(PLANKS), false, ghost_lid)
+	_check(ghost_sorted.hanging.is_empty(), "nor is a ceiling over ghost walls: %s" % [ghost_sorted.hanging])
 	for c: Vector3i in Plans.shape("line", Vector3i(42, 2, 36), Vector3i(42, 3, 40), 2):
 		plans.cells.erase(c)
 	w.set_cell(30, 2, 40, Mat.index(PLANKS))

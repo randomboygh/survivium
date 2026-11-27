@@ -686,7 +686,8 @@ static func best_tool(who, m: int) -> Variant:
 ## {"fit": those the ghost goes on, "blocked": those it cannot (inside other blocks, a
 ## floor buried under ground, where `who` may not build), "hanging": those of «fit»
 ## with nothing under them yet (uneven ground: a wall over a dip; none with `hangs`, an
-## upturned flight, which hangs by its shape)}. Ghost cells there already are in none.
+## upturned flight, which hangs by its shape, nor a figure resting on a structure: a ceiling
+## over walls, whose middle is held by them, _on_structure)}. Ghost cells there already are in none.
 ## With the figure's earthwork `work` (see earthwork) its cells in natural ground fit (dug
 ## first) and those over soil to fill do not hang. The client shows the same before the
 ## stroke ends.
@@ -703,6 +704,10 @@ func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: 
 		mine[c] = true
 		var col := Vector2i(c.x, c.z)
 		lowest[col] = mini(lowest.get(col, c.y), c.y)
+	# A figure laid on what players built hangs nowhere: a ceiling over walls is held by
+	# them (the user's report of 2026-11-27: the room under it was told as uneven ground).
+	if actions != null and not hangs and _on_structure(actions, lowest):
+		hangs = true
 	for c in all:
 		if cells.has(c):
 			continue
