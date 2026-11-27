@@ -193,4 +193,4 @@ above), `tools/cave_map.gd` (the caves of a patch: from above and in slices from
 picture; `cave_shape` checks a patch with it).
 
 **In more detail.** `plan/design/landscape.md`, `plan/design/world.md`, `plan/design/trees.md`,
-`plan/architecture/performance.md`; the decisions about relief in the journal `plan/README.md`.
+`plan/architecture/performance.md`; the decisions about relief in the journal `plan/decisions.md`.

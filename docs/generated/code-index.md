@@ -450,6 +450,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tools/doc_index.py`: Writes the index docs/ keeps of what the code holds, and checks the docs against the repository:
 - `tools/escape_map.gd`: Finds the places of a patch of land a body falls into but cannot walk out of: godot --headless --path . --script res://tools/escape_map.gd -- [cells] [seed] [place] [settings] [file.png] `place` is…
 - `tools/lang_check.py`: The phrases of the game and what each language lacks (decisions 183, 186, src/shared/content/lang.gd).
+- `tools/library_check.py`: Report on the order of the Claude project's library (never deletes or moves anything).
 - `tools/lint.py`: Fast checks of the repository that need no Godot, a second or two (CI's `lint` job):
 - `tools/make_cat.py`: Draws the wild cat's sheet, content/animals/cat/sprites/creatures/cat.png.
 - `tools/make_creatures.py`: Draws the animals' pictures: content/animals/<bundle>/sprites/creatures/<sprite>.png.

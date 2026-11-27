@@ -95,5 +95,5 @@ pause, the settings and the playtest page with all sections, the main menu's pag
 screen instead of saving it and prints `KEYS <shot>: …`.
 
 **In more detail.** The translator's guide — [../TRANSLATION.md](../TRANSLATION.md) (a copy
-[../TRANSLATION_RU.md](../TRANSLATION_RU.md)); decisions 183 and 186 in `plan/README.md`; screenshots in a
+[../TRANSLATION_RU.md](../TRANSLATION_RU.md)); decisions 183 and 186 in `plan/decisions.md`; screenshots in a
 language — `tools/shot.gd -- --lang en`.

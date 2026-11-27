@@ -38,7 +38,7 @@ edited by hand.
 |---|---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | layers, entry points, the modules of `Main`, the session and the server, signals, work by frames, how to extend | ACTIVE | change how systems link, add a system |
 | [DEPENDENCIES.md](DEPENDENCIES.md) | the graph of layers and folders, nodes with many dependents, who is handed to whom during play | ACTIVE | what breaks from an edit |
-| [DECISIONS.md](DECISIONS.md) | architectural decisions with reasons and the numbers of the `plan/README.md` journal | ACTIVE | before changing a principle |
+| [DECISIONS.md](DECISIONS.md) | architectural decisions with reasons and the numbers of the `plan/decisions.md` journal | ACTIVE | before changing a principle |
 | [ROADMAP.md](ROADMAP.md) | where the stages and the backlog are; technical debt T1–T11 and its state; stage reports | ACTIVE | plan work |
 | [generated/code-index.md](generated/code-index.md) | every script with the first line of its description, which folders load which (`tools/doc_index.py`) | generated | find a file by meaning |
 
@@ -105,7 +105,7 @@ edited by hand.
 | [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), [planning/archive/REFACTORING_ROADMAP.md](planning/archive/REFACTORING_ROADMAP.md), [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md), [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md) | stage 4 (2026-11-01): 131 findings by system, the refactoring plan (what waits for the user's decision), what was done, measurements | ARCHIVED; the plan and reports are DONE | the code's technical debt, before fixing a system |
 | [audit/full-audit-2026-11-27/AUDIT.md](audit/full-audit-2026-11-27/AUDIT.md) | the full audit of 2026-11-27 (read-only, nothing run): 106 findings by importance in nine themes, the order to fix them, the owner's decisions; the evidence by area in `areas/` | REPORT (dated; the open rows are the plan) | before refactoring saves, `placed.gd`, `chunk_streamer.gd`, `server.gd`, `main.gd`, the tests |
 | [audit/AUDIT_REPORT.md](audit/AUDIT_REPORT.md), [audit/CLEANUP_REPORT.md](audit/CLEANUP_REPORT.md) | stage 0 (2026-10-30): the state, the findings, what was cleaned | ARCHIVED | the history of the reorganization |
-| [planning/](planning/), [planning/archive/](planning/archive/) | `planning/`: hand-off notes of work in progress (character animations, clothes and dyes, zones and creatures); `planning/archive/`: finished and dropped plans (the relief mesher and its merge, the in-game editor, the stage roadmaps above) | dated notes | pick up a thread's unfinished work; the history of a dropped plan |
+| [planning/](planning/), [planning/archive/](planning/archive/) | `planning/`: earlier hand-off notes, new ones go to the library's `planning/` (character animations, clothes and dyes, zones and creatures); `planning/archive/`: finished and dropped plans (the relief mesher and its merge, the in-game editor, the stage roadmaps above) | dated notes | pick up a thread's unfinished work; the history of a dropped plan |
 | [specifications/BUNDLE_SYSTEM_READINESS.md](specifications/BUNDLE_SYSTEM_READINESS.md) | readiness for the bundle system (stage 0) and the answers to its questions | ARCHIVED | the history of decision 152 |
 
 
@@ -113,7 +113,7 @@ edited by hand.
 
 | What | Where |
 |---|---|
-| The index and the decision journal (no. 1–189) | `plan/README.md` |
+| The index and the decision journal (no. 1–189) | `plan/README.md` and `plan/decisions.md` |
 | The MVP stages and their state | `plan/mvp.md` |
 | The backlog (the only task list, GitHub Issues are not kept) | `plan/backlog.md` |
 | Game design by topic | `plan/design/*.md` |
@@ -122,7 +122,7 @@ edited by hand.
 | The history of closed topics (variants, rounds, old measurements, finished plans) | `plan/history/*.md` |
 | Screenshots by topic (the index is in its README) | `survivium-builds/` |
 | The stages' specs: 0 (audit), the bundle system, 4 (refactoring), 5 (tests and CI), 6 (documentation), 7 (security), balance | `audition.md`, `bundles.md`, `refactoring.md`, `testing_ci.md`, `documentation_audit.md`, `security_audit.md`, `game_balance.md` (ARCHIVED, in the library's `plan/history/tasks/`) |
-| The bundle system's plan: analysis of the spec, the data audit, stages with files and risks | `plan/architecture/bundle-system.md` |
+| The bundle system's plan: analysis of the spec, the data audit, stages with files and risks | `plan/history/bundle-system.md` |
 
 The statuses of the library's documents (ACTIVE, DRAFT, PROPOSED, DEPRECATED, ARCHIVED) stand in a
 `Статус:` line under the title of each document and in the index `plan/README.md`. A document with the
@@ -138,7 +138,7 @@ mods from `modding.md` — `plan/history/modding.md`; the done backlog items —
 
 - A file by meaning: [generated/code-index.md](generated/code-index.md), then `git grep`.
 - Who uses a file: `python3 tools/doc_index.py uses src/shared/game/inventory.gd`.
-- What decision no. N does: `plan/README.md`, the «Decision journal» table.
+- What decision no. N does: `plan/decisions.md`, the «Decision journal» table.
 - How it looked: `survivium-builds/README.md`.
 
 ## How to keep the documentation
@@ -152,7 +152,7 @@ mods from `modding.md` — `plan/history/modding.md`; the done backlog items —
 - After editing the mods' data: `godot --headless --path . --script res://tools/content_report.gd` (writes
   `generated/content-index.md`, `content-graph.md`, `content-recipes.md`, `content-checks.md`); CI checks
   that they are fresh with the same script with `-- --check`.
-- An architectural decision taken: a row in the `plan/README.md` journal and, if it changes a principle of
+- An architectural decision taken: a row in the `plan/decisions.md` journal and, if it changes a principle of
   the code, in [DECISIONS.md](DECISIONS.md).
 - An outdated document is not deleted silently: `Статус: DEPRECATED` goes on top with the reason and a link
   to the replacement, the topic's history goes to `plan/history/`.

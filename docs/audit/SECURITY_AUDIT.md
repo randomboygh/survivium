@@ -3,7 +3,7 @@
 Статус: ARCHIVED (2026-11-06, задание `security_audit.md`). Что проверено и что найдено. Исправления и
 тесты — [SECURITY_REMEDIATION_REPORT.md](SECURITY_REMEDIATION_REPORT.md); модель угроз и правила —
 [../security/](../security/THREAT_MODEL.md). Здесь находки описаны без готовых инструкций по обходу;
-подробные воспроизводимые сценарии — в закрытой библиотеке проекта (`security/SECURITY_AUDIT_DETAILS.md`).
+подробные воспроизводимые сценарии — в закрытой библиотеке проекта (`plan/history/security-audit-details.md`).
 
 ## Что проверено
 

@@ -1,6 +1,6 @@
 # Weekly audits
 
-A weekly audit checks the whole project by the owner's rules (`weekly_audit.md` in the Claude
+A weekly audit checks the whole project by the owner's rules (`plan/weekly_audit.md` in the Claude
 project's library): what changed in git, the architecture, the code, the game's systems, the bundles,
 the balance, the client and server, security and anti-cheat, performance, tests and CI, dependencies
 and the docs. It runs the checks, fixes what is confirmed and safe, plans the rest, and leaves a dated

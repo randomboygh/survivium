@@ -65,4 +65,4 @@
 (старые id в сумке).
 
 **Подробнее.** `plan/architecture/simulation.md` («Хранение мира»), решения о сохранении в журнале
-`plan/README.md`.
+`plan/decisions.md`.

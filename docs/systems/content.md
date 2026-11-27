@@ -280,5 +280,5 @@ prints without failing), `tests/progress_test.gd` (all recipes are reachable by 
 `items.prop`) have been open since stage 5а. The beasts' voices are synthesised by a table in
 `tools/make_sounds.gd`, a bundle brings only ready `.wav`.
 
-**In more detail.** `plan/architecture/modding.md`; decisions 140, 142, 143, 146 in `plan/README.md`; each
+**In more detail.** `plan/architecture/modding.md`; decisions 140, 142, 143, 146 in `plan/decisions.md`; each
 mod's README.

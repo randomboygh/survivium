@@ -35,7 +35,7 @@
 |---|---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE_RU.md) | слои, точки входа, модули `Main`, сеанс и сервер, сигналы, работа по кадрам, как расширять | ACTIVE | менять связи систем, добавлять систему |
 | [DEPENDENCIES.md](DEPENDENCIES_RU.md) | граф слоёв и папок, узлы с многими зависимыми, кто кому передан во время игры | ACTIVE | что сломается от правки |
-| [DECISIONS.md](DECISIONS_RU.md) | архитектурные решения с причинами и номерами журнала `plan/README.md` | ACTIVE | прежде чем менять принцип |
+| [DECISIONS.md](DECISIONS_RU.md) | архитектурные решения с причинами и номерами журнала `plan/decisions.md` | ACTIVE | прежде чем менять принцип |
 | [ROADMAP.md](ROADMAP_RU.md) | где этапы и бэклог; технический долг Т1–Т11 и его состояние; отчёты этапов | ACTIVE | планировать работу |
 | [generated/code-index.md](generated/code-index.md) | каждый скрипт с первой строкой его описания, какие папки какие грузят (`tools/doc_index.py`) | генерируется | найти файл по смыслу |
 
@@ -107,7 +107,7 @@
 
 | Что | Где |
 |---|---|
-| Оглавление и журнал решений (№ 1–189) | `plan/README.md` |
+| Оглавление и журнал решений (№ 1–189) | `plan/README.md` и `plan/decisions.md` |
 | Этапы MVP и их состояние | `plan/mvp.md` |
 | Бэклог (единственный список задач, GitHub Issues не ведутся) | `plan/backlog.md` |
 | Геймдизайн по темам | `plan/design/*.md` |
@@ -116,7 +116,7 @@
 | История закрытых тем (варианты, раунды, старые замеры, выполненные планы) | `plan/history/*.md` |
 | Скриншоты по темам (оглавление в README) | `survivium-builds/` |
 | ТЗ этапов: 0 (аудит), система бандлов, 4 (рефакторинг), 5 (тесты и CI), 6 (документация), 7 (безопасность), баланс | `audition.md`, `bundles.md`, `refactoring.md`, `testing_ci.md`, `documentation_audit.md`, `security_audit.md`, `game_balance.md` (ARCHIVED, `plan/history/tasks/` библиотеки) |
-| План системы бандлов: анализ ТЗ, аудит данных, этапы с файлами и рисками | `plan/architecture/bundle-system.md` |
+| План системы бандлов: анализ ТЗ, аудит данных, этапы с файлами и рисками | `plan/history/bundle-system.md` |
 
 Статусы документов библиотеки (ACTIVE, DRAFT, PROPOSED, DEPRECATED, ARCHIVED) стоят строкой
 `Статус:` под заголовком каждого документа и в оглавлении `plan/README.md`. Документ со статусом
@@ -132,7 +132,7 @@ PROPOSED или DRAFT описывает замысел, а не код: что 
 
 - Файл по смыслу: [generated/code-index.md](generated/code-index.md), затем `git grep`.
 - Кто использует файл: `python3 tools/doc_index.py uses src/shared/game/inventory.gd`.
-- Что делает решение № N: `plan/README.md`, таблица «Журнал решений».
+- Что делает решение № N: `plan/decisions.md`, таблица «Журнал решений».
 - Как выглядело: `survivium-builds/README.md`.
 
 ## Как вести документацию
@@ -146,7 +146,7 @@ PROPOSED или DRAFT описывает замысел, а не код: что 
 - После правки данных модов: `godot --headless --path . --script res://tools/content_report.gd` (пишет
   `generated/content-index.md`, `content-graph.md`, `content-recipes.md`, `content-checks.md`); CI проверяет
   их свежесть тем же скриптом с `-- --check`.
-- Принятое архитектурное решение: строка в журнале `plan/README.md` и, если оно меняет принцип кода,
+- Принятое архитектурное решение: строка в журнале `plan/decisions.md` и, если оно меняет принцип кода,
   в [DECISIONS.md](DECISIONS_RU.md).
 - Устаревший документ не удаляется молча: сверху ставится `Статус: DEPRECATED` с причиной и ссылкой на
   замену, история темы уходит в `plan/history/`.
