@@ -8,9 +8,9 @@ extends RefCounted
 ## have and Safari has not (there nothing happens), with no strength. Browsers buzz only
 ## after the first tap on the page, which the game has by then. Who buzzes what: Haptics
 ## (what the body and the world do), BodyFeedback (a hurt), Controls._did (a strike, a tree
-## felled, a shot that hits, a fish caught), Props (a thing set down lands), BuildMode (a
-## thing taken up), Steps (a landing, water), Nature (thunder), LevelUp, Voices (a beast
-## warns), Sound (buttons).
+## felled, a shot that hits, a fish caught, a block set), Props (a thing set down lands),
+## BuildMode (a thing taken up, a figure of the blueprint laid), Steps (a landing, water),
+## Nature (thunder), LevelUp, Voices (a beast warns), Sound (buttons).
 
 ## The setting's steps (`vibration`).
 const ThunderShape := preload("res://src/client/audio/thunder_shape.gd")
@@ -77,6 +77,12 @@ const PATTERNS := {
 	"strike": [[150], 1.0, ALL],
 	# Ч: a fish pulled out, a crop reaped.
 	"catch": [[25, 60, 40], [0.4, 0.6], ALL],
+	# Ш: a figure of the blueprint laid, taken off or marked to replace, a ghost thing set in
+	# it, the finger lifted (BuildMode, the user's pick of 2026-11-27, 6Б).
+	"lay": [[14], 0.35, USUAL],
+	# Щ: a block set, by the blueprint or by the brush, a faint tick at each (Controls._did;
+	# «всё» only, the user's pick of 2026-11-27, 6В).
+	"block": [[8], 0.2, ALL],
 }
 
 

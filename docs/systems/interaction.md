@@ -127,7 +127,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   whole height with floor and ceiling, not less than `MIN_ROOM` = 3), thickness 1–4 — for a line rows from the
   drawer, for a square inward; all figures except levelling are placed on top of the chosen surface), `sort`
   (which cells of the figure will stand, which are inside blocks or underground — not drawn, which lower ones
-  hang over a void — uneven ground; the client shows the same), `earthwork` (with `level`, the setting
+  hang over a void — uneven ground, told and drawn red but still drawn; none for a figure laid on a structure,
+  `_on_structure`, as a ceiling over walls, whose middle the walls hold — the user's picks of 2026-11-27, 1А 2А;
+  the client shows the same), `earthwork` (with `level`, the setting
   «Ground under a figure» = «level it», `build_level` 0, the default; item 11, the user's picks of 2026-11-26: a
   figure of blocks on uneven ground levels it as «flatten» at its level — under its footprint, a line's columns
   or the whole rectangle of a plane, a square or a cube, natural ground from its lowest level up to its top

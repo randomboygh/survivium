@@ -301,7 +301,7 @@ var _daylight := 1.0
 ## What each kind is to each (see _sees), worked out from AiRules once.
 var _seen := {}
 ## The kinds each kind looks for (see _cares), and the animals by kind (see _kin) with
-## the count of `animals` they were made for.
+## the count of `animals` they were made for (-1: made anew at the next _kin).
 var _caring := {}
 var _by_kind := {}
 var _kin_of := -1
@@ -499,11 +499,8 @@ func _fenced(y: float, x: float, z: float) -> float:
 
 
 func _remove(a: Animal) -> void:
-	var kept := _kin_of == animals.size()
 	animals.erase(a)
-	if kept:
-		_by_kind[a.kind].erase(a)
-		_kin_of = animals.size()
+	_kin_of = -1
 	a.gone = true
 	# The first of its flock leads the rest from now on.
 	var next: Animal = null
@@ -544,10 +541,8 @@ func _add(kind: String, pos: Vector3) -> Animal:
 		a.tint = rng.randi() % tints.size()
 	# Those far away take their steps in different frames.
 	a.away = rng.randf() * FAR_STEP
-	if _kin_of == animals.size():
-		_by_kind.get_or_add(kind, []).append(a)
-		_kin_of += 1
 	animals.append(a)
+	_kin_of = -1
 	born.emit(a)
 	return a
 

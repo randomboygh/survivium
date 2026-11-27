@@ -1084,7 +1084,7 @@ func release(s: Dictionary) -> void:
 		game.cursor.show_boxes([], [])
 		if _by_blueprint(s.put):
 			# Into the blueprint, built after its blocks (the user's picks, 2026-11-26, 2А: a tap too).
-			game.net.request(Protocol.PLAN_THING, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
+			game.net.request(Protocol.PLAN_THING, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))]).then(_laid)
 		else:
 			game.land.expect_post(s.put)
 			game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
@@ -1213,7 +1213,7 @@ func end_stroke(s: Dictionary) -> void:
 	if replacing:
 		if replaced_cells(s).is_empty():
 			game.hud.toast("[nothing_to_replace_here_tap_a]")
-		game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, false, 0, false, true])
+		game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, false, 0, false, true]).then(_laid)
 		return
 	if not erasing and s.plan != "flatten":
 		var cells := stroke_cells(s)
@@ -1226,7 +1226,14 @@ func end_stroke(s: Dictionary) -> void:
 		elif not sorted.hanging.is_empty():
 			game.hud.toast("[uneven_ground_nothing_under_the]")
 	game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, erasing, form_of(s.first, s.last),
-		levels()])
+		levels()]).then(_laid)
+
+
+## A figure of the blueprint drawn, taken off or marked (Plans.draw: how many cells), or a
+## ghost thing set in it (true): felt as a light tick (Vibration "lay").
+func _laid(done: Variant) -> void:
+	if done is bool and done or done is int and done > 0:
+		Vibration.play(game, "lay")
 
 
 ## Whether a figure drawn levels the uneven ground under it (Plans.earthwork): the setting
