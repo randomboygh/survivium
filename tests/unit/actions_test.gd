@@ -507,6 +507,30 @@ func _test_stairs_placed() -> void:
 		"from the doorway and from before it, a body walks through")
 	who.position = Vector3(30.5, 1.0, 20.5) * WorldData.CELL
 	_check(placed.swing(who, door) and not door.open, "and shuts it again")
+	# Walked into, a shut door opens by itself (Placed.walk_open, user 2026-11-27): the body
+	# stops short at it, the server opens it and the body walks on through; where the land
+	# keeps its doors from the one walking, or the point is far from them, it stays shut.
+	var walker := Walker.new()
+	walker.body = Body.new()
+	walker.body.world = w
+	walker.body.on_ground = true
+	walker.body.move_input = Vector2(0.0, -1.0)
+	var at := Vector3(30.5, 1.0, 21.5) * WorldData.CELL
+	for i in 30:
+		at = walker.body.step(at, 1.0 / 60.0, false)
+	walker.position = at
+	_check(walker.body.bumped.is_finite() and not door.open, "walking north, the body stops short at the shut door")
+	placed.territory = NoDoors.new()
+	_check(not placed.walk_open(walker) and not door.open, "where the land keeps its doors from the walker, it stays shut")
+	placed.territory = null
+	walker.position = at + Vector3(0.0, 0.0, 4.0) * WorldData.CELL
+	_check(not placed.walk_open(walker) and not door.open, "a point told far from the body opens nothing")
+	walker.position = at
+	_check(placed.walk_open(walker) and door.open and not w.blockers.has(door.cell), "walked into, it opens")
+	_check(not placed.walk_open(walker) and door.open, "open, walking into it again changes nothing")
+	_check(_walks_north(w, Vector3(30.5, 1.0, 21.5), 19.5), "and the body walks on through")
+	who.position = Vector3(30.5, 1.0, 21.5) * WorldData.CELL
+	_check(placed.swing(who, door) and not door.open, "a tap shuts it, and it stays shut until walked into again")
 	# A wreath held in the hand is hung on the door at a tap, not swung (Placed.hang_wreath); the door
 	# keeps it in the save, holds one, and gives it back with itself when taken up.
 	who.inventory.add("tools:door_wreath", 1)
@@ -1528,6 +1552,17 @@ func _walks_north(w: WorldData, from: Vector3, past: float) -> bool:
 	for i in 120:
 		at = body.step(at, 1.0 / 60.0, false)
 	return at.z / WorldData.CELL < past
+
+
+## One acting with a body, which walks into doors (Placed.walk_open).
+class Walker extends Who:
+	var body
+
+
+## Land that keeps its doors from everyone (Placed.walk_open asks Territory.may).
+class NoDoors:
+	func may(_who, _c: Vector3i, action: String) -> bool:
+		return action != "doors"
 
 
 ## `who` with one more `id` in the bag.

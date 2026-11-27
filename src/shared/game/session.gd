@@ -247,6 +247,7 @@ func step_players(delta: float) -> void:
 	for i in players.size():
 		players[i].update(d)
 		actions.tread(players[i])
+		placed.walk_open(players[i])
 		workshops[i].update(d)
 	territory.step_walk(players)
 	fights.step(d, players)
