@@ -30,7 +30,8 @@ shaders/                 3D-шейдеры (общий common.gdshaderinc), цв
 content/<мод>/           моды: mod.yaml, README, папки-бандлы с bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/, lang/ (переводы); common/ общие ассеты
 assets/                  шрифт, заставка, значки интерфейса (ui/), иконки web-страницы (web/, без импорта), значки приложений (app/: Android, Windows)
 tests/                   headless-тесты (run_tests + unit/, save, progress, frame, server), проверка в браузере, run_all.sh (все проверки)
-tools/                   линт (lint.py), компиляция всех скриптов (parse_check.gd), хук pre-commit (hooks/), валидатор, скриншоты (shot + shot/), карта, бенчмарки, профиль, генераторы картинок, звуков, иконки; art/, sound/
+tools/                   линт (lint.py), компиляция всех скриптов (parse_check.gd), хук pre-commit (hooks/), валидатор, скриншоты (shot + shot/), карта, бенчмарки, профиль, генераторы картинок, звуков, иконки (hand_art: что они оставляют); art/, sound/
+  art/<тема>/            рисунки как данные и генераторы, которые их читают (character/, animals/, trees/): источник таблиц рисунков и картинок деревьев
 .github/                 CI (workflows/build.yml), сервер для проверки (workflows/playtest.yml), установка Godot (actions/godot), шаблон PR
 docs/                    эта документация (audit/ — отчёты аудитов, reports/weekly-audits/ — еженедельные аудиты и открытые проблемы, planning/ — планы, balance/ — модель и таблицы баланса, testing/ — как проверять и CI,
                          security/ — модель угроз, защита протокола, права команд, анти-чит, тесты безопасности)
@@ -68,6 +69,8 @@ docs/                    эта документация (audit/ — отчёт�
 | 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering_RU.md)) |
 | Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd`; генеративный — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE_RU.md)) |
 | Инструмент разработки | `tools/` (рисовалки — `tools/art/`, звук — `tools/sound/`) |
+| Источник рисунка (кадры как строки букв, генератор на Python) | `tools/art/<тема>/` с README его команд и `.gdignore` (Godot его не импортирует и не экспортирует); никогда не только в библиотеке |
+| Картинка или звук, сделанные или доведённые вручную | список `hand` своего бандла (`bundle.yaml`, `mod.yaml`, `assets/hand.yaml`): генераторы оставляют их как есть (`tools/hand_art.gd`, `tools/hand_art.py`) |
 | Окно или элемент интерфейса | из частей кита `src/client/ui/kit/` ([systems/ui.md](systems/ui_RU.md), «UI-кит»); новая общая часть — в кит и в «Витрину интерфейса» |
 | Картинка интерфейса | `assets/ui/` |
 | Документ о коде | `docs/` (система — `docs/systems/`) |
@@ -79,7 +82,8 @@ docs/                    эта документация (audit/ — отчёт�
 ## Что не читать без нужды
 
 - `.godot/`, `*.import`, `*.uid`, `build/`, `build_info.json`: кеши и сборка, не в git.
-- `content/**/sounds/*.wav`, `content/**/*.png`, `assets/`: бинарные ассеты; их делают `tools/make_*`.
+- `content/**/sounds/*.wav`, `content/**/*.png`, `assets/`: бинарные ассеты; их делают `tools/make_*`, кроме тех, что названы в списке `hand`.
+- `tools/art/character/`, `tools/art/animals/`, `tools/art/trees/`: рисунки как данные и их генераторы (в их README сказано, что делает каждый).
 - `tools/art/*.gd`, `tools/make_plant_art.py`, `tools/make_creatures.py` (+ `creature_kit.py`), `tools/make_frog.py`, `tools/make_fish.py`, `tools/make_wolf.py`, `tools/make_cat.py`, `tools/make_hedgehog.py`: рисовалки ассетов, большие таблицы пикселей.
 - `src/shared/world/test_ground.gd`: площадки тестового мира, нужен только для них.
 - `tools/shot/places.gd`, `tools/shot/shots.gd`: места и таблица скриншотов.

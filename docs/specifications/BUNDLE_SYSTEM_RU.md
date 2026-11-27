@@ -51,8 +51,8 @@
 Без изменений:
 
 ```
-content/<мод>/mod.yaml                      id, title, version, api, requires, wants
-content/<мод>/<бандл>/bundle.yaml           title, requires, wants
+content/<мод>/mod.yaml                      id, title, version, api, requires, wants, hand
+content/<мод>/<бандл>/bundle.yaml           title, requires, wants, hand (рисунки, сделанные вручную, для инструментов)
 content/<мод>/<бандл>/data/<вид>.yaml       сущности
 content/<мод>/<бандл>/{icons,models,sprites,textures,sounds}/
 content/<мод>/lang/<код>.yaml, content/<мод>/<бандл>/lang/<код>.yaml   тексты ключей (docs/TRANSLATION.md)
