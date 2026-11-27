@@ -24,8 +24,8 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   heap up by the wall's curve, each cell draws its top on a grid (`GRID`, lines at 0, 1/8, 1/4, 3/4, 7/8, 1) and
   its walls to that height, so cells meet without seams; round edges get the curve's normals (smooth), bevels
   flat; placed blocks stay sharp (`wild_masks`). Test `mesher_test._test_edges`; shots `ground-edges-*`;
-  pictures `survivium-builds/mesher-blocks/pr2/`. Geometry preview without the game (a tool that dumps a
-  chunk's triangles, a numpy renderer): `notes/edge-preview/` in the project library.
+  pictures `survivium-builds/world/mesher-blocks/pr2/`. Geometry preview without the game (a tool that dumps a
+  chunk's triangles, a numpy renderer): `survivium-builds/world/mesher-blocks/edge-preview/` in the project library.
   Done in the second thread: the light square outline inside the stone ring was the shader's rim (edge codes)
   along a whole cell's side where a filled half goes on at the same height (`_level_edges` drops them);
   layered cliffs: a soft layer over a hard one stands back 1/8 block (`LEDGE`), a ledge of the hard top stays
@@ -54,7 +54,7 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   shows soft lenses pinched at the corners (accepted: the straight cells beside meet it there). Hard (bevel)
   slopes stay flat: a one-sided bevel cannot lie level at the cell's edge. Bench: ~4.6 s cold, ~3.8 s warm,
   1475620 vertices (+16% over #733). Test `mesher_test._test_bent_slopes`; preview tool
-  `notes/edge-preview/slope_preview.gd` in the project library.
+  `survivium-builds/world/mesher-blocks/edge-preview/slope_preview.gd` in the project library.
 - PR 2 part 2b (corners in plan, thread «Скруглить рельеф по материалам, часть 3»): EdgeMesher rounds a convex
   square corner of a level's plan (a cliff's lower levels under a chamfered top, diamond tips of halves): the
   brows stop at the arc's tangent points, a corner record takes the corner (`_add_corners`), points cut off move
@@ -67,7 +67,7 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   `mesher_test._test_plan_corners`.
   Left: the remaining `corners` field / `CORNER_P` / shader `corner_shapes` go in PR 4.
 - Spec (Claude doc, Russian, the user's words): https://claude.ai/artifact/1q8gbPYdyqXoDE5bMxKjoT
-- Pictures: project library `survivium-builds/mesher-blocks/` (`blocks-1-main.png` … `blocks-10-all.png`),
+- Pictures: project library `survivium-builds/world/mesher-blocks/` (`blocks-1-main.png` … `blocks-10-all.png`),
   the Python renderer that drew them in `src/` there (numpy z-buffer, 3/4 view, the game's 45° pitch).
 
 ## The user's picks (2026-11-16/17)
@@ -138,4 +138,4 @@ need no conversion); rounding and bevels are only client mesh geometry from mate
    `foliage.gd`, `old_slope_mesher.gd` (the old `slope_mesher.gd` whole), `mesh_faces.gd` (`OLD_CUT`,
    `_old_curve`, `_old_diag_wall`, `quarter_kind`), `chunk_mesher.gd`, `water_mesher.gd`, shader global
    `old_slopes`. Test `old_shapes_test` (the old shapes_test). Shots `tools/shot.gd -- --old-slopes`, pictures
-   in survivium-builds/old-slopes/.
+   in survivium-builds/world/old-slopes/.

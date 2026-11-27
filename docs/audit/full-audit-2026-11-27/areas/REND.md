@@ -2,7 +2,7 @@
 
 **What I read.** I read `chunk_streamer.gd` in full (1859 lines). I read these in part: `chunk_mesher.gd` (Job, holes, BUILT_*, the caps and faces helpers), `mesh_faces.gd` (constants, pack, `_wound`, `_add`), `mesh_buffers.gd`, and the function lists of `old_slope_mesher`, `water_mesher`, `trunk_mesher` and `form_mesher`. I also read parts of `foliage.gd` (the `_column` dispatch and the old crown paths), `tree_sprites.gd` (setup and the atlas), `solid_map.gd` (all of it), `edge_haze.update`, `effects.gd` (state, functions and `update`), `window_glow.gd`, `fire_shadows._process`, `cave_layers.gd`, `creatures.gd` (`_process`, `_frame`, `_build_looks`) and `props.gd` (update, `_recut`, sprites, fit).
 
-**Shaders.** I counted every shader's samplers and varyings with the regexes of `tools/lint.py`. Lint reports 0 problems today. I compared the `light()` functions, ran a 5-line duplicate-window scan over all 29 files, and grepped the shared constants. Docs: the headings of `chunks.md`, `rendering/pitfalls.md` (varyings and samplers), `planning/mesher.md` and `mesher-merge.md`. Tests: the header and scenarios of `frame_test.gd`, the test names of `view_test.gd` and `mesher_test.gd`.
+**Shaders.** I counted every shader's samplers and varyings with the regexes of `tools/lint.py`. Lint reports 0 problems today. I compared the `light()` functions, ran a 5-line duplicate-window scan over all 29 files, and grepped the shared constants. Docs: the headings of `chunks.md`, `rendering/pitfalls.md` (varyings and samplers), `planning/archive/mesher.md` and `mesher-merge.md`. Tests: the header and scenarios of `frame_test.gd`, the test names of `view_test.gd` and `mesher_test.gd`.
 
 **Not read in depth.** sky.gd (I only grepped its globals), camera_rig, pixel_view, figure/player, sun_rays, water_effects/air_effects/nature_effects, death_fx, tree_hits, plan_*, the bodies of `water_mesher` and `old_slope_mesher`, and the bulk of `grade`/`water`/`world`/`tree.gdshader`. Godot cannot run here, so every performance claim is from reading the code, not from measurement.
 
@@ -244,7 +244,7 @@
   - `OLD_CUT`: `mesh_faces.gd:91`.
   - The option itself: `land_layout.gd:72,75` (`"slopes": 0`), `world_store.gd:63-80` (the comment says "with the new slopes and with the old ones"; the value only names the save folder).
   - `world_list.gd:133` (`for slopes in [1]`), `settings.gd:215,223,421-423`.
-  - `docs/planning/mesher-merge.md` "Left 1" (still asks whether to remove `old_slope_mesher`) and its mention of `old_shapes_test`, which does not exist in `tests/`.
+  - `docs/planning/archive/mesher-merge.md` "Left 1" (still asks whether to remove `old_slope_mesher`) and its mention of `old_shapes_test`, which does not exist in `tests/`.
 - **Evidence:** No `SlopeMesher`/`EdgeMesher` code is left: the new-slope meshers were deleted cleanly. A grep finds `slopes` read in `src/shared/world` only in the option tables and the folder name.
 - **Why it matters:** A reader sees two slope systems where there is one. The world option costs a menu path and a settings migration.
 - **Proposed refactoring:**

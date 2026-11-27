@@ -4,8 +4,8 @@ Status: ACTIVE. The stages and tasks are not duplicated here. A Russian copy: [R
 
 ## Approved plans (the library)
 
-- `plan/mvp.md` — the stages: stage 0 is closed, stage 1 (the MVP) is in progress; the order of work and the
-  state by area. The state by area was checked on 2026-11-09 (PRs up to #457; next item 8 of decision 178 —
+- `plan/mvp.md` — the stages: stages 0–2 are closed (stage 1, the MVP, on 2026-11-11, decision 187; stage 2 on
+  2026-11-18, decision 192), stage 3 is next; the order of work and the state by area. The state by area was checked on 2026-11-09 (PRs up to #457; next item 8 of decision 178 —
   the check on a phone and the playtest, closing stage 1); what is in the code now is also in
   [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
 - `plan/backlog.md` — the only task list by area (GitHub Issues are not kept).
@@ -20,12 +20,12 @@ Status: ACTIVE. The stages and tasks are not duplicated here. A Russian copy: [R
 ## The technical audit of the code (stage 4, 2026-11-01)
 
 The findings by system — [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), the plan of steps and what waits
-for the user's decision — [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md). Done (steps
+for the user's decision — [planning/archive/REFACTORING_ROADMAP.md](planning/archive/REFACTORING_ROADMAP.md). Done (steps
 1–6, PR #289–#293): what was fixed and what is left — [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md),
 measurements — [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md).
 
 Testing and CI (stage 5, 2026-11-03, PR #346): the audit — [audit/TESTING_CI_AUDIT.md](audit/TESTING_CI_AUDIT.md),
-the plan and what is left — [planning/TESTING_CI_ROADMAP.md](planning/TESTING_CI_ROADMAP.md), the result —
+the plan and what is left — [planning/archive/TESTING_CI_ROADMAP.md](planning/archive/TESTING_CI_ROADMAP.md), the result —
 [audit/TESTING_CI_REPORT.md](audit/TESTING_CI_REPORT.md). The documentation audit (stage 6, 2026-11-05):
 [audit/DOCUMENTATION_AUDIT.md](audit/DOCUMENTATION_AUDIT.md), what was fixed and what is left —
 [audit/DOCUMENTATION_UPDATE_REPORT.md](audit/DOCUMENTATION_UPDATE_REPORT.md).

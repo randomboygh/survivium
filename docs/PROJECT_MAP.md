@@ -32,7 +32,7 @@ assets/                  the font, the splash, interface icons (ui/), the web pa
 tests/                   headless tests (run_tests + unit/, save, progress, frame, server), the check in a browser, run_all.sh (all the checks)
 tools/                   lint (lint.py), compiling all scripts (parse_check.gd), the pre-commit hook (hooks/), the validator, screenshots (shot + shot/), the map, benches, the profile, makers of pictures, sounds, icons; art/, sound/
 .github/                 CI (workflows/build.yml), the test server (workflows/playtest.yml), the Godot setup (actions/godot), the PR template
-docs/                    this documentation (audit/ — audit reports, reports/weekly-audits/ — the weekly audits and open issues, planning/ — plans, balance/ — the balance model and tables, testing/ — how to check and CI,
+docs/                    this documentation (audit/ — audit reports, reports/weekly-audits/ — the weekly audits and open issues, planning/ — hand-off notes of work in progress, planning/archive/ — finished and dropped plans, balance/ — the balance model and tables, testing/ — how to check and CI,
                          security/ — the threat model, protocol defence, command rights, anti-cheat, security tests)
 ```
 

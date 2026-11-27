@@ -26,7 +26,7 @@ Decision 186, item 4 (plan/mvp.md). The user's picks (2026-11-16, all «А»):
 - Step 3b: volcanic land (biome `where: volcanic`, bundles `biomes/volcanic`, `resources/volcanic`): rare regions
   by the noise `n_volcano` (about 4% of the land), basalt / black sand / ash, cones with lava craters, hot springs.
 
-Pictures: `survivium-builds/zones/` in the project library (maps before/after, rivers, caves, cave lights).
+Pictures: `survivium-builds/world/zones/` in the project library (maps before/after, rivers, caves, cave lights).
 
 ## Left
 

@@ -1,7 +1,7 @@
 # План: тестирование и CI (этап 5)
 
-Статус: DONE (этапы A–I сделаны 2026-11-03, PR #346); раздел «Дальше» — открытые задачи. Основание — [../audit/TESTING_CI_AUDIT.md](../audit/TESTING_CI_AUDIT.md);
-итог — [../audit/TESTING_CI_REPORT.md](../audit/TESTING_CI_REPORT.md).
+Статус: DONE (этапы A–I сделаны 2026-11-03, PR #346); раздел «Дальше» — открытые задачи. Основание — [../audit/TESTING_CI_AUDIT.md](../../audit/TESTING_CI_AUDIT.md);
+итог — [../audit/TESTING_CI_REPORT.md](../../audit/TESTING_CI_REPORT.md).
 
 Принципы: инфраструктура остаётся своей (GitHub Actions, headless Godot, `run_all.sh`), новых
 сервисов и зависимостей нет (PyYAML и node уже есть на машинах GitHub; без них соответствующие
@@ -24,7 +24,7 @@
 
 ## Дальше (не сделано, по порядку пользы)
 
-1. **Правило ветки `main` в GitHub** — required checks из [../testing/CI_PIPELINE.md](../testing/CI_PIPELINE.md).
+1. **Правило ветки `main` в GitHub** — required checks из [../testing/CI_PIPELINE.md](../../testing/CI_PIPELINE.md).
    Ставит владелец репозитория (у Claude нет прав на настройки).
 2. **Кадры 2–6 с «браузера» после переноса игрока далеко** (`progress_test`, аудит, раздел 6): найти,
    что их делает; это ещё и ускорит `progress_test`.

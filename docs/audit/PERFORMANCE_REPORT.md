@@ -1,7 +1,7 @@
 # Замеры производительности (этап 4)
 
 Статус: DONE (шаг 5, 2026-11-01). Находки — [CODEBASE_AUDIT.md](CODEBASE_AUDIT.md), раздел 6; план —
-[../planning/REFACTORING_ROADMAP.md](../planning/REFACTORING_ROADMAP.md), шаг 5.
+[../planning/archive/REFACTORING_ROADMAP.md](../planning/archive/REFACTORING_ROADMAP.md), шаг 5.
 
 Где меряли: облачный контейнер, 4 ядра, без GPU, Godot 4.5.1 headless. Время GDScript здесь примерно
 в 10 раз меньше, чем в браузере телефона; FPS и время кадра на телефоне меряет только пользователь

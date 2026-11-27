@@ -3,7 +3,7 @@
 **What I read.** Read in full: `tests/run_tests.gd`, `tests/unit/test_case.gd`, `tests/run_all.sh`,
 `.github/workflows/build.yml`, `.github/workflows/playtest.yml`, `.github/actions/godot/*`,
 `.github/pull_request_template.md`, `docs/CONTRIBUTOR_RULES.md`, `docs/testing/TEST_COVERAGE.md` (the flaky table),
-`docs/audit/TESTING_CI_AUDIT.md` §2–3 and `docs/planning/TESTING_CI_ROADMAP.md`. Read the headers and the relevant
+`docs/audit/TESTING_CI_AUDIT.md` §2–3 and `docs/planning/archive/TESTING_CI_ROADMAP.md`. Read the headers and the relevant
 ranges of: `frame_test.gd`, `save_test.gd`, `server_test.gd`, `progress_test.gd`, `tools/shot.gd` (the outline and
 `_run`), `tools/shot/shots.gd`, `tools/lint.py`, `tools/lang_check.py`, `tools/doc_index.py`, `tools/web_patch.py`,
 `tools/make_sprites.gd`, `make_models.gd`, `make_sounds.gd`, the `make_*.py` headers, `tools/tree_feet.py`, `export_presets.cfg`,

@@ -1,7 +1,7 @@
 # Отчёт о рефакторинге (этап 4)
 
 Статус: DONE (2026-11-01). Находки — [CODEBASE_AUDIT.md](CODEBASE_AUDIT.md); план —
-[../planning/REFACTORING_ROADMAP.md](../planning/REFACTORING_ROADMAP.md); замеры —
+[../planning/archive/REFACTORING_ROADMAP.md](../planning/archive/REFACTORING_ROADMAP.md); замеры —
 [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md).
 
 ## Шаги
@@ -58,7 +58,7 @@
 ## Файлы
 
 - Созданы: `docs/audit/CODEBASE_AUDIT.md`, `docs/audit/PERFORMANCE_REPORT.md`,
-  `docs/audit/REFACTORING_REPORT.md`, `docs/planning/REFACTORING_ROADMAP.md`.
+  `docs/audit/REFACTORING_REPORT.md`, `docs/planning/archive/REFACTORING_ROADMAP.md`.
 - Изменены: около 110 файлов (код в `src/`, шейдеры `world.gdshader` и `water.gdshader`, тесты,
   инструменты, документы систем, `CLAUDE.md`); всего с начала этапа около +1300 / −580 строк.
 - Удалённых файлов нет: удалялись только функции и поля, которые никто не зовёт (проверено поиском

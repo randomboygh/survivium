@@ -1,7 +1,7 @@
 # План рефакторинга (этап 4)
 
-Статус: DONE (шаги 1–6 сделаны 2026-11-01, PR #289–#293; итоги — в отчёте). Находки и их номера — [../audit/CODEBASE_AUDIT.md](../audit/CODEBASE_AUDIT.md); что
-сделано и чем проверено — [../audit/REFACTORING_REPORT.md](../audit/REFACTORING_REPORT.md). Пользователь
+Статус: DONE (шаги 1–6 сделаны 2026-11-01, PR #289–#293; итоги — в отчёте). Находки и их номера — [../audit/CODEBASE_AUDIT.md](../../audit/CODEBASE_AUDIT.md); что
+сделано и чем проверено — [../audit/REFACTORING_REPORT.md](../../audit/REFACTORING_REPORT.md). Пользователь
 поручил выполнить план целиком без остановки после него (тред «Провести рефакторинг по refactoring.md»,
 2026-11-01); пункты, меняющие структуру, игру или протокол, не делаются, а вынесены в раздел 3.
 
@@ -52,4 +52,4 @@
 `--import`, `validate.gd`, `content_report.gd --check`, `run_tests.gd`, `save_test.gd`, `progress_test.gd`
 (после правок правил), `server_test.gd`, `frame_test.gd` (отдельно, шумит — Т11), `doc_index.py --check`,
 CI на PR (с web-экспортом и проверкой в браузере, если менялись шейдеры или клиент). Для шага 5 —
-`tools/bench_*.gd` до и после, цифры в [../audit/PERFORMANCE_REPORT.md](../audit/PERFORMANCE_REPORT.md).
+`tools/bench_*.gd` до и после, цифры в [../audit/PERFORMANCE_REPORT.md](../../audit/PERFORMANCE_REPORT.md).

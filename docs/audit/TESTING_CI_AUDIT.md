@@ -2,7 +2,7 @@
 
 Статус: ARCHIVED — снимок на 2026-11-03: история и причины решений, не инструкция (пути, числа и
 «нет»/«будет» — того дня; код как он есть — [INDEX.md](../INDEX.md)). Задание: `testing_ci.md` в библиотеке проекта. План по итогам —
-[../planning/TESTING_CI_ROADMAP.md](../planning/TESTING_CI_ROADMAP.md), итог —
+[../planning/archive/TESTING_CI_ROADMAP.md](../planning/archive/TESTING_CI_ROADMAP.md), итог —
 [TESTING_CI_REPORT.md](TESTING_CI_REPORT.md).
 
 Источники: код `tests/`, `tools/`, `.github/`; журналы GitHub Actions за 2026-11-02…03 (70 прогонов

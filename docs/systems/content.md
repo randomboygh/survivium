@@ -82,7 +82,7 @@ the code sees content.
   world's (kept in the save) and sends the files to every player (`Protocol.MODS`), the author too. Any
   other player is told the save stayed on the device. A server made in the game takes the mod with the
   game's reload (`Server.mods_reread` joins the bundles the editor joined). State:
-  `docs/planning/editor.md`.
+  `docs/planning/archive/editor.md`.
 - Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
   game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise
   the built-in copy `res://content` (`BUILT_IN`; the editor, the browser, a phone, a build without the
