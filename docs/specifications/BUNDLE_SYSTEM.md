@@ -4,7 +4,7 @@ Status: ACTIVE 2026-10-30, decision 152 (the user's answers 1А, 2В, 3А, 4А);
 #238–#248), each section describes the code, the note «stage N» says by which stage it came. Checked against
 the code and data on 2026-11-05 (PR #372): «Now» in the tables is what is in the data on that date. The spec is
 `plan/history/tasks/bundles.md` in the project's library (ARCHIVED); the analysis of the spec, the audit of the
-present data, the stages with files, checks and risks — `plan/architecture/bundle-system.md` there. How the
+present data, the stages with files, checks and risks — `plan/history/bundle-system.md` there. How the
 data is arranged now — [DATA_MODEL.md](../DATA_MODEL.md), the loader —
 [systems/content.md](../systems/content.md). A Russian copy: [BUNDLE_SYSTEM_RU.md](BUNDLE_SYSTEM_RU.md).
 
@@ -478,7 +478,7 @@ era; `content/tools/README.md` — a tool of a new class, a station, a recipe an
    classes and flags, and by id names only the core's records.
 7. **Extensibility and balance.** Preliminary numbers are marked `provisional`; balance is an edit of data; an
    alternative is one more recipe, not an exception in code.
-8. **Decisions are written.** The journal `plan/README.md`, [DECISIONS.md](../DECISIONS.md), this document and
+8. **Decisions are written.** The journal `plan/decisions.md`, [DECISIONS.md](../DECISIONS.md), this document and
    the table of stages are updated in the same PR as the code.
 9. **Tests after each stage.** All the checks from `CLAUDE.md` (since stage 3 also the freshness of the
    reports) and a new test that fails without the new code.

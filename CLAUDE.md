@@ -17,11 +17,11 @@ caught up by the weekly thread. Code, comments, commits and PRs are in English.
   go), `SYSTEMS.md` (each system, its files, its doc in `docs/systems/`, its tests), `ARCHITECTURE.md`,
   `DATA_MODEL.md`, `DEPENDENCIES.md`, `DECISIONS.md`, `docs/testing/` (tests, CI). Generated, read only by
   `grep`: `docs/generated/code-index.md` (every script), `content-index.md`, `content-graph.md`,
-  `content-recipes.md`, `content-checks.md`. `docs/audit/`, `docs/planning/` (hand-off notes; finished and
+  `content-recipes.md`, `content-checks.md`. `docs/audit/`, `docs/planning/` (earlier hand-off notes; new ones go to the library's `planning/`; finished and
   dropped plans in `archive/`), `docs/reports/weekly-audits/` are dated history, not instructions
   (`OPEN_ISSUES.md` there lists open problems).
 - Design, the decision log, the MVP stages and the backlog live outside the repo, in the Claude project's
-  library `plan/` (`README.md` index and decisions, `mvp.md`, `backlog.md`, `design/`, `architecture/`);
+  library `plan/` (`README.md` index, `decisions.md` decision log, `mvp.md`, `backlog.md`, `design/`, `architecture/`);
   screenshots in `survivium-builds/`. A `plan/` doc marked PROPOSED or DRAFT describes intent, not code.
 
 ```

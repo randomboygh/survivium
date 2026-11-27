@@ -79,4 +79,4 @@ bundle without what it needs — do not, worlds of the marks `content` 1–9 ope
 `tests/unit/character_test.gd` (old ids in the bag).
 
 **In more detail.** `plan/architecture/simulation.md` («Storing the world»), the decisions about saving in the
-journal `plan/README.md`.
+journal `plan/decisions.md`.

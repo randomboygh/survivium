@@ -91,4 +91,4 @@
 окно сервера, «Присоединиться», новый мир) и проверяет каждое. `tools/shot.gd -- <папка> --keys` (можно и
 headless) вместо сохранения снимков ищет ключи на экране каждого и печатает `KEYS <снимок>: …`.
 
-**Подробнее.** Руководство переводчика — [../TRANSLATION.md](../TRANSLATION_RU.md) (копия [../TRANSLATION_RU.md](../TRANSLATION_RU.md)); решения 183 и 186 в `plan/README.md`; скриншоты на языке — `tools/shot.gd -- --lang en`.
+**Подробнее.** Руководство переводчика — [../TRANSLATION.md](../TRANSLATION_RU.md) (копия [../TRANSLATION_RU.md](../TRANSLATION_RU.md)); решения 183 и 186 в `plan/decisions.md`; скриншоты на языке — `tools/shot.gd -- --lang en`.

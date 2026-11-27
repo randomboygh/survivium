@@ -60,4 +60,4 @@ wood, `swish` — at a sword, `bird` — at a sparrow); the game's own sounds ar
 **Tests.** `tests/unit/view_test.gd` (`sound`), `tools/validate.gd` (every sound has files for all variants).
 
 **In more detail.** The READMEs of the mods `content/sounds/` and `content/music/`, decisions 89 and 143 in
-`plan/README.md`.
+`plan/decisions.md`.

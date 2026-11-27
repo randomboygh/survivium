@@ -30,9 +30,9 @@ shaders/                 3D shaders (the shared common.gdshaderinc), colour corr
 content/<mod>/           mods: mod.yaml, README, bundle folders with bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/, lang/ (translations); common/ shared assets
 assets/                  the font, the splash, interface icons (ui/), the web page's icons (web/, not imported), the apps' icons (app/: Android, Windows), `nes_lut.png` (the 8 bit screen effect's palette)
 tests/                   headless tests (run_tests + unit/, save, progress, frame, server), the check in a browser, run_all.sh (all the checks)
-tools/                   lint (lint.py), compiling all scripts (parse_check.gd), the pre-commit hook (hooks/), the validator, screenshots (shot + shot/), the map, benches, the profile, makers of pictures, sounds, icons; art/, sound/
+tools/                   lint (lint.py), compiling all scripts (parse_check.gd), the pre-commit hook (hooks/), the library check (library_check.py), the validator, screenshots (shot + shot/), the map, benches, the profile, makers of pictures, sounds, icons; art/, sound/
 .github/                 CI (workflows/build.yml), the test server (workflows/playtest.yml), the Godot setup (actions/godot), the PR template
-docs/                    this documentation (audit/ — audit reports, reports/weekly-audits/ — the weekly audits and open issues, planning/ — hand-off notes of work in progress, planning/archive/ — finished and dropped plans, balance/ — the balance model and tables, testing/ — how to check and CI,
+docs/                    this documentation (audit/ — audit reports, reports/weekly-audits/ — the weekly audits and open issues, planning/ — earlier hand-off notes (new ones go to the library's `planning/`), planning/archive/ — finished and dropped plans, balance/ — the balance model and tables, testing/ — how to check and CI,
                          security/ — the threat model, protocol defence, command rights, anti-cheat, security tests)
 ```
 
@@ -71,7 +71,7 @@ In detail by layers and links: [ARCHITECTURE.md](ARCHITECTURE.md); by systems: [
 | A window or an interface element | from the parts of the kit `src/client/ui/kit/` ([systems/ui.md](systems/ui.md), «UI kit»); a new shared part goes into the kit and into the «Interface gallery» |
 | An interface picture | `assets/ui/` |
 | A document about the code | `docs/` (a system — `docs/systems/`) |
-| Game design, a decision, a task | the library: `plan/design/`, the journal in `plan/README.md`, `plan/backlog.md` |
+| Game design, a decision, a task | the library: `plan/design/`, the journal in `plan/decisions.md`, `plan/backlog.md` |
 | A screenshot | the library: `survivium-builds/<topic>/` and a row in its README |
 
 New top-level folders are not created without need.

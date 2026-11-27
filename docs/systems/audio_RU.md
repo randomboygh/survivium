@@ -52,4 +52,4 @@ player, ui), ноты — `content/music/`; `step` и `hit` материала, 
 **Тесты.** `tests/unit/view_test.gd` (`sound`), `tools/validate.gd` (у каждого звука есть файлы на все
 варианты).
 
-**Подробнее.** README модов `content/sounds/` и `content/music/`, решения 89 и 143 в `plan/README.md`.
+**Подробнее.** README модов `content/sounds/` и `content/music/`, решения 89 и 143 в `plan/decisions.md`.

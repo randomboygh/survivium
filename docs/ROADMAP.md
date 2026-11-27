@@ -15,7 +15,7 @@ Status: ACTIVE. The stages and tasks are not duplicated here. A Russian copy: [R
   #335–#339, #371, #372) and skills (decision 164, PR #340–#342) — tasks 7 and 6 of stage 1.
 - The bundle system by the spec `bundles.md` (decision 152) is built: the rules and the state of the eight
   stages — [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md), the plan of the stages with
-  files and risks — `plan/architecture/bundle-system.md`.
+  files and risks — `plan/history/bundle-system.md`.
 
 ## The technical audit of the code (stage 4, 2026-11-01)
 

@@ -1,7 +1,7 @@
 # Architectural decisions
 
 Status: ACTIVE. The index of the decisions the code rests on. The full journal (no. 1–189, including game
-design) is the «Decision journal» table in the library's `plan/README.md`; the numbers below are from it. A
+design) is the «Decision journal» table in the library's `plan/decisions.md`; the numbers below are from it. A
 new decision is written into the journal first, and here — if it changes a principle of the code. Where the
 reason is not recorded, it says so. A Russian copy: [DECISIONS_RU.md](DECISIONS_RU.md).
 

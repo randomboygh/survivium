@@ -206,5 +206,5 @@
 роль требует кода; классы инструментов и вещей на 2×2 (`items.tool`, `items.prop`) открыты с этапа 5а.
 Голоса зверей синтезирует таблица в `tools/make_sounds.gd`, бандл приносит только готовые `.wav`.
 
-**Подробнее.** `plan/architecture/modding.md`; решения 140, 142, 143, 146 в `plan/README.md`; README
+**Подробнее.** `plan/architecture/modding.md`; решения 140, 142, 143, 146 в `plan/decisions.md`; README
 каждого мода.

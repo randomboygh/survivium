@@ -115,4 +115,4 @@
 участок).
 
 **Подробнее.** `plan/design/landscape.md`, `plan/design/world.md`, `plan/design/trees.md`,
-`plan/architecture/performance.md`; решения о рельефе в журнале `plan/README.md`.
+`plan/architecture/performance.md`; решения о рельефе в журнале `plan/decisions.md`.
