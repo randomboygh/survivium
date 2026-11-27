@@ -16,6 +16,7 @@ func run() -> void:
 	_test_content()
 	_test_launch_sail_ashore()
 	_test_launch_from_bag()
+	_test_sea_level()
 	_test_rowing_feel()
 	_test_wind_and_bump()
 	_test_two_aboard()
@@ -169,6 +170,32 @@ func _test_launch_from_bag() -> void:
 	var before := told.n
 	actions.boat(ch)
 	_check(ch.riding == "" and told.n > before, "stepping ashore is told at once")
+
+
+## On water at the sea's level, flush with the top of its cell (WorldCells.water_top),
+## a vessel is launched, from the bank and from the water, floats and is rowed.
+func _test_sea_level() -> void:
+	var w := _lake()
+	w.sea_level = 2
+	var ch := _rower(w, BOAT)
+	var actions := _actions(w, [ch])
+	_check(actions.boat_kind(ch) == "launch", "a boat in the hand facing the sea is launched")
+	ch.at = Vector3(6.5, 2.2, 8.5) * WorldData.CELL
+	_check(not actions.launch_near(ch).is_empty(), "the bag's button finds the sea round one swimming in it")
+	ch.at = Vector3(2.5, 3.0, 8.5) * WorldData.CELL
+	_check(not actions.boat(ch).is_empty() and ch.riding == BOAT and is_equal_approx(ch.at.y / WorldData.CELL, 3.0 - Body.DECK),
+		"launched, the rower sits on the sea's surface: %s" % (ch.at / WorldData.CELL))
+	ch.update(0.1)
+	var body: Body = ch.body
+	body.move_input = Vector2(1.0, 0.0)
+	var p := ch.at
+	for i in 40:
+		p = body.step(p, 0.05, true)
+	_check(body.afloat and p.x > ch.at.x + WorldData.CELL and is_equal_approx(p.y / WorldData.CELL, 3.0 - Body.DECK),
+		"rowed along the sea, it keeps to its surface: %s" % (p / WorldData.CELL))
+	ch.at = p
+	actions.step_boats(0.6, [ch])
+	_check(ch.riding == BOAT and actions.vessels.list.size() == 1, "it stays afloat")
 
 
 ## A vessel speeds up rowed, coasts on let go, turns gradually and carves its turn; an

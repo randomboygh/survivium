@@ -65,7 +65,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   `tend_kind` «release», `release` lets it out a cell ahead, tame and its own (`Wildlife.release`))
   ← `actions_boat.gd` (a raft and a boat, decision 178, answer 4Б: an item with `vessel` in the hand, with the
   action button facing open water (`launch_spot`: the water column ahead within `LAUNCH_REACH`, the whole
-  hull `Body.HULL` on water of one level, the surface no farther than `LAUNCH_DROP` from the feet) is put on
+  hull `Body.HULL` on water of one level, found just under the surface so the sea's water, flush with its cell's top, counts too, the surface no farther than `LAUNCH_DROP` from the feet) is put on
   the water — leaves the bag and floats (`Vessels`), the character sits in it and rows (`Character.riding`,
   `vessel`, `seat` 0; `front_kind` «launch»); facing a vessel with a free seat (the item's `seats`,
   `Vessels.seats`) — «board»: the first rows, the others ride (seat 1, `seat_at` — behind the rower); a launch,
@@ -417,7 +417,7 @@ touch in the browser also arrives as `InputEventMouseMotion`: `controls.input` t
 only when there is no finger and more than 1 s has passed since the touch. The joystick and `TouchButton`
 follow their own touch index so that two fingers work.
 
-**Tests.** `tests/unit/boat_test.gd` (launching, moving on water, two in a boat, the shore, a vessel at the
+**Tests.** `tests/unit/boat_test.gd` (launching, also on the sea's flush water, moving on water, two in a boat, the shore, a vessel at the
 shore and into the bag, oars, saving, ice, death),
 `tests/unit/farming_test.gd` (a bed, sowing, watering, rain, growth, winter, harvest, saving),
 `tests/unit/actions_test.gd` (`felling`, `front_choice`, `snow_gathered`, `world_actions`, `stairs_placed`, `placed`,

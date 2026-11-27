@@ -497,8 +497,10 @@ func floats(at: Vector3) -> bool:
 func _hull_surface(p: Vector3) -> float:
 	if world.frozen_at(floori(p.x), floori(p.z)):
 		return INF
-	# The surface is looked for from a little over the feet: a vessel's are under it.
-	var probe := Vector3(p.x, p.y + 0.05, p.z)
+	# The surface is looked for from a little under the feet (on the deck, DECK under it):
+	# water flush with the top of its cell (the sea's level, WorldCells.water_top) has
+	# only air above the surface.
+	var probe := Vector3(p.x, p.y + DECK - 0.05, p.z)
 	var surface := _water_surface(probe)
 	if surface == -INF:
 		return INF
