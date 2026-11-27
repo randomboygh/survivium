@@ -63,7 +63,11 @@ Part of [The picture](../rendering.md). The rules a change of the picture keeps.
   discards them and the things of voxels above `build_cut` (`above_build_cut`; snow drifts stay); the plan
   shaders too. Natural ground, trees, grass, water and sprites are not cut; the cut that follows the player and the
   layers look only at natural ground meanwhile, and are off while another floor is looked at. Its caps close only
-  built cells (`build_cap(..., built)`, `ChunkStreamer.BUILT_CAPS`). The player standing above it (on a floor over
+  built cells (`build_cap(..., built)`, `ChunkStreamer.BUILT_CAPS`), and the natural ground the built cells left
+  out covered: the mesher draws no face between two solid cells, so a floor laid on the ground or in it left a
+  hole to the sky; the tops of natural cells over the cut under such a cell and their sides toward one beside them
+  get dark caps too (`ChunkMesher._uncovered`, whole natural cubes, no trunks; the user's ask, 2026-11-27). The
+  player standing above it (on a floor over
   the one looked at) is drawn see-through, every other texel by `bayer4` (`sprite.gdshader`).
 - The cave view is one — layers (`src/client/view/cave_layers.gd`; decision 168: the «slice of levels», the
   «cut by the camera» and the «sphere» were removed together with the setting «Cave view» `cave_mode`, saved

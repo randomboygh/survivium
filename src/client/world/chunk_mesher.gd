@@ -1030,7 +1030,8 @@ const CAP_SINK := 0.01
 ## material are merged. Covers the cells x0..x0+size, z0..z0+size (a chunk from the
 ## origin by default), so the game can rebuild the cap chunk by chunk. The caps sit
 ## CAP_SINK under the cells' tops. `built`: only under built cells (not WorldData.WILD), the
-## build mode's cut of the floors, which leaves natural ground whole; `shade` their colour.
+## build mode's cut of the floors, which leaves natural ground whole, and the natural ground
+## that built cells above the cut covered (_uncovered); `shade` their colour.
 static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK, built := false,
 		shade := CAP_SHADE) -> ArrayMesh:
 	if level < 0 or level >= w.size_y - 1:
@@ -1108,7 +1109,70 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK, 
 						var mf: int = w.get_cell(x + o.x, level, z)
 						_piece(buf, base, 1.0, k, CORNER, Vector3.UP, dark, Vector2(pack(mf * 3, 0, 0), no_tiles),
 							_cap_shape(w, x, level, z, k, Mat.corner_shape[mf]))
+	if built:
+		_uncovered(buf, w, level, x0, z0, size, dark)
 	return null if buf.is_empty() else buf.to_mesh(CELL)
+
+
+## The sides of a cell as DIRS: east, west, south, north.
+const SIDE_DIRS := [0, 1, 4, 5]
+
+
+## The faces of natural ground that built cells left out by the build mode's cut of the
+## floors at `level` uncover, dark as the caps (the user's ask, 2026-11-27: no hole where a
+## building stood): the tops of natural cells over the cut under such a built cell, and
+## their sides toward one beside them. The mesher leaves out a face between two solid
+## cells, so without these the ground under a floor laid on it or in it showed the sky.
+## Whole natural cubes only, CAP_SINK inside them; the cells x0..x0+size, z0..z0+size.
+static func _uncovered(buf: MeshBuffers, w, level: int, x0: int, z0: int, size: int, shade: Color) -> void:
+	# The built cells over the cut by column, of the chunk and a ring of columns round it.
+	var over: int = w.all_bits & ~((1 << (level + 1)) - 1)
+	var span := size + 2
+	var gone := PackedInt64Array()
+	gone.resize(span * span)
+	var any := false
+	for dz in span:
+		for dx in span:
+			var c: WorldData.Chunk = w.chunk_at(x0 - 1 + dx, z0 - 1 + dz)
+			if c != null:
+				var col := WorldData.col_of(x0 - 1 + dx, z0 - 1 + dz)
+				var built: int = ~(c.air[col] | c.water[col] | c.leaf[col] | c.wild[col]) & over
+				gone[dz * span + dx] = built
+				any = any or built != 0
+	if not any:
+		return
+	var faces: Array = face_table()
+	var no_tiles := float(NO_TILES)
+	# The column beside, as SIDE_DIRS; the fifth way is the top.
+	var steps := [1, -1, span, -span]
+	for z in range(z0, z0 + size):
+		for x in range(x0, x0 + size):
+			var at := (z - z0 + 1) * span + x - x0 + 1
+			var c: WorldData.Chunk = w.chunk_at(x, z)
+			if c == null:
+				continue
+			var col := WorldData.col_of(x, z)
+			# Trunks are drawn as trunks (TrunkMesher), not cubes.
+			var ground: int = ~(c.air[col] | c.water[col] | c.leaf[col] | c.logs[col]) & c.wild[col] & over
+			if ground == 0:
+				continue
+			for k in 5:
+				var y := level + 1
+				var open: int = (ground & (gone[at] >> 1 if k == 4 else gone[at + steps[k]])) >> y
+				while open != 0:
+					var i := y * WorldData.LAYER + col
+					if open & 1 and c.shapes[i] == 0:
+						var tile: int = c.cells[i] * 3
+						if k == 4:
+							_add(buf, faces[FACE_TOP], FACE_TOP, Vector3(x, y - CAP_SINK, z), Vector3.ONE,
+								Vector3.ZERO, shade, Vector2(pack(tile, 0, 0), no_tiles))
+						else:
+							var d: int = SIDE_DIRS[k]
+							var n: Vector3 = faces[d].normal
+							_add(buf, faces[d], d, Vector3(x, y, z) - n * CAP_SINK, Vector3.ONE, Vector3.ZERO,
+								shade, Vector2(pack(tile + 1, 0, 0), no_tiles))
+					open >>= 1
+					y += 1
 
 
 ## The corner shape of a cap's cut or filled corner k at (x, level, z) as the cells are
