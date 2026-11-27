@@ -1,12 +1,12 @@
 # The trees: the approved drawing as a program
 
-The program the trees were redrawn with (thread «Перерисовать деревья», rounds 3 to 25, 2026-11) and the exports
-that turn its approved drawing into the game's pictures of the trees: `content/plants/<species>/tree/` `frames.png`,
-`bare.png`, `snow.png`, `snow_dry.png`, `stumps.png`, `pieces.png` and the lines of `look.yaml` that place them.
-Each round of the redraw added modules on top of the earlier ones; `src/` holds the latest version of every module
-the exports reach (moved here from the library 2026-11-27), `ref/` the user's references and the data cut from them.
-The review sheets of each round stay in the library (`survivium-builds/trees-redraw/`, its HANDOFF.md has the
-user's picks round by round).
+The program the trees were redrawn with (rounds 3 to 25 of the redraw begun in the thread «Перерисовать деревья по
+референсам», 2026-11) and the exports that turn its approved drawing into the game's pictures of the trees:
+`content/plants/<species>/tree/` `frames.png`, `bare.png`, `snow.png`, `snow_dry.png`, `stumps.png`, `pieces.png` and
+the lines of `look.yaml` that place them. Each round of the redraw added modules on top of the earlier ones; `src/`
+holds the latest version of every module the exports reach (moved here from the library 2026-11-27), `ref/` the
+user's references and the data cut from them. The review sheets of each round stay in the library
+(`survivium-builds/trees-redraw/`, its HANDOFF.md has the user's picks round by round).
 
 Needs numpy, Pillow and scipy (`pip install numpy pillow scipy`). Once, from the repository's root:
 
