@@ -54,6 +54,23 @@ var _fences := {}
 ## The items that are seats (`seat` over 1) by id, with their `seat`: seat_near looks no
 ## further when there are none, every body every step.
 static var seats := {}
+## The index of the things and lights set down, kept as they come and go (put, put_light,
+## _forget; anew in read_footprints), so the rules that ask what stands at a cell or near a
+## point look only there and not over every thing of the world each tick (GAME-2): the
+## north-west cell of a thing -> the things there, in the order of `things` (`_at`), the
+## same for the lights (`_light_cells`), and the chunk of INDEX_CHUNK by INDEX_CHUNK cells
+## a thing's north-west cell is in -> its things (`_chunks`, see near).
+const INDEX_CHUNK := 8
+var _at := {}
+var _light_cells := {}
+var _chunks := {}
+## The fires (is_fire), beds (is_bed) and seats (is_seat) set down, in the order of `things`.
+var fires: Array = []
+var beds: Array = []
+var seated: Array = []
+## The widest square (cells a side, see sizes) a kind of thing takes: how far west and north
+## of a cell the north-west cell of a thing filling it may lie (near).
+static var widest := 2
 ## The boxes of a kind whose item has no model: the plain crate VoxelProps draws for
 ## it, its walls a voxel in from the edges of its cells.
 ## What a thing drawn as a picture (an item's `picture`) takes of its one cell.
@@ -135,6 +152,10 @@ func read_footprints() -> void:
 			footprints[kind] = [CRATE_BOX, CRATE_BOX, CRATE_BOX, CRATE_BOX]
 			turned[kind] = [footprints[kind], footprints[kind], footprints[kind], footprints[kind]]
 			sizes[kind] = 2
+	widest = 2
+	for n: int in sizes.values():
+		widest = maxi(widest, n)
+	_reindex()
 
 
 ## The sides fence `e` joins (bits of SIDES): each beside it on its level where a fence, a
@@ -269,6 +290,7 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 		if chest_items == null:
 			chest_items = e.items
 	things.append(e)
+	_index(e)
 	_note_scarer(e)
 	if rec.get("fence", false):
 		for c: Vector3i in cells_of(e):
@@ -377,20 +399,21 @@ func cell_of(item: String) -> Variant:
 ## The thing placed with its north-west cell at `cell`, or {}: how a request names a
 ## thing (Requests).
 func at(cell: Vector3i) -> Dictionary:
-	for e in things:
-		if e.cell == cell:
-			return e
-	for e in lights:
-		if e.cell == cell:
-			return e
-	return {}
+	var here: Array = _at.get(cell, [])
+	if not here.is_empty():
+		return here[0]
+	return light_at(cell)
 
 
 ## The stations (things that store nothing; a fire while it burns) within `reach` world
 ## units of world point `p`, and those they serve: item id -> true.
 func stations_near(p: Vector3, reach: float) -> Dictionary:
 	var out := {}
-	for e in things:
+	var c := p / CELL
+	var r := reach / CELL
+	var lo := Vector2i(floori(c.x - r) - 1, floori(c.z - r) - 1)
+	var hi := Vector2i(floori(c.x + r), floori(c.z + r))
+	for e: Dictionary in near(lo, hi):
 		if e.items == null and e.lit and center(e).distance_to(p) <= reach:
 			out[e.item] = true
 			for s: String in Items.get_item(e.item).serves:
@@ -424,6 +447,7 @@ func _remove(e: Dictionary) -> void:
 ## Lets go of thing `e`: its cells are free again, it is told gone (removed).
 func _forget(e: Dictionary) -> void:
 	scarers.erase(e)
+	_unindex(e)
 	if is_light(e):
 		lights.erase(e)
 		removed.emit(e)
@@ -517,6 +541,7 @@ func put_light(item: String, cell: Vector3i, burnt := 0.0, turn := 0) -> Diction
 	if turn != 0:
 		e.turn = turn
 	lights.append(e)
+	_index(e)
 	_note_scarer(e)
 	added.emit(e)
 	return e
@@ -529,7 +554,87 @@ func _note_scarer(e: Dictionary) -> void:
 
 ## The light standing in `cell`, {} for none.
 func light_at(cell: Vector3i) -> Dictionary:
-	for e in lights:
-		if e.cell == cell:
-			return e
-	return {}
+	var here: Array = _light_cells.get(cell, [])
+	return here[0] if not here.is_empty() else {}
+
+
+## The things that may fill a cell of the columns from `lo` to `hi` (x and z of cells, both
+## ends in): those whose north-west cell lies within `widest` cells west and north of them,
+## from the index's chunks (the order of `things` within a chunk, chunk by chunk).
+func near(lo: Vector2i, hi: Vector2i) -> Array:
+	var from := Vector2i(lo.x - widest + 1, lo.y - widest + 1)
+	var c0 := _chunk_of(from.x, from.y)
+	var c1 := _chunk_of(hi.x, hi.y)
+	var out := []
+	for cz in range(c0.y, c1.y + 1):
+		for cx in range(c0.x, c1.x + 1):
+			for e: Dictionary in _chunks.get(Vector2i(cx, cz), []):
+				var at: Vector3i = e.cell
+				if at.x >= from.x and at.x <= hi.x and at.z >= from.y and at.z <= hi.y:
+					out.append(e)
+	return out
+
+
+## The chunk of the index (INDEX_CHUNK cells a side) cell column `x`, `z` is in.
+static func _chunk_of(x: int, z: int) -> Vector2i:
+	return Vector2i(floori(x / float(INDEX_CHUNK)), floori(z / float(INDEX_CHUNK)))
+
+
+## Puts thing or light `e` into the index (see _at).
+func _index(e: Dictionary) -> void:
+	if is_light(e):
+		_add_to(_light_cells, e.cell, e)
+		return
+	_add_to(_at, e.cell, e)
+	_add_to(_chunks, _chunk_of(e.cell.x, e.cell.z), e)
+	if is_fire(e):
+		fires.append(e)
+	if is_bed(e):
+		beds.append(e)
+	if is_seat(e):
+		seated.append(e)
+
+
+## Takes thing or light `e` out of the index.
+func _unindex(e: Dictionary) -> void:
+	if is_light(e):
+		_take_from(_light_cells, e.cell, e)
+		return
+	_take_from(_at, e.cell, e)
+	_take_from(_chunks, _chunk_of(e.cell.x, e.cell.z), e)
+	for list: Array in [fires, beds, seated]:
+		_drop(list, e)
+
+
+## Builds the index anew from `things` and `lights` (the items read anew may be fires,
+## beds or seats otherwise, their squares wider).
+func _reindex() -> void:
+	_at = {}
+	_light_cells = {}
+	_chunks = {}
+	fires = []
+	beds = []
+	seated = []
+	for e: Dictionary in things + lights:
+		_index(e)
+
+
+static func _add_to(index: Dictionary, key: Variant, e: Dictionary) -> void:
+	if not index.has(key):
+		index[key] = []
+	index[key].append(e)
+
+
+static func _take_from(index: Dictionary, key: Variant, e: Dictionary) -> void:
+	var list: Array = index.get(key, [])
+	_drop(list, e)
+	if list.is_empty():
+		index.erase(key)
+
+
+## Takes `e` itself (not one equal to it) out of `list`.
+static func _drop(list: Array, e: Dictionary) -> void:
+	for i in list.size():
+		if is_same(list[i], e):
+			list.remove_at(i)
+			return

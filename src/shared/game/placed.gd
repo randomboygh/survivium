@@ -123,7 +123,7 @@ func walk_open(who) -> bool:
 
 ## The shut door in a wall (is_wall_door) whose cells hold cell `c`, {} for none.
 func _shut_door_on(c: Vector3i) -> Dictionary:
-	for e: Dictionary in things:
+	for e: Dictionary in near(Vector2i(c.x, c.z), Vector2i(c.x, c.z)):
 		if e.cell.y == c.y and not e.get("open", true) and is_door(e) and is_wall_door(Items.get_item(e.item)) \
 				and cells_of(e).has(c):
 			return e
@@ -203,10 +203,10 @@ func _renew(e: Dictionary, turn: int, text: String) -> void:
 ## the bed's square of cells, no higher than a level above them.
 func bed_under(p: Vector3) -> Dictionary:
 	var c := p / CELL
-	for e in things:
+	for e: Dictionary in beds:
 		var at: Vector3i = e.cell
 		var n := size_of(e.item)
-		if is_bed(e) and c.x >= at.x and c.x < at.x + n and c.z >= at.z and c.z < at.z + n \
+		if c.x >= at.x and c.x < at.x + n and c.z >= at.z and c.z < at.z + n \
 				and c.y >= at.y - SINGE and c.y <= at.y + 1.0:
 			return e
 	return {}
@@ -219,8 +219,8 @@ func nearest_bed(p: Vector3, reach: float) -> Dictionary:
 	var c := p / CELL
 	var best := {}
 	var best_d := reach
-	for e in things:
-		if not is_bed(e) or absf(float(e.cell.y) - c.y) > 1.0 + SINGE:
+	for e: Dictionary in beds:
+		if absf(float(e.cell.y) - c.y) > 1.0 + SINGE:
 			continue
 		var half := size_of(e.item) * 0.5
 		var d := Vector2(e.cell.x + half - c.x, e.cell.z + half - c.z).length()
@@ -253,7 +253,7 @@ func seat_near(p: Vector3) -> float:
 	if seats.is_empty():
 		return best
 	var c := p / CELL
-	for e in things:
+	for e: Dictionary in seated:
 		var seat: float = seats.get(e.item, 1.0)
 		if seat <= best or absf(float(e.cell.y) - c.y) > 1.0:
 			continue

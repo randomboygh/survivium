@@ -49,8 +49,8 @@ func burns(p: Vector3) -> bool:
 ## without burning.
 func burning(p: Vector3) -> Dictionary:
 	var c := p / CELL
-	for e in things:
-		if not e.lit or not is_fire(e) or is_hearth(e):
+	for e: Dictionary in fires:
+		if not e.lit or is_hearth(e):
 			continue
 		var at: Vector3i = e.cell
 		if c.y < at.y - Body.HEIGHT or c.y > at.y + 1.0 + SINGE:

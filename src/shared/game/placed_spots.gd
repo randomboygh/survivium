@@ -605,7 +605,7 @@ func _open(c: Vector3i, cut_from: int) -> bool:
 ## True when cell `c` is one of those a door standing open fills when shut (it frees them
 ## while open, see opened_boxes): nothing is set down in a doorway.
 func _in_open_door(c: Vector3i) -> bool:
-	for e: Dictionary in things:
+	for e: Dictionary in near(Vector2i(c.x, c.z), Vector2i(c.x, c.z)):
 		if e.get("open", false) and e.cell.y == c.y and not is_same(e, _moving):
 			var shut := e.duplicate()
 			shut.open = false
