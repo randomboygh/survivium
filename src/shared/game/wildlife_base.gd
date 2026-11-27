@@ -45,12 +45,26 @@ const SPAWN_TRIES := 40
 const START_AWAY := 8.0
 ## The biomes of a chunk are looked at on a grid of this many points each way.
 const BIOME_SAMPLES := 2
+## The water of a chunk is looked at on every this many columns each way (_water_share).
+const WATER_STEP := 2
 ## The eaten are made up for only while a kind is short by more than this.
 const REFILL_SLACK := 1.0
 ## How many animals there are, as a fraction of what the kinds' `count`s say (user,
 ## 2026-11-22: ten times rarer; a world of sparse wildlife). `Wildlife.density` starts
 ## here; the tests that want a crowd raise it.
 const DENSITY := 0.1
+## A fish's `count` (see under_ice_swimmer) lives on this many chunks' worth of water deep
+## enough for it (see _water_share), not on a square of the land, and DENSITY does not thin
+## it (the tests' `density` does, as a share of DENSITY): so each pond, lake and river has its schools whatever land lies round it (user,
+## 2026-11-27: no fish in any of four waters, the count of the square spent on its land).
+const FISH_WATER_CHUNKS := 16.0
+## The sea's water counts this much of a lake's or a river's for the fish (most of the sea
+## is far from the shore, and there is a lot of it), and a chunk with a pond or a stretch
+## of a river in it (at least FISH_WATER_SEEN of its looks) counts at least FISH_WATER_LEAST
+## of a chunk of water (all of it), so a small pond is not left without fish.
+const FISH_SEA := 0.2
+const FISH_WATER_SEEN := 2
+const FISH_WATER_LEAST := 1.0
 ## Animals no one looks at (`near` off) move and think in steps of FAR_STEP seconds
 ## instead of every frame: most of them are far away, and each step looks up the
 ## ground under them.
@@ -351,6 +365,8 @@ func wanted(kind: String) -> float:
 	var spec: Dictionary = AiRules.SPECIES[kind]
 	if not spec.get("winter", true) and clock != null and clock.season == clock.WINTER:
 		return 0.0
+	if under_ice_swimmer(spec):
+		return spec.count * density / DENSITY
 	if not spec.after_rain:
 		return spec.count * density
 	if clock == null or clock.season == clock.WINTER:
