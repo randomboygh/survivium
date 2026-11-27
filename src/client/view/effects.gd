@@ -373,7 +373,7 @@ func add_campfire(corner: Vector3, material: Material, hearth := Vector3.INF) ->
 		c = hearth
 	else:
 		model = MeshInstance3D.new()
-		model.mesh = _campfire_model().build_mesh()
+		model.mesh = campfire_model().build_mesh()
 		model.material_override = material
 		model.scale = Vector3.ONE / 16.0
 		model.position = corner
@@ -565,7 +565,7 @@ func put_out(rec: Dictionary) -> void:
 	fires.erase(rec.fire)
 	rec.fire = null
 	if rec.model != null:
-		(rec.model as MeshInstance3D).mesh = _campfire_model(false).build_mesh()
+		(rec.model as MeshInstance3D).mesh = campfire_model(false).build_mesh()
 
 
 ## Carries the flames, sparks, smoke and light of campfire `rec` (see add_campfire) by `by`
@@ -1122,7 +1122,7 @@ func _curve(values: Array) -> Curve:
 
 ## The stones and logs of a campfire with glowing embers, or `lit` false cold with ash
 ## and charred logs.
-func _campfire_model(lit := true) -> VoxelModel:
+func campfire_model(lit := true) -> VoxelModel:
 	var m := VoxelModel.new()
 	var stone := Color(0.55, 0.55, 0.58)
 	var log_color := Color(0.45, 0.3, 0.2) if lit else Color(0.22, 0.18, 0.16)

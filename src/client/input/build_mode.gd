@@ -770,7 +770,7 @@ func _aimed(pos: Vector2, planned := false) -> Dictionary:
 ## Whether thing `id` new from the bag goes into the blueprint as a ghost thing, built after
 ## its blocks (Plans.put_thing): the setting «Вещи из сумки» (Settings `build_things`, by the
 ## blueprint unless set to at once; the user's picks, 2026-11-26, 1А, 2А), for a thing with a
-## model of its own (Props.ghostly; a campfire is set down at once).
+## model of its own (Props.ghostly; a campfire too, user 2026-11-27; a light is set down at once).
 func _by_blueprint(id: String) -> bool:
 	return int(game.settings.values.get("build_things", 0)) == 0 and Props.ghostly(id)
 
