@@ -665,6 +665,17 @@ func update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
 					# The runs of such cells whose top has an open cell above.
 					_mark(c, col, _spread(cut, cut & ~(cut >> 1) & ((open[j] >> 1) | top_bit), -1), 16 << k)
 				var fill := aw & wild4 & ground[cx] & ground[cz] & ground[cd] & ~sloped[cx] & ~sloped[cz]
+				# Not where a slope above beside goes on down into its cell at this corner
+				# (_update_deep): the water a level under a bank goes on over it there (see
+				# shore_top), a fill stood in it as a step of the shore.
+				var probe := fill
+				while probe != 0:
+					var bit := probe & -probe
+					probe ^= bit
+					var l := level_of(bit)
+					if _shape(x + side_x[k], l, z) & (1 << (k ^ 1)) & 15 != 0 \
+							or _shape(x, l, z + side_z[k] / wl) & (1 << (3 - k)) & 15 != 0:
+						fill &= ~bit
 				if fill != 0:
 					# The runs of such cells standing on something that hides what is behind it.
 					_mark(c, col, _spread(fill, fill & ~(fill << 1) & ((~open[j] << 1) | 1), 1), 16 << k)
@@ -837,12 +848,15 @@ const PATCH_DIAG := 12
 ## The odd corner of a top with corner heights `h` (see corner_heights): k for an outer
 ## corner (k alone high), 4 + k for an inner one (k alone low), -1 for any other top.
 static func diag_corner(h: PackedInt32Array) -> int:
+	# The low corners lie all at 0, or all at -1 (going on down under the water of a
+	# shore a level lower, see shore_top).
+	var bottom := mini(mini(h[0], h[1]), mini(h[2], h[3]))
 	var high := 0
 	var low := 0
 	for k in 4:
 		if h[k] == 1:
 			high |= 1 << k
-		elif h[k] == 0:
+		elif h[k] == bottom:
 			low |= 1 << k
 		else:
 			return -1
@@ -884,14 +898,22 @@ static func diag_reach(p: PackedFloat32Array, u: float, v: float) -> float:
 
 ## True when the top of ground cell (x, y, z) lies at the shore of water on its level:
 ## water with open air above beside it (also across a corner), nothing else open around
-## it on its level (see WaterMesher.shore, OldSlopeMesher.shore_top).
+## it on its level (see WaterMesher.shore, OldSlopeMesher.shore_top). Also the shore of
+## water a level lower that the slope goes on down into (its corners going down into
+## the cell below, _update_deep: air beside over the water; WaterMesher.deep_shore), a
+## bank a level over a river or lake flush with the sea: its line along a diagonal ran
+## in stairs too (the user, 2026-11-28).
 func shore_top(x: int, y: int, z: int) -> bool:
 	var wet := false
+	var deep := _shape(x, y - 1, z) & 15 != 0 and get_cell(x, y - 1, z) != Mat.AIR \
+		and get_cell(x, y - 1, z) != Mat.WATER
 	for o: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1),
 			Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
 		var m := get_cell(x + o.x, y, z + o.y)
 		if m == Mat.WATER:
 			wet = wet or get_cell(x + o.x, y + 1, z + o.y) == Mat.AIR
+		elif m == Mat.AIR and deep and get_cell(x + o.x, y - 1, z + o.y) == Mat.WATER:
+			wet = true
 		elif m == Mat.AIR or m == Mat.LEAVES:
 			return false
 	return wet

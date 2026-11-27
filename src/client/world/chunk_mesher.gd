@@ -337,6 +337,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			# Open water has no land beside it, so no foam.
 			if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
 				foam |= Water.foam(c, sh, cov, i, dy, dz)
+				if nb[2] == AIR:
+					foam |= Water.deep_foam(c, sh, cov, i, dy, dz)
 			var surf := Water.surf_here(sea, y)
 			if surf:
 				# The surf outlines the sea where the land beside is level with it; along a
@@ -364,7 +366,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				if surf and fills != 0 and not job.swash.is_empty():
 					Water.swash_fills(water, base, fills, foam, job.swash, x1 - x0 + 2, x - x0 + 1, z - z0 + 1)
 				var lips := Water.lip_cuts(c, i, dy, dz) if nb[2] == AIR else 0
-				Water.water_faces(water, faces, nb, base, depth, foam, corners, lips)
+				Water.water_faces(water, faces, nb, base, depth, foam, corners, lips, fills)
 				Water.falls(job.water_falls, c, nb, side_offsets, i, dy, dz, x - x0, z - z0, y)
 			if fills != 0:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
@@ -382,6 +384,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				pass
 			elif Water.shore(c, cov, i, dy, dz):
 				Water.shore_water(water, w, c, sh, i, dy, dz, base, Water.foam(c, sh, cov, i, dy, dz))
+			elif Water.deep_shore(c, sh, cov, i, dy, dz):
+				Water.shore_water(water, w, c, sh, i, dy, dz, base, 0, true)
 			elif cuts:
 				Water.cut_water(w, water, c, i, dy, base, cuts)
 		elif sh[i] & 15 != 0 and sh[i] < 16:
