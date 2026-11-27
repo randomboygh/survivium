@@ -148,6 +148,12 @@ One-line forms of the rules; the detail is above and in the other pages of this 
   once leaned along `view_up` (`lean_shadow`, removed 2026-11-26) lifted the feet's shadow to the shoulders with
   the camera turned east or west. Things drawn as pictures (`Props._add_sprite`, the snowman) set
   `sun_shadow_free`.
+- To move where a picture takes the sun's shadow, move `VERTEX` in the vertex and draw it by `POSITION`:
+  Compatibility works the shadow's coordinates out in the vertex stage, so `LIGHT_VERTEX` cannot move them
+  (and its scene shader of 4.5.1 has no `light_vertex` at all). The lamps light the moved `VERTEX` too
+  (their rings by `light_xz`, set before the move): `tree.gdshader`'s crown lean (`CROWN_LEAN`) moves only by
+  day, and slides back along the light to the point's own depth, so nothing that stood behind it in the light
+  starts shading it.
 - A picture that holds data, not colours, is imported with `process/fix_alpha_border` on (every `.import`, not
   committed): in an RGBA8 picture each texel under alpha 20 gets the colour of the nearest texel with more
   within 4 px, and the game (and an exported one) reads the import (`Content.picture`, `Content.live` off). The
