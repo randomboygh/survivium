@@ -163,9 +163,20 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   steps of `STEP_MOST` 0.05 s, so a fall never passes through a floor), slopes (the pace is along the ground: the run is shortened by the rise, `SLOPE_MOST`) and steps, water and
   swimming, the bark of a trunk thicker than its cell in the cells beside and across its corners
   (`WorldData._bark_touched`, an octagon as drawn), the trunk of a standing tree drawn as pictures (its cells stop
-  nothing: `_trunk_touched` holds the middle of the feet off a circle round the axis as wide as the bark, the same
-  on the server, and so does a stump, which can be stood on: a body coming down from above lands on it; one inside
-  walks out: `WorldData.trunk_hold`, `TreeLooks.hold_of` from look.yaml `foot`, measured by `tools/tree_feet.py`), a plant that is `solid` (a cactus: a post `SOLID_HALF` cells
+  nothing: `_trunk_touched` holds the middle of the feet `TreeLooks.FEET` pixels off the ring of the stump the tree
+  leaves, its cut as drawn (look.yaml `cut`, measured by `tools/tree_feet.py`: an ellipse as wide across the picture
+  and as deep along the way the camera looks, `view_up`: the client's `PixelView.up`, on the server from the INPUT's
+  view, `Player.take_input`; its front on the axis), from the ground up to the cut and on up the trunk's cells,
+  narrowing from the cut to the crown where the trunk is drawn narrower (look.yaml `taper`, `TreeLooks.ring_at`; the
+  ring at the height of the feet where a step began, so a body falls past a narrowing trunk, not onto it); a stump
+  holds it off the same ring up to its cut as drawn (`top`), which is stood on: a body coming down from above lands on
+  it, one lower than a step is walked up onto (`_trunk_top` in `_ground_top`), and its figure is drawn in front of
+  the stump's picture (`on_trunk`, `Player.place_sprite`, sprite.gdshader `depth_lift`); one inside (the camera
+  turned) walks out, the server's `blocked(claim, from)` lets it; a step into a ring slides round it (`_round_trunk`,
+  `TreeLooks.ring_out`), so passing a trunk never catches; `_find_trunks` gathers the trunks round the body's cell
+  from `WorldData.tree_chunks` once it comes into another cell or `TRUNKS_FRESH` steps after, a step keeps those
+  within `TRUNK_STEP` of where it began, and each is passed over by its `hold` circle before its ring is asked:
+  `WorldData.trunk_look`, `trunk_hold`), a plant that is `solid` (a cactus: a post `SOLID_HALF` cells
   round its root where Foliage draws it and `SOLID_HIGH` levels high, not jumped over; `Grass.solid_plant` finds
   it; `_find_posts` gathers those within `POST_REACH` columns once the body has gone a cell or `POSTS_FRESH`
   steps, so `_collides` asks only of them; one the body stands in already (`_in_plant`) lets it walk out), a leaning ladder (`_climb`: the body in the cell of a link of `WorldData.ladders`, or above the top

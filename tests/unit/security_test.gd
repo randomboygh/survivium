@@ -23,6 +23,7 @@ const Looks := preload("res://src/shared/content/looks.gd")
 func run() -> void:
 	_test_text()
 	_test_body()
+	_test_trunk_claims()
 	_test_requests()
 	_test_bags()
 	_test_craft_cancel()
@@ -96,6 +97,50 @@ func _test_body() -> void:
 	var wall := start + Vector3(0.0, -1.0, 0.0) * WorldData.CELL
 	a.take_input(_input(wall, Vector3i(8, 1, 8)))
 	_check(a.position == start, "a claim inside the ground is not taken")
+
+
+## A pictured trunk holds a body off its ring as the client's view shows it (Body._trunk_touched: as wide across the
+## view, as deep along it, its front on the axis): the server takes that view from the INPUT, refuses a claim into the
+## ring, and takes one out of it (the camera turned may leave an honest body inside the ring as it lies then:
+## Body.blocked from where it was).
+func _test_trunk_claims() -> void:
+	var species := Trees.index("plants:oak")
+	if species < 0 or Trees.SPECIES[species].pictures.is_empty():
+		_check(false, "the oak is drawn as pictures")
+		return
+	var w := WorldData.new(48, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var col := Vector2i(15, 15)
+	Growth.place(w, col.x, 1, col.y, species, 1.0)
+	var s := Session.new(w, null, Clock.new(), Rules.new(), Placed.new())
+	var host := LocalHost.new(s)
+	host.join()
+	var a = host.player
+	a.check_moves = true
+	var cell := WorldData.CELL
+	var axis := Vector3(col.x + 0.5, 1.0, col.y + 0.5)
+	# Looking west (the camera's right is north): the ring's front is on the axis, toward the camera (east).
+	var ins := _input(axis * cell, Vector3i(col.x, 1, col.y + 4))
+	ins[11] = Vector2(0.0, -1.0)
+	var gap: float = Body.TreeLooks.FEET / Body.TreeLooks.TEXELS_CELL
+	var out := (axis + Vector3(gap + 0.4, 0.0, 0.0)) * cell
+	a.teleport(out)
+	ins[0] = out
+	a.take_input(ins)
+	_check(a.body.view_up.is_equal_approx(Vector2(-1.0, 0.0)) and a.position.is_equal_approx(out),
+		"the server holds the body off the trunks' rings as the INPUT's view lays them")
+	var into := (axis + Vector3(gap - 0.4, 0.0, 0.0)) * cell
+	ins[0] = into
+	a.take_input(ins)
+	_check(a.position.distance_to(into) > 0.5 * cell, "a claim into a trunk's ring is not taken")
+	# Put in the ring (the camera turned), a claim out of it is taken.
+	a.teleport(into)
+	var back := into + Vector3(0.3, 0.0, 0.0) * cell
+	ins[0] = back
+	a.take_input(ins)
+	_check(a.position.is_equal_approx(back), "a claim out of a trunk's ring it stood in is taken")
 
 
 ## The hands' work is paced: requests sent at once do as much as the time allows.

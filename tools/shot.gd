@@ -322,14 +322,27 @@ func _run() -> void:
 		if shot.has("pictured"):
 			# North-west of the spawn, away from the others.
 			main.player.position = places.pictured(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
-				shot.pictured, shot.get("variant", -1), shot.get("own_turn", -1), shot.get("dry", -1))
+				shot.pictured, shot.get("variant", -1), shot.get("own_turn", -1), shot.get("dry", -1), shot.get("felled", false))
 			if shot.has("approach"):
 				# Three cells off the thick trunk that way, walking up to it until it stops them.
 				var a: float = shot.approach * PI / 4.0
 				var foot: Vector3 = main.player.position - Vector3(0.0, 0.0, 5.0 * CELL)
-				main.player.position = foot + Vector3(sin(a), 0.0, cos(a)) * 3.0 * CELL
+				main.player.position = foot + Vector3(sin(a), 0.0, cos(a)) * 3.0 * CELL \
+					- Vector3(0.0, 0.0, shot.get("behind", 0) / 8.0 * CELL)
 				shot.walk_into = [-sin(a), -cos(a)]
 				shot.facing = ["n", "nw", "w", "sw", "s", "se", "e", "ne"][posmod(shot.approach, 8)]
+				if shot.has("pass_by"):
+					# Walking past it instead, across the way to it, `pass_by` eighths of a cell off its axis
+					# (the way it is held off it, or slid round it, see Body._round_trunk).
+					var side := Vector3(cos(a), 0.0, -sin(a))
+					main.player.position = foot + Vector3(sin(a), 0.0, cos(a)) * shot.pass_by / 8.0 * CELL - side * 4.0 * CELL
+					shot.walk_into = [side.x, side.z]
+					shot.facing = ["e", "ne", "n", "nw", "w", "sw", "s", "se"][posmod(shot.approach, 8)]
+			if shot.get("on_top", false):
+				# Dropped onto the thick one's top (a stump's) from a cell over it.
+				main.player.position.z -= 5.0 * CELL
+				main.player.position.y += 3.0 * CELL
+				shot.walk_into = [0.0, 0.0]
 		if shot.has("specimen"):
 			# West of the spawn, away from the grove, the orchard and the clearing.
 			places.specimen(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 0), shot.specimen)
@@ -387,8 +400,16 @@ func _run() -> void:
 			# The player walks into what stands that way (x east, y south) until it stops them.
 			var body = main.player.body
 			body.move_input = Vector2(shot.walk_into[0], shot.walk_into[1])
+			if "view_up" in body:
+				body.view_up = PixelView.up
 			for i in 90:
+				var was: Vector3 = main.player.position
 				main.player.position = body.step(main.player.position, 1.0 / 60.0, false)
+				# Walking up to a trunk, the step it stops or turns them aside at (it slides them round).
+				var went: Vector3 = (main.player.position - was) / CELL
+				if shot.has("approach") and not shot.has("pass_by") and i > 5 \
+						and Vector2(went.x, went.z).dot(body.move_input) < 0.8 * body.SPEED / 60.0:
+					break
 			body.move_input = Vector2.ZERO
 			main.player.facing = shot.get("facing", "s")
 		if shot.get("collide", false):
@@ -2326,18 +2347,10 @@ func _draw_collision() -> void:
 						continue
 					var o := Vector3(x + u, 0.0, z + v) * CELL + Vector3(0.0, lift, 0.0)
 					_quad(st, o, CELL / n, CELL / n, Color(1.0, 0.1, 0.1, 0.9))
-	# The trunks drawn as pictures, and their stumps, hold the middle of the feet off a circle
-	# round their axis (WorldData.trunk_hold, Body._trunk_touched).
-	for z in range(floori(p.z) - 40, floori(p.z) + 8):
-		for x in range(floori(p.x) - 6, floori(p.x) + 7):
-			var hold: float = w.trunk_hold(Vector2i(x, z)) if w.has_method("trunk_hold") else 0.0
-			if hold <= 0.0:
-				continue
-			var steps := maxi(16, ceili(hold * TAU * 8.0))
-			for k in steps:
-				var d := Vector2.from_angle(TAU * k / steps) * hold
-				var o := Vector3(x + 0.5 + d.x - 0.5 / n, 0.0, z + 0.5 + d.y - 0.5 / n) * CELL
-				_quad(st, o + Vector3(0.0, lift, 0.0), CELL / n, CELL / n, Color(1.0, 0.1, 0.1, 0.9))
+	# The trunks drawn as pictures, and their stumps, hold the middle of the feet off the ring of the stump's cut as
+	# it is drawn (TreeLooks.ring_at, Body._trunk_touched; before it a circle round the axis, trunk_hold): drawn in
+	# 3D, up the trunk.
+	_draw_trunks(st, w, p)
 	# The middle of the feet.
 	_quad(st, Vector3(main.player.position.x - 0.5 * CELL / n, lift + 0.01, main.player.position.z - 0.5 * CELL / n),
 		CELL / n, CELL / n, Color(0.2, 0.5, 1.0, 1.0))
@@ -2360,6 +2373,119 @@ func _draw_collision() -> void:
 	mi.extra_cull_margin = 16384.0
 	main.world_root.add_child(mi)
 	_collision = mi
+
+
+## The trunks and stumps round `p` (cells) for _draw_collision: for each, the ring the middle of the feet is held off
+## (red: TreeLooks.ring_at grown by FEET, at the foot, at the stump's cut, where a tree's crown begins and at its top,
+## the sides the camera faces filled faintly, the outermost edges drawn up; fainter inside the crown), and the stump's
+## cut as drawn (yellow: the ring itself, at the foot and at the cut). Before the rings (no WorldData.trunk_look): the
+## circle round the axis a body was held off (trunk_hold), up the trunk's cells.
+func _draw_trunks(st: SurfaceTool, w, p: Vector3) -> void:
+	var looks = load("res://src/shared/content/tree_looks.gd")
+	var ringed: bool = w.has_method("trunk_look")
+	var up: Vector2 = PixelView.up
+	var right := Vector2(-up.y, up.x)
+	var yellow := Color(1.0, 0.85, 0.1, 1.0)
+	for z in range(floori(p.z) - 40, floori(p.z) + 12):
+		for x in range(floori(p.x) - 8, floori(p.x) + 9):
+			var col := Vector2i(x, z)
+			var hold: float = w.trunk_hold(col)
+			if hold <= 0.0:
+				continue
+			var axis := Vector3(x + 0.5, 0.0, z + 0.5)
+			var world_of := func(q: Vector2, y: float) -> Vector3:
+				var g := right * q.x + up * q.y
+				return (axis + Vector3(g.x, y, g.y)) * CELL
+			# The heights the ring is drawn at (cells), the ring there, and whether that is in the crown.
+			var heights: Array[float] = []
+			var rings: Array = []
+			var crown := INF
+			if ringed:
+				var foot := [0]
+				var look: Dictionary = w.trunk_look(col, foot)
+				var y0 := float(foot[0])
+				var narrow: Vector2 = look.narrow
+				var top := float(look.top)
+				if narrow.y > narrow.x:
+					crown = y0 + narrow.y
+				for h: float in [0.0, narrow.x, narrow.y, top]:
+					if h <= top and (heights.is_empty() or y0 + h > heights[-1] + 0.01):
+						heights.append(y0 + h)
+						rings.append(_ellipse(looks.ring_at(look, h), looks.FEET / looks.TEXELS_CELL))
+				# The stump's cut as drawn, at the foot and at its height.
+				for h: float in [0.0, minf(narrow.x, top)]:
+					var cut := _ellipse(looks.ring_at(look, h), 0.0)
+					for k in cut.size():
+						_line(st, world_of.call(cut[k], y0 + h + 0.02), world_of.call(cut[(k + 1) % cut.size()],
+							y0 + h + 0.02), yellow)
+			else:
+				var y0 := -1
+				for y in w.size_y:
+					if w.get_cell(x, y, z) == Mat.LOG:
+						y0 = y
+						break
+				if y0 < 0:
+					continue
+				var y1 := y0
+				while w.get_cell(x, y1, z) == Mat.LOG:
+					y1 += 1
+				var circle := _ellipse(Vector3(hold, hold, 0.0), 0.0)
+				for k in circle.size():
+					circle[k].y -= hold
+				heights = [float(y0), float(y1)]
+				rings = [circle, circle]
+			for i in heights.size():
+				var ring: Array[Vector2] = rings[i]
+				var red := Color(1.0, 0.15, 0.1, 0.95 if heights[i] <= crown + 0.01 else 0.45)
+				for k in ring.size():
+					_line(st, world_of.call(ring[k], heights[i]), world_of.call(ring[(k + 1) % ring.size()], heights[i]),
+						red)
+				if i == 0:
+					continue
+				# Up from the ring under it: the sides the camera faces (the screen's down is toward it) faintly, the
+				# outermost edges across the screen and the nearest and farthest as lines.
+				var under: Array[Vector2] = rings[i - 1]
+				var fill := Color(1.0, 0.15, 0.1, 0.16 if heights[i] <= crown + 0.01 else 0.06)
+				for k in ring.size():
+					var a := under[k]
+					var b := under[(k + 1) % under.size()]
+					var e := b - a
+					# Outward of a ring turning counterclockwise (a right, b up) is to its right; it faces the camera
+					# when that is down the screen (b decreasing).
+					if Vector2(e.y, -e.x).y < 0.0:
+						var a0: Vector3 = world_of.call(a, heights[i - 1])
+						var b0: Vector3 = world_of.call(b, heights[i - 1])
+						var a1: Vector3 = world_of.call(ring[k], heights[i])
+						var b1: Vector3 = world_of.call(ring[(k + 1) % ring.size()], heights[i])
+						_tri(st, a0, b0, b1, fill)
+						_tri(st, a0, b1, a1, fill)
+				for k in [0, ring.size() / 4, ring.size() / 2, ring.size() * 3 / 4]:
+					_line(st, world_of.call(under[k], heights[i - 1]), world_of.call(ring[k], heights[i]), red)
+
+
+## The ring `ring` (TreeLooks.ring_of: half width, half depth, across, cells; its front on the axis) grown by `grow`
+## cells, as 96 points [across the screen, behind the axis] counterclockwise from its right.
+func _ellipse(ring: Vector3, grow: float) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for k in 96:
+		var a := TAU * k / 96.0
+		out.append(Vector2(ring.z + (ring.x + grow) * cos(a), ring.y + (ring.y + grow) * sin(a)))
+	return out
+
+
+## A line from `a` to `b` (world units) one texel of the pictures wide, of texel squares.
+func _line(st: SurfaceTool, a: Vector3, b: Vector3, c: Color) -> void:
+	var t := CELL / 8.0
+	var steps := maxi(1, ceili(a.distance_to(b) / t))
+	for i in steps + 1:
+		var q := a.lerp(b, float(i) / steps)
+		_quad(st, q - Vector3(t * 0.5, 0.0, t * 0.5), t, t, c)
+
+
+func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, col: Color) -> void:
+	st.set_color(col)
+	for q: Vector3 in [a, b, c]:
+		st.add_vertex(q)
 
 
 ## Whether texel i, j (of n a cell's side, may lie in the cells beside) of cell x, y, z stops a body.

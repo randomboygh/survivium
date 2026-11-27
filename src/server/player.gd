@@ -120,6 +120,8 @@ func take_input(args: Array) -> void:
 	body.air_jumps = bool(args[9]) and (not check_moves or cheat_air)
 	body.bumped = args[10] if args[10] is Vector3 and args[10].is_finite() else Vector3.INF
 	view_right = args[11].normalized() if args[11].length_squared() > 0.5 else Vector2(1.0, 0.0)
+	# The side of the pictured trunks the player sees holds their feet off (Body._trunk_touched).
+	body.view_up = Vector2(view_right.y, -view_right.x)
 	view_half = args[12].abs().min(Vector2(VIEW_MAX, VIEW_MAX)) if check_moves else args[12].abs()
 	on_ground = bool(args[13])
 	var length: float = float(args[15])
@@ -157,7 +159,7 @@ func _take_claim(claim: Vector3, jumped_told: bool) -> void:
 	# The jumps counted and paid for are the client's (Character.update).
 	body.jumped = jumped_told
 	var err := got.distance_to(claim)
-	if err <= MOVE_TOLERANCE * CELL and not body.blocked(claim):
+	if err <= MOVE_TOLERANCE * CELL and not body.blocked(claim, at):
 		at = claim
 		var pull := minf(err, _credit)
 		_credit -= pull

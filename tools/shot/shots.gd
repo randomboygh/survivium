@@ -1840,7 +1840,10 @@ const SHOTS := {
 ## A shot of a species drawn as pictures (places.pictured) named
 ## `pics-<tree>[-v<variant>][-t<its own turn>][-c<camera turn>][-h<time x 100>][-s<season>]
 ## [-f<autumn's leaf fall x 100>][-n<cells the player stands further north>][-a<eighths round from the
-## south the player comes to the thick trunk from, walking up to it>][-x (what stops a body drawn)][-o]
+## south the player comes to the thick trunk from, walking up to it, stopped where it stops them or turns them aside>]
+## [-b<eighths of a cell north of its axis they come from>][-p<walking past it instead, across that way,
+## eighths of a cell off its axis>][-u (felled: their stumps)][-j (dropped onto the thick one's top)]
+## [-x (what stops a body drawn)][-o]
 ## [-d<1 trees that keep their dry leaves in winter, 0 trees that go bare>][-w<snow x 100>][-g (grass shown)]`, on
 ## bare ground, the grass hidden (unless `-g`), no interface: `pics-oak-t2-h30` is the oaks' side 2 by the morning sun,
 ## `pics-maple-s2-f60` the maples late in autumn, `pics-pine-n8` the pines with the thick one's
@@ -1871,6 +1874,15 @@ static func pictured(name: String) -> Dictionary:
 				shot.step = Vector3(0.0, 0.0, -0.5 * n)
 			"a":
 				shot.approach = n
+			"p":
+				shot.pass_by = n
+			"b":
+				shot.behind = n
+			"u":
+				# Felled: the stumps they leave.
+				shot.felled = true
+			"j":
+				shot.on_top = true
 			"x":
 				# The x-ray on, as in the game (the player behind a trunk seen through it).
 				shot.collide = true

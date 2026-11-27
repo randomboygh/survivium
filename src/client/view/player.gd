@@ -138,6 +138,11 @@ const LYING_ALONG_FORWARD := 1.0
 ## How far towards the viewer a sitting body is drawn, in cells: on a stool it shows in
 ## front of the seat, not behind it.
 const SITTING_FORWARD := 0.5
+## How much nearer the camera than a stump's picture a figure standing on the stump's top is drawn (world units of
+## depth, over the trees' DEPTH_TIE, tree.gdshader).
+const STUMP_LIFT := 0.06
+## The depth the figure is drawn nearer by now (place_sprite).
+var _lift := 0.0
 ## The seconds a letter "z" takes to rise and fade; SNORE_LETTERS are in the air at once.
 const SNORE_TIME := 2.7
 const SNORE_LETTERS := 3
@@ -421,6 +426,8 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 ## picks its animation for the pace it went at.
 func step(delta: float, jump: bool) -> void:
 	var from := position
+	# The pictured trunks hold the feet off the side of them the camera shows.
+	body.view_up = PixelView.up
 	position = body.step(position, delta, jump)
 	var went := Vector2(position.x - from.x, position.z - from.z) / CELL
 	_animate(body.move_input.limit_length(1.0), went.length() / maxf(delta, 0.001), delta)
@@ -446,6 +453,18 @@ func place_sprite() -> void:
 			forward = LYING_ALONG_FORWARD if way == "n" or way == "s" else LYING_FORWARD
 		drawn_at -= Vector3(PixelView.up.x, 0.0, PixelView.up.y) * forward * CELL
 	sprite.global_position = PixelView.snap(drawn_at)
+	# On a stump's top the figure is drawn in front of the stump's picture, which stands upright at its axis: its
+	# depth only is brought nearer, as far as its feet stand behind that axis (Body.on_trunk).
+	var lift := 0.0
+	if body.world != null:
+		body.view_up = PixelView.up
+		var behind := body.on_trunk(position)
+		if not is_nan(behind):
+			lift = maxf(0.0, behind * CELL / maxf(PixelView.slope, 0.1) + STUMP_LIFT)
+	if lift != _lift:
+		_lift = lift
+		sprite.material_override.set_shader_parameter("depth_lift", lift)
+		xray.material_override.set_shader_parameter("depth_lift", lift)
 	if body.swimming and fmod(Time.get_ticks_msec() / 1000.0, 1.2) < 0.6:
 		# A swimmer bobs on the water by a pixel.
 		sprite.global_position.y += 1.0 / PixelView.PIXELS_PER_UNIT

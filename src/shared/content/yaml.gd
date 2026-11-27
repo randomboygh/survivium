@@ -158,6 +158,24 @@ func _flow(text: String, pos: Array, number: int) -> Variant:
 		return _fail(number, "unterminated flow collection")
 	var c := text[pos[0]]
 	if c == "[":
+		# A list of plain scalars (no quotes, nothing nested) is cut up at its commas whole, not read a character at a
+		# time: most of the lists of the content files are such (numbers), some thousands long.
+		var close := text.find("]", pos[0] + 1)
+		if close > 0:
+			var inner := text.substr(pos[0] + 1, close - pos[0] - 1)
+			if not (inner.contains("[") or inner.contains("{") or inner.contains("}") or inner.contains("\"")
+					or inner.contains("'")):
+				pos[0] = close + 1
+				var flat := []
+				var words := inner.split(",")
+				for i in words.size():
+					var word := words[i].strip_edges()
+					if word != "":
+						flat.append(_plain(word))
+					# A comma may end the list, as when it is read a character at a time.
+					elif i < words.size() - 1:
+						return _fail(number, "empty value in a flow collection")
+				return flat
 		pos[0] += 1
 		var items := []
 		while true:
@@ -258,6 +276,8 @@ static func _unquote(s: String) -> String:
 
 ## Cuts a `# comment` that is not inside quotes.
 static func _strip_comment(line: String) -> String:
+	if not line.contains("#"):
+		return line
 	var quote := ""
 	# The last character outside quotes that is not a space: a quote opens a quoted
 	# scalar only where a value starts (after `:`, `-`, `[`, `{`, `,` or at the start), so

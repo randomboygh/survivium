@@ -100,8 +100,11 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   old leaf-cluster crowns left in trees PR 6): `src/shared/content/tree_looks.gd` reads them (`picture: tree/look.yaml` in
   its `trees.yaml`, the approved drawings of `survivium-builds/trees-redraw`, made by `integration/pr1/src/`
   `export_pr1.py` + `pack_pr1.py` (the conifers `pr2/src/*_pr2.py`, the willow and the palms `pr3/src/*_pr3.py`), then `python3 tools/tree_feet.py` writes each look's `foot`: the bark's half
-  width and the foot's front in pixels, what a body is held off by, see character.md): its looks (3 sizes × 2 variants), each with its frames for 8 sides, its
-  trunk's height in cells and its crown's cells (`crown_has`, `to_own` for the tree's own turn).
+  width and the foot's front in pixels, by which the grass rows round the foot, and each look's `taper`, how high its
+  trunk goes up to the crown and how wide it is there; each stump's `cut`, the ellipse its cut wood is drawn as, and
+  `top`, how high: the ring a body is held off by, see character.md): its looks (3 sizes × 2 variants), each with its
+  frames for 8 sides, its trunk's height in cells and its crown's cells (`crown_has`, `to_own` for the tree's own
+  turn).
 - `src/shared/world/growth.gd` — how a tree and a shrub grow into the world's cells: the shape of the trunk
   and crown (`trunk_box`, `height` by the looks, `fit`), `place` / `grow` / `fill`, `place_young` (a young tree
   grown from a sapling: a short stem under a crown of one or two lattice points, drawn in leaf clusters by Foliage), `bush_fits` / `place_bush`; the

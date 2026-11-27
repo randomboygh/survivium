@@ -23,7 +23,10 @@ the code sees content.
     inside `entries`), warnings about names, `records` / `find` / `canon` / `origin`, `asset`, `sound_files`.
 - `src/shared/content/yaml.gd` — our own parsing of the part of YAML the data needs (keys with `:` inside,
   `{core:fiber: 1}`), and writing it back (`Yaml.write`: what `parse` reads as the same value; every data
-  file of the game goes through both unchanged, `editor_test.gd`).
+  file of the game goes through both unchanged, `editor_test.gd`). It reads by lines and characters in GDScript, so
+  what is long is cut up by the engine's own string calls: a line without `#` keeps no comment to cut, and a flow
+  list of plain scalars (no quotes, nothing nested: the numbers of the trees' look.yaml) is split at its commas
+  whole.
 - The content editor (stage 2, decision 186, 11А, 13А; under way): `src/shared/content/own_mods.gd`
   (`OwnMods`) — one's own mods, the ones the editor writes: `root()` is `Content.ROOT` when the mods lie
   beside the game, else `ModFiles.extra_dir` (the app's folder on a phone; `ModFiles.USER_DIR`

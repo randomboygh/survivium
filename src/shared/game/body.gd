@@ -212,6 +212,21 @@ var _col := Vector2i(1 << 30, 0)
 var _in_plant := Vector3.INF
 ## Where the step being taken began (cells), INF out of a step.
 var _from := Vector3.INF
+## The pictured trunks round the cell `_trunks_at` that a body in it, or a step from it, may meet (_find_trunks):
+## found again once the body is in another cell, or TRUNKS_FRESH steps after (a tree felled, grown or dug out
+## beside it is seen then). Each [its column, its look (TreeLooks: a tree's or a stump's), the level of its foot,
+## its top, the middle of its axis (cells), how far from that the feet are held at most (TreeLooks `hold`)].
+var _trunks_found: Array = []
+var _trunks_at := Vector3i(1 << 30, 0, 0)
+var _trunks_age := 0
+## Those of them the step being taken may meet, within TRUNK_STEP of where it began, while it is taken.
+var _trunks: Array = []
+var _trunks_step := false
+## The way of the world up the screen of the player this body is (PixelView.up: away from the camera; x east, y
+## south): a pictured trunk holds the feet off its ring as it is drawn, as wide as its cut across the picture and as
+## deep along the way the camera looks (_trunk_touched). The server sets it from what the client says
+## (Player.take_input); (0, -1) looks north.
+var view_up := Vector2(0.0, -1.0)
 ## The posts of the plants that stop a body near it (_find_posts), in cells, their ids,
 ## the cell they were found round and the steps since.
 var _posts: Array[AABB] = []
@@ -258,7 +273,21 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 func _step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	var p := at / CELL
 	_from = p
+	# The trunks it may meet in the step: those within TRUNK_STEP of where it begins.
+	_trunks.clear()
+	if TreeLooks.hold_most > 0.0 and not world.trees.is_empty():
+		_trunks_age += 1
+		var here := Vector2(p.x, p.z)
+		for t: Array in _find_trunks(p):
+			var r: float = t[5] + TRUNK_STEP
+			if here.distance_squared_to(t[4]) < r * r:
+				_trunks.append(t)
+	_trunks_step = true
 	var out := _step_cells(at, p, delta, jump)
+	if out.y < at.y and not _trunks.is_empty():
+		out = _off_cone(out / CELL) * CELL
+	_trunks_step = false
+	_trunks.clear()
 	_from = Vector3.INF
 	return out
 
@@ -702,6 +731,9 @@ func _try_move(p: Vector3, d: Vector3, reach: float) -> Vector3:
 		var top := _ground_top(np, p.y, reach)
 		if top > p.y and not _collides(Vector3(np.x, top, np.z)):
 			_pull_up = maxf(_pull_up, top - p.y)
+	var around := _round_trunk(p, np)
+	if around != p:
+		return around
 	var slid := _line_up(p, d)
 	if slid != p:
 		return slid
@@ -774,11 +806,16 @@ func water_under(at: Vector3, most := 2) -> int:
 	return n
 
 
-## True if the body standing at `at` (world units) would be inside something solid.
-func blocked(at: Vector3) -> bool:
+## True if the body standing at `at` (world units) would be inside something solid. Coming from `from` (world
+## units), a pictured trunk's foot it was in already holds it only where it would be deeper in (the camera turned
+## shows another side of the trunk, whose foot may take where the body stands, _trunk_touched).
+func blocked(at: Vector3, from := Vector3.INF) -> bool:
 	if not Plants.SOLID.is_empty():
 		_find_posts(at / CELL, false)
-	return _collides(at / CELL)
+	_from = from / CELL
+	var out := _collides(at / CELL)
+	_from = Vector3.INF
+	return out
 
 
 func _collides(p: Vector3) -> bool:
@@ -808,38 +845,175 @@ func _collides(p: Vector3) -> bool:
 	return not plant.is_empty() and plant[1] != _in_plant
 
 
-## Whether the middle of the feet at `p` (cells) is in the circle a pictured tree's trunk,
-## or the stump it left, holds a body off (WorldData.trunk_hold), at a level of the body's
-## the trunk's cells are at: the trunk as it is drawn, round, not the square cells it takes.
-## A body in a circle already, beside it (one grown or uprooted there), is only kept from
-## going deeper in; one coming down from over it (onto a stump) stands on its top.
+## Whether the middle of the feet at `p` (cells) is within TreeLooks.FEET of the ring of a pictured tree's trunk, or
+## of the stump it left (TreeLooks.ring_at: the stump's cut as it is drawn, as wide across the picture and as deep
+## along the way the camera looks, view_up; a tree's narrower over the cut where its trunk is drawn so), at the
+## height of the feet (where a step began: it falls past a trunk narrowing up, not onto it), and the body is between
+## the ground and the ring's top (a stump's cut, a tree's crown): the trunk as it is drawn, not the square cells it
+## takes. A body there already (one grown or uprooted there, the camera turned, come down beside a narrower trunk) is
+## only kept from going deeper in; one coming down from over it (onto a stump) stands on its top (_trunk_top).
 func _trunk_touched(p: Vector3) -> bool:
-	var r := TreeLooks.hold_most
-	var lo := maxi(0, floori(p.y + 0.001))
-	var hi := mini(world.size_y - 1, floori(p.y + HEIGHT))
+	return not _trunk_near(p).is_empty()
+
+
+## The trunk _trunk_touched finds at `p`: [its column, its ring there (TreeLooks.ring_at)], [] for none.
+func _trunk_near(p: Vector3) -> Array:
+	var grow := TreeLooks.FEET / TreeLooks.TEXELS_CELL
+	var here := Vector2(p.x, p.z)
+	for t: Array in _trunks_round(p):
+		var top: float = t[3]
+		var y0: float = t[2]
+		var r: float = t[5]
+		if p.y + 0.001 >= top or p.y + HEIGHT <= y0 or here.distance_squared_to(t[4]) >= r * r:
+			continue
+		var col: Vector2i = t[0]
+		var ring := TreeLooks.ring_at(t[1], maxf(0.0, (_from.y if _from.is_finite() else p.y) - y0))
+		var depth := TreeLooks.ring_depth(ring, in_view(p, col), grow)
+		if depth >= 1.0:
+			continue
+		if not _from.is_finite() or _from.y + 0.001 >= top or _from.y + HEIGHT <= y0 \
+				or depth < TreeLooks.ring_depth(ring, in_view(_from, col), grow) - 0.0001:
+			return [col, ring]
+	return []
+
+
+## The top of the highest pictured trunk (_trunk_touched: a stump's cut, as drawn) the feet at `p` (cells) stand on
+## between heights `lo` and `hi`, -INF for none.
+func _trunk_top(p: Vector3, lo: float, hi: float) -> float:
+	if TreeLooks.hold_most <= 0.0 or world.trees.is_empty():
+		return -INF
+	var grow := TreeLooks.FEET / TreeLooks.TEXELS_CELL
+	var best := -INF
+	var here := Vector2(p.x, p.z)
+	for t: Array in _trunks_round(p):
+		var top: float = t[3]
+		var r: float = t[5]
+		if top < lo - 0.001 or top > hi + 0.001 or top <= best or here.distance_squared_to(t[4]) >= r * r:
+			continue
+		if TreeLooks.ring_depth(TreeLooks.ring_at(t[1], top - t[2]), in_view(p, t[0]), grow) < 1.0:
+			best = top
+	return best
+
+
+## How far behind its axis (cells, along view_up) the feet at `at` (world units) stand on the top of a pictured
+## trunk (a stump's cut), NAN when they stand on none: the player's figure is drawn in front of the stump's picture
+## while it stands on it (Player.place_sprite), the picture standing upright at its axis.
+func on_trunk(at: Vector3) -> float:
+	if world == null or TreeLooks.hold_most <= 0.0 or world.trees.is_empty() or not on_ground:
+		return NAN
+	var p := at / CELL
+	var grow := TreeLooks.FEET / TreeLooks.TEXELS_CELL
+	var here := Vector2(p.x, p.z)
+	# Asked each frame of a body not stepped (another player's): the trunks found round it age by the frames.
+	_trunks_age += 1
+	for t: Array in _trunks_round(p):
+		var r: float = t[5]
+		if absf(p.y - t[3]) < 0.01 and here.distance_squared_to(t[4]) < r * r:
+			var q := in_view(p, t[0])
+			if TreeLooks.ring_depth(TreeLooks.ring_at(t[1], t[3] - t[2]), q, grow) < 1.0:
+				return q.y
+	return NAN
+
+
+## The pictured trunks a body at `p` (cells) may meet (_trunks_found): in a step, near where it began, those it
+## found then; else those round the cell of `p`.
+func _trunks_round(p: Vector3) -> Array:
+	if TreeLooks.hold_most <= 0.0 or world.trees.is_empty():
+		return []
+	if _trunks_step and p.distance_squared_to(_from) < TRUNK_STEP * TRUNK_STEP:
+		return _trunks
+	return _find_trunks(p)
+
+
+## The pictured trunks round the cell of `p` (cells), _trunks_found: those whose feet may come within TRUNK_STEP of
+## it (TreeLooks.hold_most) with a log at the levels a body there, or a step from there, may meet or stand on. They
+## are found again when `p` is in another cell than they were found round, or TRUNKS_FRESH steps after, among the
+## trees of the chunks round (WorldData.tree_chunks), so a step pays for them only as it comes into a cell.
+func _find_trunks(p: Vector3) -> Array:
+	var c := Vector3i(floori(p.x), floori(p.y + 0.001), floori(p.z))
+	if c == _trunks_at and _trunks_age < TRUNKS_FRESH:
+		return _trunks_found
+	_trunks_at = c
+	_trunks_age = 0
+	_trunks_found = []
+	var lo := maxi(0, c.y - TRUNK_UNDER - ceili(TRUNK_STEP) - 1)
+	var hi := mini(world.size_y - 1, c.y + ceili(HEIGHT + TRUNK_STEP))
 	if hi < lo:
-		return false
+		return _trunks_found
 	var levels: int = (-1 << lo) & ~(-2 << hi)
-	var was := 0
-	if _from.is_finite():
-		var flo := maxi(0, floori(_from.y + 0.001))
-		var fhi := mini(world.size_y - 1, floori(_from.y + HEIGHT))
-		was = (-1 << flo) & ~(-2 << fhi) if fhi >= flo else 0
-	for z in range(floori(p.z - r - 0.5), floori(p.z + r - 0.5) + 1):
-		for x in range(floori(p.x - r - 0.5), floori(p.x + r - 0.5) + 1):
-			var logs: int = world.log_col(x, z)
-			if logs & levels == 0:
-				continue
-			var hold: float = world.trunk_hold(Vector2i(x, z))
-			if hold <= 0.0:
-				continue
-			var depth := Vector2(p.x - x - 0.5, p.z - z - 0.5).length() / hold
-			if depth >= 1.0:
-				continue
-			if not _from.is_finite() or logs & was == 0 \
-					or depth < Vector2(_from.x - x - 0.5, _from.z - z - 0.5).length() / hold - 0.0001:
-				return true
-	return false
+	var r := TreeLooks.hold_most + TRUNK_STEP
+	var x0 := floori(c.x - r - 0.5)
+	var x1 := floori(c.x + r + 0.5)
+	var z0 := floori(c.z - r - 0.5)
+	var z1 := floori(c.z + r + 0.5)
+	var foot := [0]
+	for kz in range(z0 >> WorldData.SHIFT, (z1 >> WorldData.SHIFT) + 1):
+		for kx in range(x0 >> WorldData.SHIFT, (x1 >> WorldData.SHIFT) + 1):
+			for col: Vector2i in world.tree_chunks.get(Vector2i(kx, kz), {}):
+				if col.x < x0 or col.x > x1 or col.y < z0 or col.y > z1 or world.log_col(col.x, col.y) & levels == 0:
+					continue
+				var look: Dictionary = world.trunk_look(col, foot)
+				if not look.is_empty():
+					_trunks_found.append([col, look, float(foot[0]), float(foot[0]) + float(look.top),
+						Vector2(col.x + 0.5, col.y + 0.5), float(look.hold)])
+	return _trunks_found
+
+
+## Where `p` (cells) is from the axis of the trunk in column `col`, as TreeLooks.ring_depth measures: across the
+## screen (the camera's right) and up it (behind the axis).
+func in_view(p: Vector3, col: Vector2i) -> Vector2:
+	var d := Vector2(p.x - col.x - 0.5, p.z - col.y - 0.5)
+	return Vector2(d.dot(Vector2(-view_up.y, view_up.x)), d.dot(view_up))
+
+
+## The body at `p` stopped moving to `np` by the foot of a pictured trunk (_trunk_near) and nothing else: moved
+## round it instead, to a hair off its edge the nearest way from `np` (it slides along the trunk, not catching on
+## it), when that is no farther than the step and nothing stops it there; `p` otherwise.
+func _round_trunk(p: Vector3, np: Vector3) -> Vector3:
+	if TreeLooks.hold_most <= 0.0 or world.trees.is_empty():
+		return p
+	var grow := TreeLooks.FEET / TreeLooks.TEXELS_CELL + 0.002
+	var at := np
+	# A second trunk beside the first may take the step's end in turn.
+	for k in 2:
+		var near := _trunk_near(at)
+		if near.is_empty():
+			break
+		var col: Vector2i = near[0]
+		var q := TreeLooks.ring_out(near[1], in_view(at, col), grow)
+		var right := Vector2(-view_up.y, view_up.x)
+		var d := right * q.x + view_up * q.y
+		at = Vector3(col.x + 0.5 + d.x, at.y, col.y + 0.5 + d.y)
+	if at == np or Vector2(at.x - p.x, at.z - p.z).length() > Vector2(np.x - p.x, np.z - p.z).length() * 1.5 + 0.001:
+		return p
+	return p if _collides(at) else at
+
+
+## The body at `p` (cells), come down in a step beside a pictured trunk that narrows up (TreeLooks.ring_at: a step
+## keeps the ring of the height it began at, so it falls past the trunk's side, not onto it), inside the wider ring
+## there and not where the step began: put a hair off that ring's edge, when that is within CONE_PUSH and nothing
+## stops it there, so it slides down the trunk's side; `p` otherwise.
+func _off_cone(p: Vector3) -> Vector3:
+	var grow := TreeLooks.FEET / TreeLooks.TEXELS_CELL
+	var at := p
+	for t: Array in _trunks:
+		var look: Dictionary = t[1]
+		var narrow: Vector2 = look.narrow
+		var y0: float = t[2]
+		if narrow.y <= narrow.x or at.y + 0.001 >= t[3] or at.y + HEIGHT <= y0:
+			continue
+		var col: Vector2i = t[0]
+		var ring := TreeLooks.ring_at(look, maxf(0.0, at.y - y0))
+		var q := in_view(at, col)
+		if TreeLooks.ring_depth(ring, q, grow) >= 1.0 \
+				or TreeLooks.ring_depth(TreeLooks.ring_at(look, maxf(0.0, _from.y - y0)), in_view(_from, col), grow) < 1.0:
+			continue
+		q = TreeLooks.ring_out(ring, q, grow + 0.002)
+		var d := Vector2(-view_up.y, view_up.x) * q.x + view_up * q.y
+		at = Vector3(col.x + 0.5 + d.x, at.y, col.y + 0.5 + d.y)
+	if at == p or Vector2(at.x - p.x, at.z - p.z).length() > CONE_PUSH or _collides(at):
+		return p
+	return at
 
 
 ## Whether the middle of the feet at `p` (cells) is within PIECE_HOLD of the line a log or
@@ -869,6 +1043,19 @@ func _piece_touched(p: Vector3) -> bool:
 						Vector2(_from.x, _from.z), a, b).distance_to(Vector2(_from.x, _from.z)) - 0.0001):
 					return true
 	return false
+
+
+## How far from where a step began (cells) the trunks found then are the ones it may meet (_trunks_round): a step
+## at running pace goes less than half of it (STEP_MOST); farther (a fall, a fast vessel) they are found round there.
+const TRUNK_STEP := 1.0
+## How many levels under the feet a pictured trunk's foot may be for its top to hold them (a stump's top drawn
+## higher than its cell of log).
+const TRUNK_UNDER := 2
+## How many steps the trunks found round a cell are kept while the body stays in it (_find_trunks).
+const TRUNKS_FRESH := 30
+## How far (cells) a step coming down beside a trunk that narrows up may put the body out of its wider ring under
+## (_off_cone): more than a fall's step slides it.
+const CONE_PUSH := 0.25
 
 
 ## How near (cells) the feet's middle comes to the line of a log or fallen trunk
@@ -955,7 +1142,7 @@ func _find_posts(p: Vector3, moved: bool) -> void:
 ## Height of the highest ground the feet at `p` would stand on, among surfaces between
 ## `lo` and `hi`; -INF when there is none.
 func _ground_top(p: Vector3, lo: float, hi: float) -> float:
-	var best := -INF
+	var best := _trunk_top(p, lo, hi)
 	for y in range(floori(lo), floori(hi) + 1):
 		for z in range(floori(p.z - HALF_DEPTH), floori(p.z + HALF_DEPTH) + 1):
 			for x in range(floori(p.x - HALF_WIDTH), floori(p.x + HALF_WIDTH) + 1):

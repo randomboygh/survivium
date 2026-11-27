@@ -46,3 +46,9 @@ on the server diverge a little (ice, corners, beasts' pushes). So: the place's t
 pull of the server's body 2 cells a second, 10 refusals before the return, 2 seconds of work «ahead», the
 message frequency twice what the game sends at 144 frames. Tighten these numbers only by measurements from a
 phone.
+
+A pictured trunk or stump holds a body off the ring of the stump's cut as the player's camera lays it
+(`Body._trunk_touched`: as wide across the view, as deep along it, its front on the axis), and the server takes that
+view from the INPUT (`Player.take_input`): a client telling another view than it shows gets only the same ring turned,
+a few pixels nearer the trunk on one side. A claim inside a ring is refused only where it is deeper in than the place
+before it (`Body.blocked(claim, from)`): the camera turned may leave an honest body inside the ring as it lies now.

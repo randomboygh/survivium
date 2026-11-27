@@ -16,6 +16,9 @@ uniform sampler2D sprite_texture : filter_nearest SRGB_HINT;
 uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 uniform vec4 silhouette SRGB = vec4(0.55, 0.75, 1.0, 0.55);
 uniform float water_line = -1000.0;
+// As the sprite's: how much nearer the camera the figure is drawn than it stands (on a stump's top), so the silhouette
+// keeps the sprite's depth and is not drawn over it.
+uniform float depth_lift = 0.0;
 
 varying vec3 world_pos;
 
@@ -24,6 +27,9 @@ void vertex() {
 	VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	world_pos = VERTEX;
 	VERTEX = shear(stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
+	if (view_slope > 0.01) {
+		VERTEX.y += depth_lift;
+	}
 }
 
 void fragment() {

@@ -10,21 +10,21 @@ leaves: ["#0d1f2e", "#183041", "#2e4940", "#3d5d59", "#547c75", "#7ca374", "#99c
 bark: ["#1d1a1a", "#48413a", "#716759", "#a89f8c"]
 snow: snow.png
 looks:
-  - {size: 0.42, variant: 0, x: 0, y: 0, w: 58, h: 92, ax: 29, ay: 89, foot: [2, 1], trunk: 8, crown: [-2, -3, 6, 10, 7, "AEAAAAAAAAAAHwAAAAAAAPADAMA4BAAAP0AwjsMQAPADAMA4BAAAHwAAAAAAAEAAAAAAAAA="]}
-  - {size: 0.42, variant: 1, x: 0, y: 92, w: 54, h: 92, ax: 27, ay: 89, foot: [1.5, 1], trunk: 8, crown: [-2, -3, 6, 10, 7, "AEAAAAAAAAAAnwMAAAAAAPB7AOAwBAAA/wcwjsMQAPB7AOAwBAAAnwMAAAAAAEAAAAAAAAA="]}
-  - {size: 0.68, variant: 0, x: 0, y: 184, w: 76, h: 124, ax: 38, ay: 121, foot: [3, 2], trunk: 12, crown: [-3, -3, 8, 14, 7, "AAAAPhwAAAAAAAAAAAAAAAB+PgA8PDwIAAAAAAAAAH9+AD4+PjwACAgAAAAA/38APj4+PAAYGAgAAAB/fgA+Pj48AAgIAAAAAH4+ADw8PAgAAAAAAAAAPhwAAAAAAAAAAAA="]}
-  - {size: 0.68, variant: 1, x: 0, y: 308, w: 76, h: 124, ax: 38, ay: 121, foot: [3.25, 2], trunk: 12, crown: [-3, -3, 7, 13, 7, "AACAwwEAAAAAAAAAAAB+HwDA4wEAAAAAAPj7ARyfDwDAIAAAwP+P4Pl8AAwHAwAA/n4Ax+cDADAIAADg9wEAPB4AAAAAAAAOBwAAAAAAAAA="]}
-  - {size: 1.00, variant: 0, x: 0, y: 432, w: 96, h: 164, ax: 48, ay: 159, foot: [6.5, 1], trunk: 17, crown: [-4, -4, 9, 18, 9, "AAAAAAAABx8AAAAAAAAAAAAAAAAAAAAAAA5+/gDg4AMDAAAAAAAAAAAAAAAAfPz7h8DHHx8AOHDgAAAAAAAAAADw8/8fDz///CDwwYMHBw4AAAAAAODv/388/vzzg8GHDx88OGAAAAAAAD////Hw888PAh88eHDgAAAAAAAAfPz7h8DHHx8AOHDgAAAAAAAAAADg4OcPAA4+MAAAAAAAAAAAAAAAAAAABx8AAAAAAAAAAAAAAAAA"]}
-  - {size: 1.00, variant: 1, x: 0, y: 596, w: 96, h: 166, ax: 48, ay: 161, foot: [7, 1], trunk: 17, crown: [-4, -4, 9, 18, 9, "AAAAAAAABwAAAAAAAAAAAAAAAAAAAAAAAB5+AADg4QMAAAAAAAAAAAAAAAAA/PwDwMPPHwAIOHDgAAAAAAAAAAD48w+Bjz//EPDgwYMHBwQAAAAAAODvPww+/vzDwMOHDx88MGAAAAAAgD//EPj48w8BDx48eHBAAAAAAAAA/PwDwMPPHwAIOHDgAAAAAAAAAADg4QcAAB4+AAAAAAAAAAAAAAAAAAAABwAAAAAAAAAAAAAAAAAA"]}
+  - {size: 0.42, variant: 0, x: 0, y: 0, w: 58, h: 92, ax: 29, ay: 89, foot: [2, 1], taper: [8, 2], trunk: 8, crown: [-2, -3, 6, 10, 7, "AEAAAAAAAAAAHwAAAAAAAPADAMA4BAAAP0AwjsMQAPADAMA4BAAAHwAAAAAAAEAAAAAAAAA="]}
+  - {size: 0.42, variant: 1, x: 0, y: 92, w: 54, h: 92, ax: 27, ay: 89, foot: [1.5, 1], taper: [9, 2.5], trunk: 8, crown: [-2, -3, 6, 10, 7, "AEAAAAAAAAAAnwMAAAAAAPB7AOAwBAAA/wcwjsMQAPB7AOAwBAAAnwMAAAAAAEAAAAAAAAA="]}
+  - {size: 0.68, variant: 0, x: 0, y: 184, w: 76, h: 124, ax: 38, ay: 121, foot: [3, 2], taper: [12, 3.5], trunk: 12, crown: [-3, -3, 8, 14, 7, "AAAAPhwAAAAAAAAAAAAAAAB+PgA8PDwIAAAAAAAAAH9+AD4+PjwACAgAAAAA/38APj4+PAAYGAgAAAB/fgA+Pj48AAgIAAAAAH4+ADw8PAgAAAAAAAAAPhwAAAAAAAAAAAA="]}
+  - {size: 0.68, variant: 1, x: 0, y: 308, w: 76, h: 124, ax: 38, ay: 121, foot: [3.25, 2], taper: [11, 3.5], trunk: 12, crown: [-3, -3, 7, 13, 7, "AACAwwEAAAAAAAAAAAB+HwDA4wEAAAAAAPj7ARyfDwDAIAAAwP+P4Pl8AAwHAwAA/n4Ax+cDADAIAADg9wEAPB4AAAAAAAAOBwAAAAAAAAA="]}
+  - {size: 1.00, variant: 0, x: 0, y: 432, w: 96, h: 164, ax: 48, ay: 159, foot: [6.5, 1], taper: [12, 9], trunk: 17, crown: [-4, -4, 9, 18, 9, "AAAAAAAABx8AAAAAAAAAAAAAAAAAAAAAAA5+/gDg4AMDAAAAAAAAAAAAAAAAfPz7h8DHHx8AOHDgAAAAAAAAAADw8/8fDz///CDwwYMHBw4AAAAAAODv/388/vzzg8GHDx88OGAAAAAAAD////Hw888PAh88eHDgAAAAAAAAfPz7h8DHHx8AOHDgAAAAAAAAAADg4OcPAA4+MAAAAAAAAAAAAAAAAAAABx8AAAAAAAAAAAAAAAAA"]}
+  - {size: 1.00, variant: 1, x: 0, y: 596, w: 96, h: 166, ax: 48, ay: 161, foot: [7, 1], taper: [13, 8], trunk: 17, crown: [-4, -4, 9, 18, 9, "AAAAAAAABwAAAAAAAAAAAAAAAAAAAAAAAB5+AADg4QMAAAAAAAAAAAAAAAAA/PwDwMPPHwAIOHDgAAAAAAAAAAD48w+Bjz//EPDgwYMHBwQAAAAAAODvPww+/vzDwMOHDx88MGAAAAAAgD//EPj48w8BDx48eHBAAAAAAAAA/PwDwMPPHwAIOHDgAAAAAAAAAADg4QcAAB4+AAAAAAAAAAAAAAAAAAAABwAAAAAAAAAAAAAAAAAA"]}
 # The stump a felled tree leaves (survivium-builds/trees-redraw/integration/pr5/src/pack_pr5.py): a row a size
 # in stumps.png, 8 turns of summer then 8 of winter (stump_snow); wood = the cut wood's 6 steps and the resin.
 wood: ["#675544", "#86705b", "#9e8770", "#b4a086", "#d8c5a0", "#f2e2bc", "#e0a040"]
 stump_frames: stumps.png
 stump_snow: true
 stumps:
-  - {size: 0.42, x: 0, y: 0, w: 6, h: 8, ax: 5, ay: 6}
-  - {size: 0.68, x: 0, y: 8, w: 10, h: 12, ax: 6, ay: 9}
-  - {size: 1.00, x: 0, y: 20, w: 28, h: 22, ax: 15, ay: 17}
+  - {size: 0.42, x: 0, y: 0, w: 6, h: 8, ax: 5, ay: 6, top: 3.5, cut: [2, 1, -2.5]}
+  - {size: 0.68, x: 0, y: 8, w: 10, h: 12, ax: 6, ay: 9, top: 4.5, cut: [3.5, 2, -2]}
+  - {size: 1.00, x: 0, y: 20, w: 28, h: 22, ax: 15, ay: 17, top: 7.5, cut: [7, 4, -2.5]}
 # The pieces lying in the woods (survivium-builds/trees-redraw/integration/pieces/src/pack_pieces.py): a row a
 # kind in pieces.png, its views the 8 turns of summer then the 8 of winter, each [x, y, w, h, ax, ay]; logs and
 # twigs: what the axe makes of it; reach: cells it lies out from its column at most.
