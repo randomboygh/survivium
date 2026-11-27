@@ -351,6 +351,12 @@ func _test_old_worlds() -> void:
 		var listed := Mods.of_world({"content": content, "mods": mods})
 		fine = fine and listed == all and Mods.resolve(listed).dropped.is_empty()
 	_check(fine and Mods.of_world({}) == all, "a world of every `content` mark from 1 to 9 has every bundle there is")
+	# A world whose bundle is gone is not opened (audit DATA-3): the names of the ones not
+	# here, a renamed mod's old name or a mod of present bundles is not one of them.
+	_check(Mods.missing({"mods": ["core", "birds", "plants", "animals/wolf"]}).is_empty() and Mods.missing({}).is_empty(),
+		"a world of bundles and mods there are misses none")
+	var gone := Mods.missing({"mods": ["core", "animals/unicorn", "my_mod", "animals/unicorn", 7]})
+	_check(gone == ["animals/unicorn", "my_mod"], "a bundle and a mod not here are missing, each once: %s" % [gone])
 
 
 ## Every reference field names its link and the action behind it from the lists the

@@ -124,7 +124,8 @@ Part of [Protocol and server](../network.md). The character on the server, the l
   on Linux; the builds are the release `pc-latest`, [testing.md](../testing.md)); `main.gd` on `--server` first
   thing goes to this scene by a string path (`change_scene_to_file`, deferred: in `_ready` the tree is busy),
   having built nothing of the client. It opens the world like the game: a save under `user://saves` (bundles
-  `Mods.of_world`, materials `Mat.remap`, the clock `sky`, things `placed`) or a new world by seed and
+  `Mods.of_world`, materials `Mat.remap`, the clock `sky`, things `placed`; a save whose bundles are not all
+  here, `Mods.missing`, is refused) or a new world by seed and
   settings (the config's bundles or all, `Mods.resolve`); makes the ground within `SPAWN_REACH` 2 chunks around
   the guess of the start (`Session.make_chunk`), finds the start (`WorldGen.find_spawn`), in a new world puts
   a camp (`Placed.start_camp`, the test world's things), hangs the server node `runner.gd` (`pausable = false`,

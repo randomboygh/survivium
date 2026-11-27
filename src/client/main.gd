@@ -401,9 +401,13 @@ func _ready() -> void:
 		_build_menu()
 
 
-## Starts loading the world chosen (see start_world), once.
+## Starts loading the world chosen (see start_world), once; never a world whose bundles
+## are not all here (SaveGame.missing: the menu says why).
 func begin_world() -> void:
 	if world_started:
+		return
+	if not save.missing.is_empty():
+		push_warning("the world needs bundles that are not here: %s" % [", ".join(save.missing)])
 		return
 	world_started = true
 	StartTimes.mark("load")

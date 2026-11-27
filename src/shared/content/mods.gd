@@ -183,6 +183,24 @@ static func of_world(meta: Dictionary) -> Array:
 	return expand(bundles + new.filter(func(b: String) -> bool: return b in kept))
 
 
+## The mods and bundles world.json `meta` lists that are not here: no folder under
+## content/ (or the own mods') of that name, nor a mod renamed. A world with one is not
+## opened (audit DATA-3, the owner's pick): its cells, trees and creatures of the bundle
+## would be lost at the first save, so the game names them and leaves the save alone.
+## Each once, in the order listed.
+static func missing(meta: Dictionary) -> Array:
+	var listed: Variant = meta.get("mods")
+	if not listed is Array:
+		return []
+	var every := all()
+	var mods := available()
+	var out := []
+	for name in listed:
+		if name is String and not name in every and not name in mods and not RENAMED.has(name) and not name in out:
+			out.append(name)
+	return out
+
+
 ## Bundles out of a list of mods and bundles (a saved world's or the settings'): a mod
 ## stands for all its bundles, a renamed mod for what it became, the unknown are left
 ## out; in load order, each once.

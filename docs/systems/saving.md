@@ -33,7 +33,14 @@ convert the saves of old versions.
   `stop`, with the commands, fights and players by their keys ([network.md](network.md)); the next player's
   number is past every number the world knows (`known_players`: the players' files, the teams, the land).
 - `src/shared/content/mods.gd` — `of_world(meta)`: the bundles of a saved world by its `world.json` (shared
-  code: the server opens worlds by the same).
+  code: the server opens worlds by the same); `missing(meta)`: the mods and bundles it lists that are not here.
+
+**A world whose bundle is missing is not opened** (audit DATA-3, the owner's pick): its cells, trees and
+creatures of that bundle would be lost at the first save, and the bundle would drop out of `mods` and `known`
+for good. Single player (`SaveGame.missing`) leaves the save unread and unwritten, `main.begin_world` does not
+start it, and «Одиночная игра» greys «Продолжить» and names the missing ones under it
+(`[world_bundles_missing]`). The server refuses to start such a world (`failed` names them, the host's window
+shows it) and does not `renew` into one. A renamed mod (`Mods.RENAMED`) is not missing.
 
 **Conversions of old saves** (the mark `content` in `world.json`, now 9):
 - before 2…8 — the mods split off the base (plants, tools, sounds, music, materials, resources, biomes,

@@ -59,6 +59,10 @@ var store: WorldStore
 ## the player's record.
 var has_save := false
 var meta := {}
+## The mods and bundles the save was made with that are not here (Mods.missing): the
+## world is not opened (main.begin_world, the menu says why) and nothing is written to
+## its save.
+var missing: Array = []
 var player_record := {}
 ## The player was put back where the save had them (else they start at the spawn).
 var player_placed := false
@@ -99,7 +103,8 @@ func _page_hidden(_args: Array) -> void:
 ## Sets the seed, settings and bundles of the world to start (game.world_seed,
 ## world_options, world_mods) and reads its save if it has one. A saved world keeps the
 ## bundles it was made with, and those new to it that only add things to make join it;
-## a new one takes the set chosen on «Новый мир».
+## a new one takes the set chosen on «Новый мир». A save whose bundles are not all here
+## is not opened (`missing`).
 func choose_world() -> void:
 	var current := WorldStore.read_current() if enabled else {}
 	game.world_mods = game.settings.world_mods()
@@ -119,6 +124,11 @@ func choose_world() -> void:
 	meta = store.read_json(WorldStore.WORLD)
 	if meta.get("format") != float(WorldStore.FORMAT):
 		push_error("save %s has format %s, not %d: started anew" % [store.dir, meta.get("format"), WorldStore.FORMAT])
+		meta = {}
+		return
+	missing = Mods.missing(meta)
+	if not missing.is_empty():
+		push_warning("save %s needs bundles that are not here: %s; it is not opened" % [store.dir, ", ".join(missing)])
 		meta = {}
 		return
 	has_save = true
@@ -196,7 +206,7 @@ func track(name: String, obj) -> void:
 
 ## The player has entered the world: saving starts.
 func begin() -> void:
-	active = enabled
+	active = enabled and missing.is_empty()
 
 
 func update(delta: float) -> void:
