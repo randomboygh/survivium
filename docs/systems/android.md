@@ -71,10 +71,13 @@ the sun's light with a shadow, which Compatibility adds in sRGB in a pass of its
 (the globals `ambient_light`, `sun_shadowed` set by `sky.gd`); what blends (water, particles) and the torch's and fires'
 light with shadows still mix in linear light there. Shots side by side: `survivium-builds/android/vulkan-colours-*.png`.
 Under Vulkan too the Adreno 840 drew no pictured tree at all, standing or falling, once `tree.gdshader` held the
-felling's code (#912: a search of 24 x 24 texels a crown module in the vertex), while their shadows
-(`tree_shadow.gdshader`) were drawn (v0.5.912 to v0.5.919; desktop GL and lavapipe drew them): the felling went to a
-copy of the shader of its own (`TreeSprites.falling`, [chunks.md](chunks.md)). Keep big loops out of a shader every
-chunk draws with.
+felling's code (#912), while their shadows (`tree_shadow.gdshader`) were drawn (v0.5.912 to v0.5.919; desktop GL
+and lavapipe drew them): the felling went to a copy of the shader of its own (`TreeSprites.falling`,
+[chunks.md](chunks.md)) and the trees stood again (v0.5.926), but that copy drew no falling tree. Its log (v0.5.929,
+«Данные для теста» shows the earlier errors since v0.5.926) said why: `Too many varyings used in shader (29 used,
+maximum supported is 28)`. Godot's Mobile renderer keeps 14 varying slots for its own and counts light()'s
+varyings too; an Adreno has 28 (min(vertex outputs, fragment inputs) / 4, its fragment inputs 112), and the shader
+took 30. `tools/lint.py` `MAX_VARYINGS` holds every 3D shader to 14 ([pitfalls](rendering/pitfalls.md)).
 
 **Tests.** No device in CI: the `android` job fails if the export or the signature check fails; how it plays
 is checked on a phone.

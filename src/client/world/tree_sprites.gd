@@ -264,8 +264,9 @@ static func _offset_colour(d: Vector2i) -> Color:
 
 ## The falling trees' copy of tree.gdshader `shader` (TreeHits): its code with FALLING
 ## defined, which alone holds the felling's code (FALL_*: the trunk turned over pixel by
-## pixel, the crown's modules). The chunks' standing trees draw without it: with it in their
-## shader too, the Adreno 840 (Android, Vulkan) drew no tree at all (v0.5.912 to v0.5.919).
+## pixel, the crown's modules) and its varyings. The chunks' standing trees draw without it:
+## with it in their shader too, the Adreno 840 (Android, Vulkan) drew no tree at all, its
+## varyings past the phone's (v0.5.912 to v0.5.919; tools/lint.py MAX_VARYINGS).
 static func falling(shader: Shader) -> Shader:
 	var s := Shader.new()
 	s.code = shader.code.replace("shader_type spatial;", "shader_type spatial;\n#define FALLING")
