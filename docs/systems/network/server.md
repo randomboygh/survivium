@@ -45,7 +45,7 @@ Part of [Protocol and server](../network.md). The character on the server, the l
   `Server.SNAP_EVERY` 0.1); an animal more than `Session.reach_for(view_half) + 1` chunks from the player is
   left out of the snapshots and its paw prints (`_far`, `_far_ones`) and told once it comes nearer, even
   standing still; `rejoin()` — the player came back on a new link: the request numbers are from one
-  again, the next `flush` is full, as on entry; while a full `flush` lies ahead, `born` is not piled up (the
+  again, the next `flush` is full, as on entry (the holes in the ice too, `_holes`); while a full `flush` lies ahead, `born` is not piled up (the
   animals come with the first player, and each would be named twice). `send_world` (set by `Server`: through a
   socket) — the link keeps the copy of the client's world: `_sent` — the chunks the client has; in every
   `flush` (`_world_events`) — `cells` by edits (`actions.cell_changed`, `actions.cells_set` — all cells of a
@@ -60,8 +60,9 @@ Part of [Protocol and server](../network.md). The character on the server, the l
   `Ice.to_list`, which the client checks (`Ice.take_list`), through the loop empty (the world is the same).
 - `src/server/server.gd` — the server over the network: `listen()` on the config's port (`TCPServer`), `poll()`
   accepts links every frame (`WebSocketPeer.accept_stream`, the outgoing buffer `BUFFER` 4 MB for С3.2's
-  chunks, the incoming `INBOUND` 256 KB; with no greeting no more than `PENDING_MAX` 16 links, from one address
-  `PENDING_PER_ADDRESS` 4; messages no more often than `MSG_RATE` 300 a second, the extra are not read, a flood
+  chunks, the incoming `INBOUND` 256 KB; with no greeting no more than `PENDING_MAX` 16 links (the oldest silent one is
+  closed to make room for a new one), from one address `PENDING_PER_ADDRESS` 4 except this machine's (a tunnel's
+  all come from it); the WebSocket handshake within `HANDSHAKE_WAIT` 3 s; messages no more often than `MSG_RATE` 300 a second, the extra are not read, a flood
   `FLOOD_KICK` 3 s — disconnection with code 4003), before the welcome it reads only `hello` (anything else, or
   after `HELLO_WAIT` 10 s — closes with code 4000), checks the version, the name (up to `NAME_MAX` 24 characters,
   `Protocol.clean_text`; not from `RESERVED_NAMES` and not taken by another key in the world), the password
@@ -94,8 +95,9 @@ Part of [Protocol and server](../network.md). The character on the server, the l
   terminal): `op`, `deop`, `stop` — to the owner and the terminal
   ([../security/COMMAND_PERMISSIONS.md](../../security/COMMAND_PERMISSIONS.md)). Who may enter — `access`
   (`banned_keys` key → name, `banned_names`, `listed_only`, `listed`, `listed_keys` name → the key with which
-  the listed name came first, `hosts` and `owners` key → name; names in lower case), kept in the world's save
-  `access.json` (`ServerStore.read_access`/`write_access`, read at start by `load_access`); the refusal of
+  the listed name came first, `hosts`, `owners` and `authors` key → name; names in lower case), kept in the world's save
+  `access.json` (`ServerStore.read_access`/`write_access`, read at start by `load_access`; moving to another
+  world, `ServerMain._swap_world` carries every list over and writes them into the new world's `access.json`); the refusal of
   `hello` — `banned` or `list` (the words on the client: «The server's host has blocked you», «The server lets
   in only its own…»). In the «Create a server» window the same commands are a field under the log. The log is
   the lines `lines`, the scene prints them with the time.

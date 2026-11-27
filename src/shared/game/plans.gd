@@ -20,6 +20,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
 
 const CELL := WorldData.CELL
 ## Cells one shape may have at most, and the ghost cells in the world at most.
@@ -978,7 +979,7 @@ func build(actions, who) -> Dictionary:
 			# The ground taken out is dug, so it is given back even when building is free;
 			# the block replaced goes into the bag as dug.
 			if back != "":
-				who.inventory.add(back, 1)
+				Inventory.give_or_lay(who, back, 1, 0, Inventory.NORMAL, "", true)
 		var seconds := BUILD_SWING
 		if swapped:
 			seconds += actions.cell_swing(Tools.of(tool), c)

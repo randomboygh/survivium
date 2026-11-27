@@ -243,6 +243,9 @@ func rejoin() -> void:
 	_cells.clear()
 	_drops.clear()
 	_grass.clear()
+	_cracks.clear()
+	# The client's world copy starts empty: the holes in the ice are told again.
+	_holes = true
 	# What piled up while the player was away is in the full flush; sent again after
 	# it, a thing placed meanwhile would be put twice.
 	outbox.clear()

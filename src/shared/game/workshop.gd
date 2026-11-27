@@ -286,9 +286,7 @@ func waiting() -> bool:
 ## Puts `n` of item `id` worn by `worn` of quality `q` (dyed with `dye`, "" none) into the
 ## bag; what does not fit goes on the ground at the feet.
 func _receive(id: String, n: int, worn := 0, q := Quality.NORMAL, dye := "") -> void:
-	var got: int = who.give(id, n, worn, q, dye)
-	if got < n:
-		who.lay(id, Inventory.drop_data(Inventory.stack(id, n - got, worn, null, q, dye)))
+	Inventory.give_or_lay(who, id, n, worn, q, dye)
 
 
 # --- Wear -------------------------------------------------------------------------

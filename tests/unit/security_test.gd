@@ -36,6 +36,7 @@ func run() -> void:
 	_test_mend()
 	_test_dye()
 	_test_redye()
+	_test_silent_sockets()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -774,3 +775,56 @@ func _test_redye() -> void:
 	_check(req.handle(Protocol.request(Protocol.REDYE, 312, [at, ""]))[1] == true and inv.count("plants:ash") == 0
 		and Inventory.dye_of(inv.slots[at]) == "" and inv.worn_on(at) == "body" and not inv.gear_dyes().has("body"),
 		"with ash it is washed back to its own colours, still worn")
+
+
+## Connections that never say hello (2026-11-27 audit NET-2): behind a tunnel every one
+## comes from this machine, so a few of them must not shut out the next player, and once
+## PENDING_MAX wait, the oldest silent one makes room for a newcomer.
+func _test_silent_sockets() -> void:
+	var cfg := Config.new()
+	cfg.port = 7795
+	cfg.bind = "127.0.0.1"
+	var net := Server.new(null, cfg, {"mods": []})
+	if net.listen() != OK:
+		_check(false, "the test server listens on port %d" % cfg.port)
+		return
+	var socks: Array[StreamPeerTCP] = []
+	var taken := func(n: int) -> bool:
+		var until := Time.get_ticks_msec() + 3000
+		while Time.get_ticks_msec() < until:
+			for s in socks:
+				s.poll()
+			net.poll()
+			if net.peers.size() >= n:
+				return true
+			OS.delay_msec(5)
+		return false
+	for i in Server.PENDING_PER_ADDRESS + 1:
+		var s := StreamPeerTCP.new()
+		s.connect_to_host("127.0.0.1", cfg.port)
+		socks.append(s)
+	_check(taken.call(Server.PENDING_PER_ADDRESS + 1) and net._pending("127.0.0.1") == Server.PENDING_PER_ADDRESS + 1,
+		"more silent connections from this machine than one address may hold are taken: a tunnel's (%d)" % net.peers.size())
+	for i in Server.PENDING_MAX:
+		var s := StreamPeerTCP.new()
+		s.connect_to_host("127.0.0.1", cfg.port)
+		socks.append(s)
+	var newest := Time.get_ticks_msec() + 3000
+	while Time.get_ticks_msec() < newest and net.peers.size() < Server.PENDING_MAX:
+		for s in socks:
+			s.poll()
+		net.poll()
+		OS.delay_msec(5)
+	# Every connection the server took is polled a few times more: the last are accepted too.
+	for i in 40:
+		for s in socks:
+			s.poll()
+		net.poll()
+		OS.delay_msec(5)
+	_check(net._pending() == Server.PENDING_MAX and net.peers.size() == Server.PENDING_MAX,
+		"at most PENDING_MAX wait for a hello (%d)" % net.peers.size())
+	_check(socks[-1].get_status() == StreamPeerTCP.STATUS_CONNECTED and socks[0].get_status() != StreamPeerTCP.STATUS_CONNECTED,
+		"the newest is let in, the oldest silent one put out to make room: %d, %d" % [socks[-1].get_status(), socks[0].get_status()])
+	net.stop()
+	for s in socks:
+		s.disconnect_from_host()

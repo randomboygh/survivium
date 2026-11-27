@@ -1805,7 +1805,7 @@ func take_up(who, e: Dictionary) -> bool:
 	if full:
 		who.say(Lang.line("[1_with_things]", [Items.title(e.item)]))
 	if e.get("wreath", "") != "":
-		who.give(e.wreath, 1)
+		Inventory.give_or_lay(who, e.wreath, 1)
 	# A door or a window taken out of a wall leaves ghost blocks of the wall's in its hole
 	# (the user's pick, 2026-11-26, 6А): built by the action button, the wall is whole again.
 	var hole := cut_of(e) if is_opening(e.item) else {}

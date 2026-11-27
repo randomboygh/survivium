@@ -61,7 +61,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   not again before `PRICK_PAUSE` (`_touch_spines`, asked of `Body.solid_near`); not while riding.
 - `src/shared/game/inventory.gd` — the bag: `SLOTS` 16 (`base`), the first `HOTBAR` 8 — the bar below;
   stacks, weight (40 kg with no slowing, more with strength), sorting, moving into a chest, wear (`wear_tool`, `mend`); the signal
-  `changed`. Quality (decision 181): a stack has a number 1–100 (`quality(s)`, `quality_at(i)`; `NORMAL` 50 —
+  `changed`. A rule giving something it must not lose (a craft's result, a door's wreath, dug ground, bait, a catch)
+  calls `Inventory.give_or_lay(who, …)`: what does not fit is laid at the feet. Quality (decision 181): a stack has a number 1–100 (`quality(s)`, `quality_at(i)`; `NORMAL` 50 —
   what was before quality and at old saves), the cell's fifth field `[id, n, wear, things or null, quality]`
   only when it is not 50 (`stack` builds the cell, `held(s)` — the chest's things); stacks of one thing merge
   with the mean by number (`blend`, in `add`, `put_into`, `sort`), `remove` writes the quality of what was

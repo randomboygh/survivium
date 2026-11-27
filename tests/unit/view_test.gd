@@ -1669,6 +1669,26 @@ func _test_window_glow() -> void:
 	g.remove(cell)
 	_check(g.windows.is_empty(), "a window taken away is forgotten")
 	node.free()
+	# Windows whose nodes were freed before `remove` (a thing taken away and freed in
+	# the same frame) are let go while glowing, and the others still glow (REND-9).
+	var nodes: Array[MeshInstance3D] = []
+	for i in 6:
+		var n := MeshInstance3D.new()
+		n.mesh = model.build_mesh()
+		nodes.append(n)
+		g.add(cell + Vector3i(i, 0, 0), n, model)
+	lamps[0].at = mid + Vector3(2.0, -0.3, -2.0)
+	g._wait = 0.0
+	g.update(0.1, sky, [], lamps, roofed)
+	for i in [0, 2, 3]:
+		nodes[i].free()
+	for i in 5:
+		g.update(0.1, sky, [], lamps, roofed)
+	_check(g.windows.size() == 3 and g.windows.keys().all(func(c: Vector3i) -> bool: return c.x - cell.x in [1, 4, 5])
+		and g.windows.values().all(func(v: Dictionary) -> bool: return v.amount > 0.0),
+		"windows freed before they were taken away are let go, the others glow on: %s" % [g.windows.keys()])
+	for i in [1, 4, 5]:
+		nodes[i].free()
 
 
 ## The rainbow (AirEffects._rainbow): it comes after rain with the sun out by day, and

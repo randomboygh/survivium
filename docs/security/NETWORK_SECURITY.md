@@ -9,7 +9,8 @@ Russian copy: [NETWORK_SECURITY_RU.md](NETWORK_SECURITY_RU.md).
 | What | Value | What happens beyond it |
 |---|---|---|
 | An incoming frame | `INBOUND` 256 KB (the outgoing `BUFFER` 4 MB for chunks) | the frame is not accepted |
-| Connections with no greeting | `PENDING_MAX` 16, from one address `PENDING_PER_ADDRESS` 4 | a new connection is closed at once, an entry in the log |
+| Connections with no greeting | `PENDING_MAX` 16, from one address `PENDING_PER_ADDRESS` 4 (not for this machine: a tunnel's all come from it) | over `PENDING_MAX` the oldest silent one is closed, from one address over 4 the new one; an entry in the log |
+| Time for the WebSocket handshake | `HANDSHAKE_WAIT` 3 s | the connection is closed |
 | Time for the greeting | `HELLO_WAIT` 10 s | closing with code 4000 |
 | Messages per second | `MSG_RATE` 300, in a burst up to `MSG_BURST` 600 | the extra ones are not read; at `FLOOD_KICK` 3 s of excess — disconnection, code 4003 |
 | A wrong password | `PASSWORD_TRIES` 8 per `PASSWORD_WINDOW` 60 s from an address | new players from the address — a refusal `wait`; a player with a known key gets in; the addresses past the window are dropped once a `PRUNE_EVERY` 60 s (`_prune`, with the security log's old kinds) |

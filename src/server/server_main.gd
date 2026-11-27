@@ -249,13 +249,15 @@ func _swap_world() -> void:
 	_make_server()
 	_open_saves()
 	# The hosts and the blocked stay the server's, whichever world it plays.
-	for k in ["banned_keys", "hosts", "owners", "listed_keys"]:
+	for k in ["banned_keys", "hosts", "owners", "listed_keys", "authors"]:
 		server.access[k].merge(access[k])
 	for k in ["banned_names", "listed"]:
 		for v in access[k]:
 			if not v in server.access[k]:
 				server.access[k].append(v)
 	server.access.listed_only = server.access.listed_only or access.listed_only
+	# Written into the new world's access.json, so a restart there keeps them.
+	server._save_access()
 	if server.listen() != OK:
 		say("cannot listen on port %d again" % config.port)
 		_quit()
