@@ -924,6 +924,9 @@ func _animal(life: Wildlife, kind: String, at: Vector3) -> Wildlife.Animal:
 	a.target = at
 	a.radius = Wildlife.radius(AiRules.SPECIES[kind])
 	life.animals.append(a)
+	# Not by _add, so the animals by kind (Wildlife._kin) are dropped here: a test that
+	# clears `animals` and puts in as many as were there kept the old lists.
+	life._kin_of = -1
 	return a
 
 
