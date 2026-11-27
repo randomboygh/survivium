@@ -25,6 +25,7 @@ const PlayerView := preload("res://src/client/view/player.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Effects := preload("res://src/client/view/effects.gd")
 const WindowGlow := preload("res://src/client/view/window_glow.gd")
+const Foliage := preload("res://src/client/world/foliage.gd")
 
 ## The mixes of lights: [the sun's shadow, a light without a shadow (the torch, the far
 ## fires), the layers the nearest fire's real shadow falls from (0 without one), whether
@@ -135,6 +136,15 @@ func _build() -> void:
 		else:
 			# Never in the tree: left, it outlives the game (leaks reported at exit).
 			face.free()
+	# A tree falling, felled (TreeHits): the trees' shader with the felling's code
+	# (TreeSprites.falling), and none falls at the start.
+	if game.get("tree_fall_mat") != null and game.get("tree_mesh") != null:
+		var falling := Node3D.new()
+		var tree := Foliage.multimesh(game.tree_mesh, game.tree_fall_mat, true, true)
+		tree.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		falling.add_child(tree)
+		_collect(falling, kinds)
+		falling.free()
 	# An animal, which may not be around yet: the player's figure on the animals' layer
 	# (the same shader and the same kind of mesh).
 	var figure: MeshInstance3D = game.player.sprite if game.player != null and "sprite" in game.player else null

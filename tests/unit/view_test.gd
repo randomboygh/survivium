@@ -25,6 +25,8 @@ const PlanGhost := preload("res://src/client/view/plan_ghost.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const BuildModeScript := preload("res://src/client/input/build_mode.gd")
 const PlansScript := preload("res://src/shared/game/plans.gd")
+const TreeSprites := preload("res://src/client/world/tree_sprites.gd")
+const TreeShader := preload("res://shaders/tree.gdshader")
 
 
 ## Ground all of one material (or all sea), for AirEffects.hot_ground.
@@ -68,6 +70,7 @@ class FakeGame:
 
 
 func run() -> void:
+	_test_tree_shaders()
 	_test_plan_bodies()
 	_test_blueprint_need()
 	_test_pixel_view()
@@ -2309,3 +2312,40 @@ static func _bits(v: int) -> int:
 		n += v & 1
 		v >>= 1
 	return n
+
+
+## The chunks' pictured trees draw without the felling's code (tree.gdshader under
+## `#ifdef FALLING`): with it in their shader, the Adreno 840 drew no tree at all (v0.5.912
+## to v0.5.919). The falling trees' copy (TreeSprites.falling) defines FALLING.
+func _test_tree_shaders() -> void:
+	var standing := PackedStringArray()
+	# Each open #if: whether its lines are kept (FALLING is not defined; other #if blocks kept).
+	var kept: Array[bool] = []
+	var falling_blocks: Array[bool] = []
+	for line: String in TreeShader.code.split("\n"):
+		var t := line.strip_edges()
+		if t.begins_with("#ifdef FALLING"):
+			kept.append(false)
+			falling_blocks.append(true)
+			continue
+		if t.begins_with("#if"):
+			kept.append(true)
+			falling_blocks.append(false)
+		elif t.begins_with("#else") and not falling_blocks.is_empty() and falling_blocks[-1]:
+			kept[-1] = not kept[-1]
+			continue
+		elif t.begins_with("#endif"):
+			var mine: bool = falling_blocks.pop_back()
+			kept.pop_back()
+			if mine:
+				continue
+		if not kept.has(false):
+			standing.append(line)
+	var code := "\n".join(standing)
+	_check(kept.is_empty(), "tree.gdshader's #if blocks close")
+	for felling: String in ["INSTANCE_ID", "-FALL_REACH", "fall_owner(i + 0.5)", "tile_mid", "fall_turned(", "fading"]:
+		_check(not code.contains(felling), "the chunks' tree shader leaves out the felling's %s" % felling)
+	_check(code.contains("sway_texel(at, cell"), "the chunks' trees still sway module by module")
+	var falling := TreeSprites.falling(TreeShader)
+	_check(falling.code.contains("shader_type spatial;\n#define FALLING") and falling.code.count("#define FALLING") == 1,
+		"the falling trees' copy of tree.gdshader defines FALLING")
