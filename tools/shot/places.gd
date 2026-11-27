@@ -1477,7 +1477,7 @@ func specimen(w, at: Vector3i, species: Array) -> void:
 ## -1: whichever the nearest column has), so the camera at turn 0 shows the drawing of side
 ## `turn`: for comparing them with the approved sheets.
 ## Gives where the player stands, south of the thick one, the three in the middle of the view.
-func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1, dry := -1) -> Vector3:
+func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1, dry := -1, felled := false) -> Vector3:
 	var h: int = w.surface_y(at.x, at.z)
 	for z in range(at.z - 60, at.z + 24):
 		for x in range(at.x - 24, at.x + 24):
@@ -1517,6 +1517,9 @@ func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1, dry :
 						col = c
 						found = true
 		Growth.place(w, col.x, h, col.y, kind, scale)
+		if felled:
+			# Felled: the stump each leaves.
+			Felling.clear(w, Vector3i(col.x, h + 1, col.y))
 		if k == 0:
 			thick = col
 	for z in range(at.z - 64, at.z + 28, 8):

@@ -431,22 +431,26 @@ func _cell_blocks(x: int, y: int, z: int) -> bool:
 	return m != Mat.LEAVES and Mat.is_solid(m)
 
 
-## How far from the axis of the trunk in column `col` the middle of a body's feet is held
-## (cells: the radius of a circle round it, TreeLooks.hold_of) when a standing tree drawn as
-## pictures, or the stump it left (Growth.stump_look), has it; 0 for any other (a young
-## tree, a species drawn in cells, a piece of wood lying: their cells stop a body).
+## How far from the axis of the trunk in column `col` a body's feet may be held at most (cells: TreeLooks `hold`, its
+## ring's reach) when a standing tree drawn as pictures, or the stump it left (Growth.stump_look), has it; 0 for any
+## other (a young tree, a species drawn in cells, a piece of wood lying: their cells stop a body).
 func trunk_hold(col: Vector2i) -> float:
+	var look := trunk_look(col)
+	return look.hold if not look.is_empty() else 0.0
+
+
+## The look (TreeLooks) of the standing pictured tree in column `col`, or of the stump it left (its `stumps` look),
+## {} for none (see trunk_hold); the level of its foot in `foot`.
+func trunk_look(col: Vector2i, foot: Array = []) -> Dictionary:
 	var species: int = trees.get(col, -1)
 	if species < 0 or species >= Trees.SPECIES.size() or Trees.SPECIES[species].pictures.is_empty():
-		return 0.0
-	var looks: Array = Trees.SPECIES[species].pictures.looks
-	var i := Growth.standing_look(self, col)
-	if i < 0:
-		var stump := Growth.stump_look(self, col)
-		if stump < 0:
-			return 0.0
-		i = mini(stump * Growth.TreeLooks.VARIANTS + Growth.variant_of(col), looks.size() - 1)
-	return looks[i].hold
+		return {}
+	var pictures: Dictionary = Trees.SPECIES[species].pictures
+	var i := Growth.standing_look(self, col, foot)
+	if i >= 0:
+		return pictures.looks[i]
+	var stump := Growth.stump_look(self, col, foot)
+	return pictures.stumps[stump] if stump >= 0 else {}
 
 
 ## True when a body taking the part ax..bx, az..bz (0..1) of the cell at (x, y, z) is

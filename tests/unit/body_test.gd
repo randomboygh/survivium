@@ -2,6 +2,9 @@ extends "res://tests/unit/test_case.gd"
 ## The body on the cells: raycast, walking, water and bogs, slopes, steps, the test ground, pits.
 
 
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
+
+
 func run() -> void:
 	_test_raycast()
 	_test_walking_rules()
@@ -462,10 +465,11 @@ func _test_wide_trunk() -> void:
 		"a body stands two cells off a thick trunk")
 
 
-## The trunk of a tree drawn as pictures holds a body off as it is drawn (TreeLooks.hold_of):
-## a circle round its axis as wide as its foot's bark and the feet; its cells stop nothing;
-## a body put in the circle walks out of it. The stump it leaves holds a body off the same
-## circle, and one jumping onto it stands on its top.
+## The trunk of a tree drawn as pictures holds a body's feet off the ring of the stump it leaves as that stump's cut is
+## drawn (TreeLooks.ring_at): as wide across the picture and as deep along the way the camera looks, whichever way that
+## is, its front on the axis, from the ground up to the cut, narrowing over it to the crown where the trunk is drawn
+## narrower; its cells stop nothing; a body in it walks out of it and goes no deeper; one walking past it slides round
+## it (Body._round_trunk). The stump holds a body off the same ring, and one jumping onto it stands on its cut.
 func _test_pictured_trunk() -> void:
 	var species := -1
 	var look := -1
@@ -489,47 +493,119 @@ func _test_pictured_trunk() -> void:
 		for x in range(col.x - 14, col.x + 15):
 			w.set_cell(x, 0, z, Mat.STONE)
 	Growth.place(w, col.x, 1, col.y, species, 1.0)
-	var hold: float = w.trunk_hold(col)
-	_check(hold == s.pictures.looks[look].hold and hold > 0.5,
-		"a standing pictured tree holds a body off its look's circle: %s" % hold)
+	var tree: Dictionary = s.pictures.looks[look]
+	var its_stump: Dictionary = s.pictures.stumps[mini(look / TreeLooks.VARIANTS, s.pictures.stumps.size() - 1)]
+	var ring: Vector3 = tree.ring
+	_check(w.trunk_hold(col) == tree.hold and ring.x > 0.5,
+		"a standing pictured tree holds a body off its look's ring: %s" % ring)
+	_check(ring == Vector3(its_stump.ring.x, its_stump.ring.y, 0.0) and tree.narrow.x == its_stump.top,
+		"its ring is the cut of the stump it leaves, on its axis, up to the cut")
 	var cell := WorldData.CELL
 	var axis := Vector3(col.x + 0.5, 1.0, col.y + 0.5)
 	var body := Body.new()
 	body.world = w
-	for a in 8:
-		var d := Vector2.from_angle(a * PI / 4.0)
-		_check(body.blocked((axis + Vector3(d.x, 0.0, d.y) * hold * 0.9) * cell)
-			and not body.blocked((axis + Vector3(d.x, 0.0, d.y) * hold * 1.05) * cell),
-			"feet keep off the trunk's circle, the same all round (%d)" % a)
-	_check(not body.blocked((axis + Vector3(0.0, 0.0, 0.55)) * cell) == (hold < 0.55),
-		"the trunk's cell stops nothing beyond the circle")
-	# A body put in the circle walks out of it and goes no deeper.
+	var gap: float = TreeLooks.FEET / TreeLooks.TEXELS_CELL
+	# Looking north (a: across, east; b: behind, north): held off the ring as ring_depth says, all round.
+	var wrong := 0
+	for k in 64:
+		var d := Vector2.from_angle(TAU * k / 64.0)
+		for t: float in [0.2, 0.5, 0.8, 1.2, 1.6, 2.2, 3.0]:
+			var q := d * t
+			var depth := TreeLooks.ring_depth(ring, q, gap)
+			if absf(depth - 1.0) < 0.02:
+				continue
+			if body.blocked((axis + Vector3(q.x, 0.0, -q.y)) * cell) != (depth < 1.0):
+				wrong += 1
+	_check(wrong == 0, "feet are held FEET off the ring of the stump's cut, no nearer, no farther (%d wrong)" % wrong)
+	# In front (toward the camera) the ring's front is on the axis: a body walks up to FEET off it, nearer than its
+	# square cell; at the sides it is held off the ring's half width.
+	var front := 0.0
+	while body.blocked((axis + Vector3(0.0, 0.0, front)) * cell):
+		front += 0.01
+	_check(absf(front - gap) < 0.02, "a body walks up to FEET off the trunk's axis in front: %s cells" % front)
+	var side := 0.0
+	while body.blocked((axis + Vector3(side, 0.0, -ring.y)) * cell):
+		side += 0.01
+	_check(absf(side - ring.x - gap) < 0.02, "at the sides FEET off the ring's half width: %s cells" % side)
+	# The camera turned a quarter (looking west: across is north, behind west): the ring lies along that view.
+	body.view_up = Vector2(-1.0, 0.0)
+	var east := 0.0
+	while body.blocked((axis + Vector3(east, 0.0, 0.0)) * cell):
+		east += 0.01
+	var north := 0.0
+	while body.blocked((axis + Vector3(-ring.y, 0.0, -north)) * cell):
+		north += 0.01
+	_check(absf(east - gap) < 0.02 and absf(north - ring.x - gap) < 0.02,
+		"looking west the ring's front is east of the axis and its width across north to south: %s, %s" % [east, north])
+	body.view_up = Vector2(0.0, -1.0)
+	# Over the stump's cut the ring narrows to the crown as the trunk is drawn (`taper`): a body up there (on a floor
+	# beside it) is held off that.
+	var narrow: Vector2 = tree.narrow
+	if narrow.y > narrow.x:
+		var high := TreeLooks.ring_at(tree, narrow.y)
+		_check(high.is_equal_approx(tree.ring_top) and high.x < ring.x and TreeLooks.ring_at(tree, narrow.x) == ring,
+			"the ring narrows from the cut to the crown: %s to %s" % [ring, high])
+		var side_high := 0.0
+		while body.blocked((axis + Vector3(side_high, narrow.y, -high.y)) * cell):
+			side_high += 0.01
+		_check(absf(side_high - high.x - gap) < 0.02, "by the crown the feet are held off the narrower ring")
+	# A body put in the ring walks out of it and goes no deeper.
 	body.on_ground = true
-	var at := (axis + Vector3(0.0, 0.0, hold * 0.95)) * cell
+	var at := (axis + Vector3(0.0, 0.0, gap * 0.5)) * cell
 	body.move_input = Vector2(0.0, -1.0)
 	var deeper := body.step(at, 1.0 / 60.0, false)
-	_check(deeper.z >= at.z - 0.0001, "a body in the circle does not go deeper in")
+	_check(deeper.z >= at.z - 0.0001, "a body in the ring does not go deeper in")
 	body.move_input = Vector2(0.0, 1.0)
 	var out := at
 	for i in 30:
 		out = body.step(out, 1.0 / 60.0, false)
-	_check(out.z > at.z + 0.5 * cell, "a body in the circle walks out of it")
-	# Felled: the stump holds a body off the same circle, and is stood on from above.
-	Felling.fell(w, Vector3i(col.x, 2, col.y), Vector2(1.0, 0.0))
-	_check(Growth.stump_look(w, col) >= 0, "the felled tree left a stump")
-	var stump: float = w.trunk_hold(col)
-	_check(stump > 0.0 and absf(stump - hold) < 0.6, "the stump holds a body off a circle as its tree did: %s" % stump)
+	_check(out.z > at.z + 0.5 * cell, "a body in the ring walks out of it")
+	# Walking east past its front, a little into the ring's reach: slid round it, not caught on it.
+	var walker := Vector3(axis.x - 4.0, 1.0, axis.z + front - 0.15) * cell
+	body.move_input = Vector2(1.0, 0.0)
+	for i in 90:
+		walker = body.step(walker, 1.0 / 60.0, false)
+	_check(walker.x > (axis.x + 2.0) * cell, "a body walking past the trunk slides round it: %s" % (walker / cell - axis))
 	body.move_input = Vector2.ZERO
-	_check(body.blocked((axis + Vector3(stump * 0.9, 0.0, 0.0)) * cell)
-		and not body.blocked((axis + Vector3(stump * 1.05, 0.0, 0.0)) * cell)
-		and not body.blocked((axis + Vector3(0.6, 0.0, 0.0)) * cell) == (stump < 0.6),
-		"the stump stops a body by its circle, not its square cell")
-	var top := (axis + Vector3(0.0, 1.5, 0.0)) * cell
+	# Felled: the stump holds a body off the ring of its cut as drawn, and is stood on from above.
+	Felling.fell(w, Vector3i(col.x, 2, col.y), Vector2(1.0, 0.0))
+	var stump_i := Growth.stump_look(w, col)
+	_check(stump_i >= 0, "the felled tree left a stump")
+	var stump: Dictionary = s.pictures.stumps[maxi(stump_i, 0)]
+	_check(w.trunk_hold(col) == stump.hold and stump == its_stump, "the stump holds a body off its cut's ring")
+	wrong = 0
+	for k in 32:
+		var d := Vector2.from_angle(TAU * k / 32.0)
+		for t: float in [0.2, 0.6, 1.0, 1.5, 2.0, 2.6]:
+			var q := d * t
+			var depth := TreeLooks.ring_depth(stump.ring, q, gap)
+			if absf(depth - 1.0) < 0.02:
+				continue
+			if body.blocked((axis + Vector3(q.x, 0.0, -q.y)) * cell) != (depth < 1.0):
+				wrong += 1
+	_check(wrong == 0, "the stump stops a body by its drawn cut, not its square cell (%d wrong)" % wrong)
+	var top := (axis + Vector3(0.0, stump.top + 1.0, 0.0)) * cell
 	body.on_ground = false
 	body.velocity_y = 0.0
 	for i in 60:
 		top = body.step(top, 1.0 / 60.0, false)
-	_check(absf(top.y - 2.0 * cell) < 0.01 and body.on_ground, "a body come down on the stump stands on its top: %s" % top)
+	_check(absf(top.y - (1.0 + stump.top) * cell) < 0.01 and body.on_ground,
+		"a body come down on the stump stands on its cut as drawn (%s cells): %s" % [stump.top, top / cell])
+	_check(is_equal_approx(body.on_trunk(top), body.in_view(top / cell, col).y),
+		"a body on the stump's cut knows how far behind its axis it stands (its figure is drawn in front)")
+	# A stump lower than a step up is walked up onto; a higher one stops the walker.
+	var low: float = stump.top
+	var walker2 := (axis + Vector3(-2.5, 0.0, 0.0)) * cell
+	body.on_ground = true
+	body.move_input = Vector2(1.0, 0.0)
+	for i in 40:
+		walker2 = body.step(walker2, 1.0 / 60.0, false)
+	body.move_input = Vector2.ZERO
+	if low <= Body.STEP_UP:
+		_check(absf(walker2.y - (1.0 + low) * cell) < 0.01 or walker2.x > (axis.x + 1.0) * cell,
+			"a stump lower than a step is walked up onto")
+	else:
+		_check(walker2.y < 1.01 * cell, "a stump higher than a step stops the walker: %s" % (walker2 / cell))
 
 
 ## A fallen trunk lying in the woods (Growth.place_piece) holds a body off its whole trunk,

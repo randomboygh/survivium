@@ -45,6 +45,10 @@ uniform float sun_shadow_free = 0.0;
 // goes when this passes its turn, 0.6 by its column (head first) and 0.4 by the 4x4
 // matrix (DeathFx.turn_of counts the same, to send the dust off it).
 uniform float dissolve = 0.0;
+// How much nearer the camera the figure is drawn than it stands, world units of depth only (the view looks straight
+// down on the sheared world, so its place on the screen is kept): a figure standing on a stump's top is drawn in front
+// of the stump's picture, which stands upright at its axis (Player.place_sprite).
+uniform float depth_lift = 0.0;
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
 // stands (FireShadows): 1 out of them. It comes as the sprite's scale along z past 1
 // (2 minus it, before the flash), which the flat quad does not use: an instance uniform
@@ -170,6 +174,9 @@ void vertex() {
 	flash = min(steps / FLASH_STEPS, 1.0);
 	world_pos = VERTEX;
 	VERTEX = shear(IN_SHADOW_PASS ? VERTEX : stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
+	if (!IN_SHADOW_PASS && view_slope > 0.01) {
+		VERTEX.y += depth_lift;
+	}
 	if (IN_SHADOW_PASS && flat_shadow < 0.5 && PROJECTION_MATRIX[3][3] > 0.5) {
 		vec3 to_light = INV_VIEW_MATRIX[2].xyz;
 		vec2 spread = side_spread(to_light);

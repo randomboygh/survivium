@@ -25,15 +25,16 @@ const RULES := {"fronds": FRONDS, "hanging": HANGING, "palms": PALMS}
 ## Growth.PIECE_LOG, PIECE_FALLEN, PIECE_BROKEN.
 const PIECES := ["log", "fallen", "broken"]
 
-## How far from a trunk's axis the middle of a body's feet is held (`hold`, Body): a
-## circle round the axis, the trunk's own round foot (the bark's `half width` pixels, look.yaml
-## `foot`, measured by tools/tree_feet.py) and FEET_SIDE pixels of the feet's own; the same
-## from every side, on the server too, and for the stump it leaves (the user's ask,
-## 2026-11-26: the trunk and the stump hold a body off by the stump's shape).
-const FEET_SIDE := 3.0
+## How far the middle of a body's feet keeps off a trunk's `ring` (Body): pixels of the pictures, the feet's own half
+## width. The ring is the stump's cut as it is drawn (look.yaml `cut`, measured by tools/tree_feet.py), from the
+## ground up to the cut, and the standing tree's is the ring of the stump it leaves, up to its crown, narrower there
+## where its trunk is drawn so (`taper`; the user's ask, 2026-11-27: outline the stump's cut and carry it down to the
+## ground and up to the crown, as a cone where a trunk narrows much).
+const FEET := 3.0
 ## Pixels of the pictures a cell (16 a world unit, a cell half a unit).
 const TEXELS_CELL := 8.0
-## The widest hold of any look (cells), so a body looks for trunks only this far round.
+## The farthest any look's or stump's ring reaches from the axis, FEET with it (cells), so a body looks for trunks
+## only this far round.
 static var hold_most := 0.0
 
 
@@ -43,16 +44,22 @@ static var hold_most := 0.0
 ## unless the file says (a chunk saved at an earlier one grows the species' trees again),
 ## `rule` how its leaves are lit (MODULES, or as the file's `rule` says: RULES), each
 ## look {size, variant, x, y, w, h, ax, ay, trunk, crown: [x0, z0, nx, ny, nz],
-## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z, hold: cells
-## from the trunk's axis a body's feet are held (see FEET_SIDE), foot: Vector2 (look.yaml
-## `foot`: the bark's half width and the foot's front, pixels)}, and for the seasons
+## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z, ring: the
+## ring its trunk holds a body off at its foot (ring_of: its stump's, on its axis), ring_top: the ring under its crown
+## (as narrow as look.yaml `taper` says, as deep for its width as `ring`), narrow: Vector2 the heights the ring
+## narrows from `ring` to `ring_top` between (cells over its foot: from its stump's cut to its crown; ring_at), hold:
+## how far from the axis `ring` reaches, FEET with it (cells), top: how high the ring stands (its cells of log, up
+## into the crown), foot: Vector2 (look.yaml `foot`: the bark's half width and the foot's front, pixels)}, and for the
+## seasons
 ## (TreeSprites, tree.gdshader): `dry` the 7 steps of the dry leaves a tree that keeps them
 ## shows in winter and `blossom` the 7 of its spring blossom ([] none), `snow` and
 ## `snow_dry` the pictures of the snow on the tree in winter (the look it shows then: bare,
 ## or the evergreen crown) and on the crown of a tree that keeps its dry leaves ("" none),
 ## `evergreen` true for a tree that keeps its summer leaves all year (the hot zones'); empty
 ## when it has none or it cannot be read. The stump a felled tree leaves (Growth.stump_look):
-## `stumps` its looks, one a size, {size, x, y, w, h, ax, ay} in `stump_frames` (a row of the
+## `stumps` its looks, one a size, {size, x, y, w, h, ax, ay, ring: its cut as drawn (ring_of), ring_top and
+## narrow as a tree's (the same ring all the way up), hold, top: how high its cut stands over its foot as drawn,
+## cells} in `stump_frames` (a row of the
 ## 8 turns of summer, then the 8 of winter with snow on its cut when `stump_snow`), `wood` the
 ## colours of its cut wood (6 steps, then the resin's; tree.gdshader). The pieces of it lying
 ## in the woods (Growth.place_piece): `pieces` by kind ("log", "fallen", "broken": the
@@ -97,6 +104,13 @@ static func read(s: Dictionary) -> Dictionary:
 			var st := {"size": float(l.get("size", 0.0))}
 			for k in ["x", "y", "w", "h", "ax", "ay"]:
 				st[k] = int(l.get(k, 0))
+			st.ring = ring_of(l.get("cut"), float(st.w) * 0.5 - 1.0)
+			# How high its cut stands over its foot (cells; one cell of log before cuts were measured).
+			st.top = float(l.get("top", TEXELS_CELL)) / TEXELS_CELL
+			st.ring_top = st.ring
+			st.narrow = Vector2(st.top, st.top)
+			st.hold = _reach(st.ring)
+			hold_most = maxf(hold_most, st.hold)
 			out.stumps.append(st)
 	out.pieces = {}
 	var pf := str(data.get("piece_frames", ""))
@@ -126,16 +140,71 @@ static func read(s: Dictionary) -> Dictionary:
 		look.cells = Marshalls.base64_to_raw(str(c[5]))
 		var foot: Array = l.get("foot", [4.0, 1.0])
 		look.foot = Vector2(float(foot[0]), float(foot[1]))
-		look.hold = hold_of(look.foot)
+		# The ring of the stump it leaves (Growth.stump_look: one a size), on its axis, up to the stump's cut; the
+		# bark's half width round its foot when it leaves none. Over the cut it narrows to its crown as its trunk does
+		# where that is drawn narrower (look.yaml `taper`: [height, half width], pixels).
+		var stump: int = mini(out.looks.size() / VARIANTS, out.stumps.size() - 1)
+		var ring: Vector3 = out.stumps[stump].ring if stump >= 0 else ring_of(null, look.foot.x)
+		var cut: float = out.stumps[stump].top if stump >= 0 else 0.0
+		look.ring = Vector3(ring.x, ring.y, 0.0)
+		look.ring_top = look.ring
+		look.narrow = Vector2(cut, cut)
+		var taper: Variant = l.get("taper")
+		if taper is Array and taper.size() == 2 and ring.x > 0.0:
+			var crown := float(taper[0]) / TEXELS_CELL
+			var half := float(taper[1]) / TEXELS_CELL
+			if crown > cut and half > 0.0 and half < ring.x:
+				look.ring_top = Vector3(half, ring.y * half / ring.x, 0.0)
+				look.narrow = Vector2(cut, crown)
+		look.top = float(look.trunk)
+		look.hold = _reach(look.ring)
 		hold_most = maxf(hold_most, look.hold)
 		out.looks.append(look)
 	return out
 
 
-## The hold (cells, see FEET_SIDE) of a look whose foot is `foot` (half width, front:
-## pixels): the radius of the circle round the axis a body's feet keep out of.
-static func hold_of(foot: Vector2) -> float:
-	return (foot.x + FEET_SIDE) / TEXELS_CELL
+## The ring a trunk holds the middle of a body's feet off (with FEET, Body._trunk_touched), from look.yaml `cut`
+## ([half width, half depth, across], pixels: the ellipse a stump's cut is drawn as, the same from every side, see
+## tools/tree_feet.py): Vector3(half width, half depth, across) in cells, an ellipse on the ground that stands with
+## its front on the axis (a body in front of the axis is drawn in front of the picture), its middle half its depth
+## behind it and `across` to the camera's right, its width across the picture and its depth along the way the camera
+## looks, as drawn. One with no `cut` (a mod's drawn before) is `half` pixels wide and half as deep.
+static func ring_of(cut: Variant, half: float) -> Vector3:
+	if cut is Array and cut.size() == 3:
+		return Vector3(float(cut[0]), float(cut[1]), float(cut[2])) / TEXELS_CELL
+	return Vector3(half, half * 0.5, 0.0) / TEXELS_CELL
+
+
+## The ring of `look` (a tree's or a stump's: read) `h` cells over its foot: `ring` up to its stump's cut, narrowing
+## from there to `ring_top` at its crown, that over it (`narrow`).
+static func ring_at(look: Dictionary, h: float) -> Vector3:
+	var narrow: Vector2 = look.narrow
+	if h <= narrow.x or narrow.y <= narrow.x:
+		return look.ring
+	return (look.ring as Vector3).lerp(look.ring_top, minf(1.0, (h - narrow.x) / (narrow.y - narrow.x)))
+
+
+## How far from the axis the ring `ring` (ring_of) reaches, FEET with it (cells): the corner of its box.
+static func _reach(ring: Vector3) -> float:
+	var gap := FEET / TEXELS_CELL
+	return Vector2(absf(ring.z) + ring.x + gap, 2.0 * ring.y + gap).length()
+
+
+## Where point `q` (cells from the axis: across the picture, to the camera's right, and along the way the camera
+## looks, behind the axis) is from the ring `ring` (ring_of) grown by `grow` cells: under 1 inside it, 1 on its edge,
+## over 1 outside, as the ellipse measures from its middle.
+static func ring_depth(ring: Vector3, q: Vector2, grow: float) -> float:
+	return Vector2((q.x - ring.z) / (ring.x + grow), (q.y - ring.y) / (ring.y + grow)).length()
+
+
+## Point `q` (as in ring_depth) put on the edge of the ring `ring` grown by `grow` cells, straight away from its
+## middle (Body slides a body round a trunk so).
+static func ring_out(ring: Vector3, q: Vector2, grow: float) -> Vector2:
+	var mid := Vector2(ring.z, ring.y)
+	var d := ring_depth(ring, q, grow)
+	if d < 0.000001:
+		return Vector2(ring.z, -grow)
+	return mid + (q - mid) / d
 
 
 ## Whether the crown of `look` has a cell at x, y, z of the tree's own frame (cells east,

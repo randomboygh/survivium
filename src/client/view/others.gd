@@ -184,6 +184,8 @@ func person_at(origin: Vector3, dir: Vector3) -> Array:
 func _make(at: Vector3) -> Dictionary:
 	var f = PlayerScript.new()
 	f.position = at
+	# Their body on the world, for the stumps they stand on (Player.place_sprite).
+	f.body.world = game.world
 	add_child(f)
 	# The silhouette behind walls, the stencil and the torch are the player's own.
 	f.xray.visible = false
