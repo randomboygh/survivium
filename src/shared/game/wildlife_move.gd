@@ -87,7 +87,7 @@ func _cares(kind: String) -> Array:
 
 
 ## The animals by kind, in the order of `animals`, so a decision looks through its few
-## kinds, not every animal: kept by _add and _remove, made anew when the count of
+## kinds, not every animal: made anew after every _add and _remove, and when the count of
 ## `animals` is not the one they were made for (the tests change it themselves).
 func _kin() -> Dictionary:
 	if _kin_of != animals.size():
