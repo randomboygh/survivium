@@ -1145,6 +1145,51 @@ func _test_taming(w: WorldData) -> void:
 	_check(not hare.gone, "a tame hare is not thinned out")
 
 
+## A trap far from every player (ActionsTame.step_far_traps): with no animal about, its
+## bait still catches a hare by chance over the days of the clock, on the ground of a
+## hare's biome only, and not while a player is near or the trap is empty or full.
+func _test_far_trap(life: Wildlife, actions: WorldActions, trap: Dictionary, who) -> void:
+	var kind := "animals:rabbit"
+	var spec: Dictionary = AiRules.SPECIES[kind]
+	_check(float(spec.get("trap_days", 0.0)) > 0.0, "a hare has its trap_days")
+	var traps := {trap.cell: trap}
+	trap.items.add("plants:carrot", 1)
+	actions.people = [who]
+	actions.step_far_traps(traps)
+	life.clock.day += 30
+	actions.step_far_traps(traps)
+	_check(trap.items.count("tools:live_rabbit") == 0, "a trap a player is near catches nothing by chance")
+	actions.people = []
+	trap.items.add("tools:live_rabbit", 1)
+	life.clock.day += 30
+	actions.step_far_traps(traps)
+	_check(trap.items.count("tools:live_rabbit") == 1 and trap.items.count("plants:carrot") == 2,
+		"a full far trap catches no other")
+	trap.items.remove("tools:live_rabbit", 1)
+	var b: int = life.world.biome_at(trap.cell.x, trap.cell.z)
+	var lives: bool = spec.biomes.is_empty() or (b != Biomes.NONE and Biomes.IDS[b] in spec.biomes)
+	_check(is_equal_approx(actions.far_catch_chance(kind, trap, 1.0), (1.0 - exp(-1.0 / spec.trap_days)) if lives else 0.0),
+		"the chance over a day is the hare's trap_days one where hares live, none elsewhere")
+	if not lives:
+		life.clock.day += 30
+		actions.step_far_traps(traps)
+		_check(trap.items.count("tools:live_rabbit") == 0, "a far trap off a hare's biomes catches none")
+	# Where hares live (any ground, while the hare has no biomes):
+	var biomes: Array = spec.biomes
+	spec.biomes = [] if not lives else biomes
+	life.clock.day += 30
+	actions.step_far_traps(traps)
+	spec.biomes = biomes
+	_check(trap.items.count("tools:live_rabbit") == 1 and trap.items.count("plants:carrot") == 1,
+		"a far trap left for days where hares live has a hare in it and a carrot eaten")
+	trap.items.remove("tools:live_rabbit", 1)
+	trap.items.remove("plants:carrot", trap.items.count("plants:carrot"))
+	life.clock.day += 30
+	actions.step_far_traps(traps)
+	_check(trap.items.count("tools:live_rabbit") == 0, "a far trap with no bait catches nothing")
+	trap.items.add("plants:carrot", 1)
+
+
 ## Taming with a trap (ActionsTame.step_traps): a trap with a carrot in it lures a wild
 ## hare within its reach, which walks in, eats the carrot and sits in it as a live hare;
 ## taken into the bag and held, the action button lets it out tame. No bait, no hare.
@@ -1199,6 +1244,7 @@ func _test_trap(w: WorldData) -> void:
 	_check(WorldActions.released_kind("tools:live_rabbit") == kind and WorldActions.released_kind("plants:carrot") == "",
 		"a live hare is let out as a hare")
 	trap.items.remove("tools:live_rabbit", 1)
+	_test_far_trap(life, actions, trap, who)
 	who.inventory.add("tools:live_rabbit", 1)
 	who.item = "tools:live_rabbit"
 	_check(actions.front_kind(who) == "release", "a live hare in the hand is let out by the action button")

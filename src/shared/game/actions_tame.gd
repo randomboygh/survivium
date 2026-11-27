@@ -16,6 +16,11 @@ extends "res://src/shared/game/actions_nature.gd"
 ## (TRAP_LURE; Animal.bait), and once there eats one bait and sits in the trap as that
 ## item (step_traps), taken out into the bag like anything a chest holds. Held, the action
 ## button lets it out in front, tame and its holder's (release).
+## A trap no player is within SPAWN_REACH of has no animals around it to lure (they live
+## only near players): there each animal its bait lures, in a trap on the ground of one of
+## its biomes, is caught by chance, on average once in its species' `trap_days` days of
+## the game (step_far_traps), so a trap left far away has an animal in it on return, the
+## days slept or away counted too.
 
 const PlacedScript := preload("res://src/shared/game/placed.gd")
 
@@ -43,6 +48,8 @@ var _herd_wait := 0.0
 var _lured := {}
 var _trap_wait := 0.0
 var _trap_rng := RandomNumberGenerator.new()
+## The time of the clock (days) at the last look at the far traps, -1 before the first.
+var _trap_at := -1.0
 
 
 ## The number `who` is known by as an owner (Player.id; 0 for one without).
@@ -275,19 +282,69 @@ func step_traps(seconds: float) -> void:
 			best.bait = Vector3(mid.x, best.pos.y, mid.z)
 			best.think = 0.0
 			_lured[cell] = {"a": best, "t": 0.0}
+	step_far_traps(traps)
+
+
+## The traps `traps` (by cell) far from every player catch by chance over the days of
+## the clock since the last look (see the top).
+func step_far_traps(traps: Dictionary) -> void:
+	var now: float = clock.now()
+	var days := 0.0 if _trap_at < 0.0 else maxf(now - _trap_at, 0.0)
+	_trap_at = now
+	if days <= 0.0:
+		return
+	for cell: Vector3i in traps:
+		var e: Dictionary = traps[cell]
+		if _lured.has(cell) or _trap_full(e) or not trap_far(e):
+			continue
+		var baits := _trap_baits(e)
+		for kind: String in baits:
+			if _trap_rng.randf() < far_catch_chance(kind, e, days) and _put_in(e, kind):
+				break
+
+
+## Whether no player is within SPAWN_REACH of trap `e`, so no animal lives around it.
+func trap_far(e: Dictionary) -> bool:
+	var mid := PlacedScript.center(e)
+	var reach: float = float(wildlife.SPAWN_REACH) * CELL
+	for who in people:
+		if Vector2(who.position.x - mid.x, who.position.z - mid.z).length() <= reach:
+			return false
+	return true
+
+
+## The chance that an animal of `kind` is caught in far trap `e` over `days` days: none
+## on the ground of a biome it does not live in (any, with no biomes).
+func far_catch_chance(kind: String, e: Dictionary, days: float) -> float:
+	var spec: Dictionary = AiRules.SPECIES[kind]
+	var mean: float = float(spec.get("trap_days", 0.0))
+	if mean <= 0.0:
+		return 0.0
+	var biomes: Array = spec.get("biomes", [])
+	if not biomes.is_empty():
+		var b: int = world.biome_at(e.cell.x, e.cell.z)
+		if b == BiomesData.NONE or not BiomesData.IDS[b] in biomes:
+			return 0.0
+	return 1.0 - exp(-days / mean)
 
 
 ## Animal `a` caught in trap `e`: it eats a bait and sits in it as its `trapped` item.
 func _catch(e: Dictionary, a) -> void:
-	var spec: Dictionary = AiRules.SPECIES[a.kind]
-	var bait: String = _trap_baits(e).get(a.kind, "")
 	a.bait = Vector3.INF
+	if _put_in(e, a.kind):
+		wildlife.take(a)
+
+
+## An animal of `kind` eats one of its baits in trap `e` and sits in it as its `trapped`
+## item; false (the trap as it was) without the bait or the room.
+func _put_in(e: Dictionary, kind: String) -> bool:
+	var bait: String = _trap_baits(e).get(kind, "")
 	if bait == "" or e.items.remove(bait, 1) < 1:
-		return
-	if e.items.add(spec.trapped, 1) < 1:
+		return false
+	if e.items.add(AiRules.SPECIES[kind].trapped, 1) < 1:
 		e.items.add(bait, 1)
-		return
-	wildlife.take(a)
+		return false
+	return true
 
 
 ## The animal coming to the trap at `cell` turns away.
