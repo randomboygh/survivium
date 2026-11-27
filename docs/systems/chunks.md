@@ -121,7 +121,12 @@ slice, to free the far meshes.
   `TreeSprites.falling`: the code with `FALLING` defined, built ahead by `ShaderWarmup`); the felling's code
   below is under `#ifdef FALLING`, so the chunks' trees draw without it: in their shader too, the Adreno 840
   (Android, Vulkan) drew no tree at all, standing or falling, though the shadows were there (v0.5.912 to
-  v0.5.919). Instance 0 draws the trunk and limbs (not leaves) turned on the screen in whole pixels: each pixel
+  v0.5.919: the shader took 30 varying slots there, of 28), and the copy alone drew nothing either (v0.5.926 to
+  v0.5.929) till its own varyings were packed into one (`fall_tile`) and its sway left out (`tools/lint.py`
+  `MAX_VARYINGS`, [pitfalls](rendering/pitfalls.md)). The crown's module search (576 steps a vertex) is one loop counted in whole
+  numbers, its length from a uniform (`FALL_SEARCH`, `fall_count`), which a compiler does not unroll. Instance 0
+  draws the trunk and limbs (not leaves) turned on the screen in whole pixels (`INSTANCE_ID > 0` are the modules:
+  `(0 - 1) / 2` is 0 on a GPU, so no trunk fell from v0.5.912 to v0.5.929): each pixel
   finds its texel by three shears (Paeth) and whole quarters undone, then the rows' squash (`fall_turn`,
   `fall_shear`, `FALL_ROOM`). The leaves fall as modules (the user's ask): pieces `FALL_MODULE` apart (`FALL_SHAPE`:
   squares, bricks or clumps, the user's pick clumps of 24; `fall_owner` gives a texel's module, edges jagged by

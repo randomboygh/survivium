@@ -2315,8 +2315,9 @@ static func _bits(v: int) -> int:
 
 
 ## The chunks' pictured trees draw without the felling's code (tree.gdshader under
-## `#ifdef FALLING`): with it in their shader, the Adreno 840 drew no tree at all (v0.5.912
-## to v0.5.919). The falling trees' copy (TreeSprites.falling) defines FALLING.
+## `#ifdef FALLING`): with it in their shader, the Adreno 840 drew no tree at all, its varyings
+## past the phone's (v0.5.912 to v0.5.919). The falling trees' copy (TreeSprites.falling)
+## defines FALLING.
 func _test_tree_shaders() -> void:
 	var standing := PackedStringArray()
 	# Each open #if: whether its lines are kept (FALLING is not defined; other #if blocks kept).
@@ -2343,9 +2344,17 @@ func _test_tree_shaders() -> void:
 			standing.append(line)
 	var code := "\n".join(standing)
 	_check(kept.is_empty(), "tree.gdshader's #if blocks close")
-	for felling: String in ["INSTANCE_ID", "-FALL_REACH", "fall_owner(i + 0.5)", "tile_mid", "fall_turned(", "fading"]:
+	for felling: String in ["INSTANCE_ID", "FALL_SEARCH * FALL_SEARCH", "fall_owner(i + 0.5)", "tile_mid", "fall_turned(", "fading"]:
 		_check(not code.contains(felling), "the chunks' tree shader leaves out the felling's %s" % felling)
 	_check(code.contains("sway_texel(at, cell"), "the chunks' trees still sway module by module")
 	var falling := TreeSprites.falling(TreeShader)
 	_check(falling.code.contains("shader_type spatial;\n#define FALLING") and falling.code.count("#define FALLING") == 1,
 		"the falling trees' copy of tree.gdshader defines FALLING")
+	# The crown's module search, 576 steps a vertex, is one loop counted in whole numbers that
+	# a compiler does not unroll.
+	_check(not TreeShader.code.contains("for (float"), "tree.gdshader's loops count in whole numbers")
+	_check(TreeShader.code.contains("FALL_SEARCH * FALL_SEARCH * min(fall_count, 1)"),
+		"the crown's module search is one loop whose length a uniform gives")
+	# Instance 0 of a falling tree is its trunk: (0 - 1) / 2 is 0, not -1, on the GPU.
+	_check(TreeShader.code.contains("fall >= 0 && INSTANCE_ID > 0 ? (INSTANCE_ID - 1) / 2 : -1"),
+		"a falling tree's instance 0 draws the trunk, not a module")
