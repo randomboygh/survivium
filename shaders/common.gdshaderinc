@@ -798,6 +798,12 @@ float fog_at(vec3 p) {
 	return m * mix(0.6, 1.0, near) * reach;
 }
 
+// How far in front of a pictured tree the fog over it is taken from (world units, a
+// cell and a half: past a trunk two cells wide). fog_at takes a trunk's column top for
+// ground, so on the trunk's own plane the fog would lie a trunk higher (tree.gdshader,
+// and the grass at the tree's foot, grass.gdshader).
+const float FOG_AHEAD = 0.75;
+
 // What veils the colour at `p`: the levels below fading away (`fade`, from
 // depth_fade) and the fog on the ground, so trunks, walls and the player stand out of
 // it and the crowns stay clear.
