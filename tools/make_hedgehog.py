@@ -16,6 +16,7 @@ fill. `render` refuses a frame where a pixel has no room for its outline (nothin
 import os
 
 from PIL import Image
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 PAL = {"O": "#24180f", "K": "#4a3524", "k": "#6e5236", "t": "#d0b890", "F": "#9a7048", "C": "#d4ac7e",
        "N": "#120c08", "E": "#120c08", "D": "#3a2416", "d": "#2c1c10"}
@@ -172,5 +173,5 @@ def sheet():
 
 
 if __name__ == "__main__":
-    sheet().save(PATH)
+    hand_art.save(sheet(), PATH)
     print(PATH)

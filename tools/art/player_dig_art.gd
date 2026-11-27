@@ -12,8 +12,8 @@ extends RefCounted
 ## hand holding the shovel: its grip, the other: its lowest pixel next to the body], less
 ## the bob) and how the shovel is held: `a` the way it points (PlayerArt.WORKS), `slide`
 ## how far up its length the hand holds it (ToolArt.turned), `ccw` its edge the other way,
-## `f` in front of the body. Made with the review tools in the project library
-## (survivium-builds/character/anim/src/gen_dig_gd.py).
+## `f` in front of the body. Made with the review tools in the project library,
+## written by tools/art/character/gen_dig_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 

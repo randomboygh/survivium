@@ -80,12 +80,18 @@ thread (PR #803, columns 34-37). What follows from several threads drawing at on
 - Regenerate with `godot --headless --path . --script res://tools/make_sprites.gd -- --all` (about five
   minutes), then `--import`; check that only the animation's columns changed in the pictures.
 
-## Tools in the library (`survivium-builds/character/anim/src/`)
+## Tools
+
+The drawings that make the game's tables and their generators are in the repository, `tools/art/character/`
+(moved from the library 2026-11-27; its README has the commands): each work's data module (`chop_k.py`,
+`slash_p.py`, ...) with the modules it builds on, `gen_<work>_gd.py`, `proto.py`, `work_proto.py`,
+`stands_data.py` and `quick.gd`. The review tools stay in the library (`survivium-builds/character/anim/src/`);
+to run one there, copy it beside the repository's modules.
 
 - `quick.gd`: the default look's bare sheet drawn straight from PlayerArt in seconds (copy it into
   `tools/` as a temporary script, run it with `-- <dir>`, delete it): `bare.png` and `layout.json`.
-  `forms_quick.gd` (`-- <out.png> <columns>`) draws every body form, `dressed_quick.gd` the plain clothes.
-- `proto.py` with `stands_data.py` and `jump_data.py`: draws rows of letters under the head of a quick
+  `forms_quick.gd` (`-- <out.png> <columns>`, library) draws every body form, `dressed_quick.gd` the plain clothes.
+- `proto.py` with `stands_data.py` and `jump_data.py` (library): draws rows of letters under the head of a quick
   sheet, to try frames before writing them in the code; `jump_sheet.py` puts such frames into a sheet.
 - `jump_review.py <q dir> <out.gif> <old q dir>`: the review GIF (the frames from `layout.json`).
 - `dump.gd` (copy into `tools/`, run with `-- <dir> name=<held picture under content/>:<work>[:trail]`,

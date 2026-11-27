@@ -8,6 +8,7 @@ the eye better than plain RGB. The image is 1024×32: x is blue × 32 + red, y i
 """
 import os
 from PIL import Image
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 NES = """
 7C7C7C 0000FC 0000BC 4428BC 940084 A80020 A81000 881400 503000 007800 006800 005800 004058 000000
@@ -48,7 +49,7 @@ def main():
                 c = tuple(round(v * 255 / (N - 1)) for v in (r, g, b))
                 px[b * N + r, g] = nearest(c, pal)
     path = os.path.join(os.path.dirname(__file__), "..", "assets", "nes_lut.png")
-    img.save(path)
+    hand_art.save(img, path)
     print(f"{path}: {len(pal)} colours")
 
 

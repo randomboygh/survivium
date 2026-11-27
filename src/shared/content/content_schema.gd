@@ -718,11 +718,16 @@ const MOD_SCHEMA := {
 	"wants": {"type": "list", "of": "string", "default": []},
 	# One's own mod, made by the content editor (OwnMods): its files are the editor's to write.
 	"own": {"type": "bool", "default": false},
+	# Files of the mod made or finished by hand, as paths inside its folder: the art generators
+	# of tools/ leave them as they are (tools/hand_art.gd). The game does not read it.
+	"hand": {"type": "list", "of": "string", "default": []},
 }
 const BUNDLE_SCHEMA := {
 	"title": {"type": "string"},
 	"requires": {"type": "list", "of": "string", "default": []},
 	"wants": {"type": "list", "of": "string", "default": []},
+	# As a mod's: the bundle's files made or finished by hand (tools/hand_art.gd).
+	"hand": {"type": "list", "of": "string", "default": []},
 }
 ## kind -> id -> the place of its record in `_kinds[kind]`, so `find` is a lookup.
 static var _at := {}

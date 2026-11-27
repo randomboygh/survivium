@@ -2,7 +2,7 @@ extends RefCounted
 ## A tree species drawn as pictures (`picture` in trees.yaml): the approved drawing of the
 ## tree from the 8 sides the camera turns to, in a few looks (sizes and variants), and the
 ## shape of each look's crown in cells. The pictures are made from the mockup the drawing
-## was approved in (survivium-builds/trees-redraw, integration/pr1/src/pack_pr1.py); this
+## was approved in (tools/art/trees/, src/export_pr1.py and src/pack_pr1.py); this
 ## reads their `look.yaml`. Growth grows such a tree's trunk and crown cells from its look
 ## (Growth.look_of), the client draws it (TreeSprites).
 

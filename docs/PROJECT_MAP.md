@@ -30,7 +30,8 @@ shaders/                 3D shaders (the shared common.gdshaderinc), colour corr
 content/<mod>/           mods: mod.yaml, README, bundle folders with bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/, lang/ (translations); common/ shared assets
 assets/                  the font, the splash, interface icons (ui/), the web page's icons (web/, not imported), the apps' icons (app/: Android, Windows), `nes_lut.png` (the 8 bit screen effect's palette)
 tests/                   headless tests (run_tests + unit/, save, progress, frame, server), the check in a browser, run_all.sh (all the checks)
-tools/                   lint (lint.py), compiling all scripts (parse_check.gd), the pre-commit hook (hooks/), the library check (library_check.py), the validator, screenshots (shot + shot/), the map, benches, the profile, makers of pictures, sounds, icons; art/, sound/
+tools/                   lint (lint.py), compiling all scripts (parse_check.gd), the pre-commit hook (hooks/), the library check (library_check.py), the validator, screenshots (shot + shot/), the map, benches, the profile, makers of pictures, sounds, icons (hand_art: what they leave); art/, sound/
+  art/<topic>/           the drawings kept as data and the generators that read them (character/, animals/, trees/): the source of the art tables and of the trees' pictures
 .github/                 CI (workflows/build.yml), the test server (workflows/playtest.yml), the Godot setup (actions/godot), the PR template
 docs/                    this documentation (audit/ — audit reports, reports/weekly-audits/ — the weekly audits and open issues, planning/ — earlier hand-off notes (new ones go to the library's `planning/`), planning/archive/ — finished and dropped plans, balance/ — the balance model and tables, testing/ — how to check and CI,
                          security/ — the threat model, protocol defence, command rights, anti-cheat, security tests)
@@ -68,6 +69,8 @@ In detail by layers and links: [ARCHITECTURE.md](ARCHITECTURE.md); by systems: [
 | A 3D shader | `shaders/`, with `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering.md)) |
 | A test of a rule | `tests/unit/<topic>_test.gd` and the topic's name in `FILES` in `tests/run_tests.gd`; a generative one — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)) |
 | A development tool | `tools/` (drawing tools — `tools/art/`, sound — `tools/sound/`) |
+| The source of a drawing (frames as rows of letters, a generator in Python) | `tools/art/<topic>/` with a README of its commands and `.gdignore` (Godot neither imports nor exports it); never only in the library |
+| A picture or sound made or finished by hand | its bundle's `hand` list (`bundle.yaml`, `mod.yaml`, `assets/hand.yaml`): the generators leave it as it is (`tools/hand_art.gd`, `tools/hand_art.py`) |
 | A window or an interface element | from the parts of the kit `src/client/ui/kit/` ([systems/ui.md](systems/ui.md), «UI kit»); a new shared part goes into the kit and into the «Interface gallery» |
 | An interface picture | `assets/ui/` |
 | A document about the code | `docs/` (a system — `docs/systems/`) |
@@ -79,7 +82,8 @@ New top-level folders are not created without need.
 ## What not to read without need
 
 - `.godot/`, `*.import`, `*.uid`, `build/`, `build_info.json`: caches and the build, not in git.
-- `content/**/sounds/*.wav`, `content/**/*.png`, `assets/`: binary assets; `tools/make_*` make them.
+- `content/**/sounds/*.wav`, `content/**/*.png`, `assets/`: binary assets; `tools/make_*` make them, except those a `hand` list names.
+- `tools/art/character/`, `tools/art/animals/`, `tools/art/trees/`: the drawings as data and their generators (their READMEs say what each makes).
 - `tools/art/icon_art.gd` with its parts `tools/art/icon_*_art.gd` (nature, materials, tools, wear, build): the items' icons, drawn by `tools/make_icons.gd`.
 - `tools/art/*.gd`, `tools/make_plant_art.py`, `tools/make_creatures.py` (+ `creature_kit.py`), `tools/make_frog.py`, `tools/make_fish.py`, `tools/make_wolf.py`, `tools/make_cat.py`, `tools/make_hedgehog.py`: asset drawing tools, big tables of pixels (the boar, the fox, the black grouse, the deer, the hare and the bear, drawn from the user's references, are `tools/art/boar_art.gd`, `tools/art/fox_art.gd`, `tools/art/grouse_art.gd`, `tools/art/deer_art.gd`, `tools/art/rabbit_art.gd` and `tools/art/bear_art.gd`, the sparrow, the crow, the owl, the duck and the squirrel, drawn by hand in their style, `tools/art/sparrow_art.gd`, `tools/art/crow_art.gd`, `tools/art/owl_art.gd`, `tools/art/duck_art.gd` and `tools/art/squirrel_art.gd`, all made by `tools/make_sprites.gd`).
 - `src/shared/world/test_ground.gd`: the test world's sites, needed only for them.

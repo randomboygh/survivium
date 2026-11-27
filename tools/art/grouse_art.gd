@@ -6,6 +6,7 @@ extends RefCounted
 ## tools/make_sprites.gd saves it as the grouse
 ## bundle's picture (content/animals/grouse/sprites/creatures/grouse.png), the sheet Creatures
 ## draws from.
+## The frames as letters (grouse_a.py) and this table's writer (write_grouse_art.py) are in tools/art/animals/.
 ##
 ## Each state has four frames (the user's rule: at most four) for the south (as it comes at the
 ## camera), the north (as it goes away) and the west; the east is the west mirrored, as the game

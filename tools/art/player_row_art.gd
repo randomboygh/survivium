@@ -15,8 +15,8 @@ extends RefCounted
 ## form), the waistband's row `hips` and the hands' places `hands` ([right, left], the
 ## hand's lowest pixel next to the body, less the bob). The legs are not in `rows`: they
 ## are the sit's (PlayerArt.frame_letters), the feet over the waistband where it is on the
-## last row. Made with the review tools in the project library
-## (survivium-builds/character/anim/src/gen_row_gd.py).
+## last row. Made with the review tools in the project library,
+## written by tools/art/character/gen_row_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 

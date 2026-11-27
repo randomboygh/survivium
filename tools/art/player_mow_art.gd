@@ -22,8 +22,8 @@ extends RefCounted
 ## of turning it, and on the third frame `trail` (its rows in the frame's pixels from `at`, the
 ## letters o + - of PlayerArt.INK), which the game draws for an item with `trail` over the
 ## figure and its outline, or behind them where the scythe is behind the body (`f` false)
-## (Figure). Made with the review tools in the project library
-## (survivium-builds/character/anim/src/gen_mow_gd.py).
+## (Figure). Made with the review tools in the project library,
+## written by tools/art/character/gen_mow_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 

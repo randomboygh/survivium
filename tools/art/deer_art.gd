@@ -5,6 +5,7 @@ extends RefCounted
 ## scale the user set for every animal (2026-11-21). tools/make_sprites.gd saves it as
 ## the deer bundle's picture (content/animals/deer/sprites/creatures/deer.png), the sheet
 ## Creatures draws from.
+## The frames as letters (deer_a.py) and this table's writer (write_deer_art.py) are in tools/art/animals/.
 ##
 ## Each state has four frames (the user's rule: at most four) for the south (as it comes at the
 ## camera), the north (as it goes away) and the west; the east is the west mirrored, as the game

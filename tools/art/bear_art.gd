@@ -8,6 +8,7 @@ extends RefCounted
 ## the side's eye stay dark (K). The far legs are the darker fur, as the reference draws them.
 ## tools/make_sprites.gd saves it as the bear bundle's picture
 ## (content/animals/bear/sprites/creatures/bear.png), the sheet Creatures draws from.
+## The frames as letters (bear_x1.py) and this table's writer (write_bear_art.py) are in tools/art/animals/.
 ##
 ## Each state has four frames for the south (as it comes at the camera), the north (as it goes
 ## away) and the west; the east is the west mirrored, as the game draws it (the reference's east

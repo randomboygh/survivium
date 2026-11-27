@@ -2,11 +2,13 @@ extends SceneTree
 ## Makes the sounds of the game from noise and tones (tools/sound/synth.gd) and saves
 ## them as the bundles' sounds, which content/<bundle>/data/sounds.yaml lists:
 ## content/<bundle>/sounds/<name>.wav, or <name>_1.wav, <name>_2.wav ... for a sound with
-## variants. A sound replaced by hand is overwritten, so name the sounds to make:
+## variants. A sound made or replaced by hand is named in its bundle's `hand` list and left
+## as it is (tools/hand_art.gd); name the sounds to make or make them all:
 ## godot --headless --path . --script res://tools/make_sounds.gd -- <sound ...> | --all
 ## Each sound has its own seed: making it again gives the same file.
 
 const Synth := preload("res://tools/sound/synth.gd")
+const HandArt := preload("res://tools/hand_art.gd")
 const ThunderBands := preload("res://tools/sound/thunder_bands.gd")
 
 ## Seconds of the loops, and how much of their end is faded into their start.
@@ -117,10 +119,12 @@ func _init() -> void:
 		var dir := "res://content/%s/sounds" % spec[0]
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 		for v in spec[1]:
+			var file := "%s/%s.wav" % [dir, name if spec[1] == 1 else "%s_%d" % [name, v + 1]]
+			if HandArt.kept(file):
+				continue
 			rng.seed = hash(name) + v * 7919
 			var b: PackedFloat32Array = call("_" + name, v)
 			b = Synth.loopify(b, OVERLAP) if spec[2] else Synth.fade(b)
-			var file := "%s/%s.wav" % [dir, name if spec[1] == 1 else "%s_%d" % [name, v + 1]]
 			if Synth.save(b, ProjectSettings.globalize_path(file)) != OK:
 				push_error("could not save " + file)
 			count += 1

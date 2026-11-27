@@ -4,3 +4,5 @@ id: core
 title: "[core.mod]"
 version: "0.1"
 api: 1
+# Files made or finished by hand, which the generators of tools/ leave as they are (tools/hand_art.gd).
+hand: [models/grave.png]

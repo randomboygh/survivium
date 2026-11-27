@@ -1,12 +1,14 @@
 extends SceneTree
 ## Draws the pictures of the items (tools/art/icon_art.gd) and saves them in the mod of
 ## each item that names one as its `icon`, content/<mod>/icons/<icon>.png, and the
-## interface's small pictures (ItemIcons.UI) as assets/ui/<name>.png. A picture painted
-## over by hand is overwritten, so name the pictures to make:
+## interface's small pictures (ItemIcons.UI) as assets/ui/<name>.png. A picture made or
+## finished by hand is named in its bundle's `hand` list (assets/hand.yaml for assets/) and
+## left as it is (tools/hand_art.gd); name the pictures to make or make them all:
 ## godot --headless --path . --script res://tools/make_icons.gd -- <picture ...> | --all
 
 const Items := preload("res://src/shared/content/items.gd")
 const IconArt := preload("res://tools/art/icon_art.gd")
+const HandArt := preload("res://tools/hand_art.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 
 
@@ -34,6 +36,8 @@ func _init() -> void:
 	for path in paths:
 		var name: String = paths[path]
 		if not only.is_empty() and not name in only:
+			continue
+		if HandArt.kept(path):
 			continue
 		var img := IconArt.dye_picture(dyes[name]) if dyes.has(name) else IconArt.picture(name)
 		if img == null:

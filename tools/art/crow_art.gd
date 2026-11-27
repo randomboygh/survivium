@@ -1,8 +1,8 @@
 extends RefCounted
 ## The hooded crow, drawn by hand in the style of the animals redrawn from the user's references (thread
 ## «Нарисовать воробья, белку, ворону и утку», 2026-11-21; approved by the user). The project
-## library's survivium-builds/animals/anim/wild4/ has the reviews, wild4/src/ the tools that drew it
-## (cr.py, written here by write_wild_art.py). tools/make_sprites.gd saves it as the crow
+## library's survivium-builds/animals/anim/wild4/ has the reviews; the frames are tools/art/animals/
+## cr.py, written here by write_wild_art.py. tools/make_sprites.gd saves it as the crow
 ## bundle's picture (content/animals/crow/sprites/creatures/crow.png), the sheet Creatures draws from.
 ##
 ## Every state has at most four frames (the user's rule) for the south (as it comes at the camera),

@@ -138,6 +138,8 @@ One line each; the full list is in `docs/CONTRIBUTOR_RULES.md`, the rendering on
   (`python3 tools/lang_check.py --write en|ru`); logs and debug texts are plain English; never `template % values`
   (`docs/systems/lang.md`).
 - A mod's file is read only through `Content`, never `FileAccess` at `Content.ROOT`; `hello` carries the mods' hash.
+- Art: the source of a drawing (frames as letters, its generator) lives in `tools/art/<topic>/`, never only in the
+  library; a picture or sound finished by hand is named in its bundle's `hand` list, which the generators skip.
 - Never use -1 as "none" for world coordinates. Tests of time wait by `Time.get_ticks_msec`, not frames.
 - Material numbers follow the load order: a world's bundle set must not change (`Mat.remap`).
 - Audio buses live in `default_bus_layout.tres`; `tools/web_patch.py` patches the web audio: re-check on an engine upgrade.

@@ -23,9 +23,9 @@ record (an entity).
 ## Mods and bundles on disk
 
 ```
-content/<mod>/mod.yaml            id, title, version, api (1), requires, wants
+content/<mod>/mod.yaml            id, title, version, api (1), requires, wants, hand
 content/<mod>/README.md           how the mod is built (in Russian)
-content/<mod>/<bundle>/bundle.yaml title, requires, wants
+content/<mod>/<bundle>/bundle.yaml title, requires, wants, hand
 content/<mod>/<bundle>/data/<kind>.yaml   records
 content/<mod>/<bundle>/{sprites,icons,models,textures,sounds}/   the bundle's assets
 content/<mod>/common/             assets shared by the mod's bundles (Content.asset looks in the bundle, then here)
@@ -109,6 +109,10 @@ models), `animals` (18), `biomes` (28), `sounds` (nature, player, ui), `music` (
 - `requires` (hard) and `wants` (only the order) in `mod.yaml` or `bundle.yaml` add what is not seen from
   the references. `Content.resolve` orders the set (the core first); roles do not link bundles; references
   to sounds do not either.
+- `hand` in `mod.yaml` or `bundle.yaml` (and `assets/hand.yaml` for `assets/`) lists the pictures and sounds
+  made or finished by hand, as paths inside the folder (`hand: [models/grave.png]`). The game does not read it;
+  the generators of `tools/` leave those files as they are (`tools/hand_art.gd`, `tools/hand_art.py`), and
+  `tools/lint.py` fails on a name that is not a file.
 
 ## Roles instead of ids
 

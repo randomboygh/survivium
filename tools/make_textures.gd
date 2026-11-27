@@ -1,11 +1,13 @@
 extends SceneTree
 ## Draws the textures of the cell materials (tools/art/texture_art.gd) and saves each in
 ## the mod of its material, content/<mod>/textures/<texture>.png (see Mat.texture_path).
-## A texture painted over by hand is overwritten, so name the materials to make:
+## A texture made or finished by hand is named in its bundle's `hand` list and left as it is
+## (tools/hand_art.gd); name the materials to make or make them all:
 ## godot --headless --path . --script res://tools/make_textures.gd -- <material ...> | --all
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const TextureArt := preload("res://tools/art/texture_art.gd")
+const HandArt := preload("res://tools/hand_art.gd")
 
 
 func _init() -> void:
@@ -23,6 +25,8 @@ func _init() -> void:
 		if not only.is_empty() and not name in only:
 			continue
 		var path := Mat.texture_path(m)
+		if HandArt.kept(path):
+			continue
 		var img := TextureArt.picture(name)
 		if img == null:
 			print("no drawing for %s" % path)

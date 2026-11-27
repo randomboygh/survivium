@@ -10,6 +10,7 @@ The page's sky behind it and the progress bar are CSS in export_presets.cfg
 """
 
 from PIL import Image, ImageDraw, ImageFont
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 FONT = "assets/fonts/PressStart2P.ttf"
 SPARROW = "content/animals/sparrow/sprites/creatures/sparrow.png"
@@ -64,7 +65,7 @@ def main() -> None:
     img.alpha_composite(bird, (PAD + BIRD_X, PAD + 1))
     out = Image.new("RGBA", (w * ROOM, h * ROOM), (0, 0, 0, 0))
     out.alpha_composite(img, ((out.width - w) // 2, (out.height - h) // 2))
-    out.save(OUT)
+    hand_art.save(out, OUT)
     print("saved %s, %dx%d" % (OUT, out.width, out.height))
 
 
