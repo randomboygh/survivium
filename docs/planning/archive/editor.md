@@ -1,7 +1,7 @@
 # The in-game content editor: state and what is left
 
-Status: ACTIVE hand-off note (2026-11-16) of the thread «Сделать внутриигровой редактор» for the thread that
-continues it. Stage 2 item 3 of `plan/mvp.md` (decision 186, 11А 12А 13А).
+Status: DONE (all seven steps of the plan are in the game; the user's phone checks under «Left» stay open). It was
+the hand-off note (2026-11-16) of the thread «Сделать внутриигровой редактор» for the thread that continued it. Stage 2 item 3 of `plan/mvp.md` (decision 186, 11А 12А 13А).
 
 ## The user's picks (2026-11-16)
 
@@ -11,7 +11,7 @@ continues it. Stage 2 item 3 of `plan/mvp.md` (decision 186, 11А 12А 13А).
 - 4А: the voxel editor paints slice by slice on a flat grid with a turning 3D preview (models are PNG sheets
   of slices, `VoxelModel.from_image`).
 - Phone first: one column (12А), portrait 2608×1200; screenshots of every step in the thread
-  (`survivium-builds/editor/`).
+  (`survivium-builds/mods/editor/`).
 
 ## Done
 

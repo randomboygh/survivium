@@ -138,6 +138,43 @@ REND-5 (one test comparing the GDScript↔shader constants), REND-4 (a check of 
 | 6 | NET-6, GAME-12, UI-5: are these intended (revive at the death spot over a socket; weather not saved; Z/X/T keys for everyone in single player) | per item: keep / fix | fix all three |
 | 7 | DATA-10: the test world (`test_ground.gd`, 1182 lines, 30+ non-core ids) in shared code | a) keep; b) move its layout to data of a `testing` bundle | b, later |
 
+## The owner's answers (2026-11-27, 19:43-19:45 MSK, decision cards in the thread)
+
+All as recommended:
+
+1. DATA-1/DATA-2: the lists of materials, tree species, bush kinds and biomes live in `world.json`; chunks with old numbers are rewritten in the background before the old list is dropped.
+2. DATA-3: a world whose bundle is missing is not opened; the game names the bundle and leaves the save alone.
+3. GAME-3/UI-1: one save code: the session writes and reads its own state, single player and the server call it.
+4. Big files: all are split, as chains of parts, one file per PR, in the order of section 5.
+5. ARCH-1: layers inside `src/client/`: move `ui_style`, `vibration`, `sound_marks` to a neutral place and test the directions.
+6. NET-6: reviving at the death spot over a socket is forbidden without the playtest switch.
+7. GAME-12: the weather and what lies on the ground (snow, wet, puddles) are saved.
+8. UI-5: keys Z, X, T work only in developer mode.
+9. DATA-10: the test world moves to data of a `testing` bundle, later (not urgent).
+
+### Second round (2026-11-27, 22:17-22:25 MSK, decision cards in the thread «Подготовить решения по остальным пунктам аудита»)
+
+Already fixed before this round: DATA-1, DATA-2 (#945); NET-2, NET-5, NET-13, GAME-6, REND-9 (#946); NET-6, GAME-12, UI-5 (#947); DATA-3 (#948).
+All as recommended except 11 (the owner picked the bigger option):
+
+1. NET-1, NET-14: a slow client is not dropped. The server reads the outbound buffer, holds world streaming back above a high-water mark, checks `put_packet` and resends what was lost (rejoin-style resync); a dead connection is noticed within 20 s (heartbeat or `heard_at` + idle ping).
+2. NET-3, NET-4: a leaving player only marks "save soon"; the autosave writes only the changed parts (dirty sections), no full save per request or per leave. Save format unchanged.
+3. NET-12: split PEOPLE into rarely-changing person data and a compact move; YOU sends the bag only when it changed. Protocol version bumped. After the server fixes (1, 2).
+4. UI-2, NET-11: one path for the playtest switches: single player sends the same `CHEATS` request (one switch table, `Clock.set_season`, a test that "off" restores every key). No loopback-socket CI job for now.
+5. DATA-4, NET-15: keep `world.json.bak` (previous good file) and open it when `world.json` is unreadable; if there is none, do not open the world and do not touch the folder (as the server). Save cut midway made safe (chunks written beside, moved after all writes; failures counted).
+6. DATA-11, GAME-15: the save format number starts counting; migrations live in one file, ordered by number; renames move into `was:` fields; old worlds always stay readable (no support window).
+7. Tests and CI, in order, one PR each: TEST-1 (split `progress (other)` by measured cost + a 75 % warning), TEST-8, TEST-2, TEST-4, then TEST-5, TEST-6, TEST-9, TEST-16, NET-19 and the rest.
+8. TEST-12: PRs build the PC and Android packages only with the `full` label or when export paths change; main builds all. Plus the other CI clean-ups of TEST-12 (shared prepare job, import cache, label filter, per-merge concurrency group on main).
+9. REND-4, REND-7: now only the guard (error in `validate`/`view_test` when the tree atlas passes 4096); the second atlas and splitting `common.gdshaderinc` come before the next tree art (young trees).
+10. More file splits go to the end of the split queue: `effects.gd` (REND-10), `character.gd` and `body.gd` (GAME-11), `land_layout.gd` row functions (DATA-17), `inventory_window` `_ready` (UI-14), the big tests (TEST-7).
+11. UI-10: one key table / input-action layer AND a key-rebinding screen in the settings right away (gamepad later). Player-visible: new strings are keys en+ru, UI kit, screenshots for approval.
+12. UI-12: move the remaining windows onto the UI kit one window per PR, screenshots before/after for approval; fix `kit.md` now.
+13. TEST-11, REND-18: split the six monolith system docs into a short overview + pages; `_RU` copies stay full mirrors caught up by the weekly thread.
+14. TEST-10: a per-bundle manifest marks `hand` art the generators refuse to overwrite; `tree_feet.py --check` in lint.
+15. Small server and security fixes, all as recommended: NET-7, NET-8, NET-16, NET-17, NET-18, NET-20, DATA-7, DATA-8 (each with a test in `security_test.gd`).
+16. Small code fixes, all as recommended, in ~5 PRs by theme: GAME-4, 5, 7, 9, 10, 13, 14; DATA-6, 9, 13, 15, 16; REND-5, 6, 8, 11, 12, 13, 14, 17; UI-8, 9, 11, 15, 16.
+17. Clean-up, all as recommended, including renaming `old_slope*` to `slope*` (with rename maps where paths move): DATA-12, DATA-14, REND-15, REND-16, TEST-13, TEST-14, TEST-15, TEST-17, UI-13, UI-17.
+
 ## All findings
 
 Effort: S under half a day, M one or two days, L several PRs. "Owner's pick": the fix changes structure, saves,

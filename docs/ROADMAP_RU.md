@@ -22,12 +22,12 @@
 ## Технический аудит кода (этап 4, 2026-11-01)
 
 Находки по системам — [audit/CODEBASE_AUDIT.md](audit/CODEBASE_AUDIT.md), план шагов и что ждёт решения
-пользователя — [planning/REFACTORING_ROADMAP.md](planning/REFACTORING_ROADMAP.md). Сделано (шаги 1–6,
+пользователя — [planning/archive/REFACTORING_ROADMAP.md](planning/archive/REFACTORING_ROADMAP.md). Сделано (шаги 1–6,
 PR #289–#293): что исправлено и что осталось — [audit/REFACTORING_REPORT.md](audit/REFACTORING_REPORT.md),
 замеры — [audit/PERFORMANCE_REPORT.md](audit/PERFORMANCE_REPORT.md).
 
 Тестирование и CI (этап 5, 2026-11-03, PR #346): аудит — [audit/TESTING_CI_AUDIT.md](audit/TESTING_CI_AUDIT.md),
-план и что осталось — [planning/TESTING_CI_ROADMAP.md](planning/TESTING_CI_ROADMAP.md), итог —
+план и что осталось — [planning/archive/TESTING_CI_ROADMAP.md](planning/archive/TESTING_CI_ROADMAP.md), итог —
 [audit/TESTING_CI_REPORT.md](audit/TESTING_CI_REPORT.md). Аудит документации (этап 6, 2026-11-05):
 [audit/DOCUMENTATION_AUDIT.md](audit/DOCUMENTATION_AUDIT.md), что исправлено и что осталось —
 [audit/DOCUMENTATION_UPDATE_REPORT.md](audit/DOCUMENTATION_UPDATE_REPORT.md).

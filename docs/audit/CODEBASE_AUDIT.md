@@ -3,7 +3,7 @@
 Статус: ARCHIVED — снимок на 2026-11-01: история и причины решений, не инструкция (пути, числа и
 «нет»/«будет» — того дня; код как он есть — [INDEX.md](../INDEX.md)). Задание: `refactoring.md` в корне библиотеки проекта. Аудит 2026-11-01, ветка
 `claude/project-thread-354aa8` от `main` 07d9b7e (PR #288). План работ по находкам:
-[../planning/REFACTORING_ROADMAP.md](../planning/REFACTORING_ROADMAP.md); что сделано:
+[../planning/archive/REFACTORING_ROADMAP.md](../planning/archive/REFACTORING_ROADMAP.md); что сделано:
 [REFACTORING_REPORT.md](REFACTORING_REPORT.md), замеры: [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md).
 Аудит документации и структуры (этап 0) — [AUDIT_REPORT.md](AUDIT_REPORT.md); он не повторялся.
 

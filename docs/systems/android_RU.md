@@ -66,7 +66,7 @@
 видеть их как Compatibility (`SRGB`, `SRGB_HINT`, `COMPAT_ALBEDO`, `COMPAT_COLORS`, [rendering.md](rendering_RU.md));
 свет солнца с тенью, который Compatibility складывает в sRGB отдельным проходом, идёт через `compat_sun`
 (глобальные `ambient_light`, `sun_shadowed` ставит `sky.gd`); то, что смешивается (вода, частицы), и свет факела и
-костров с тенями там смешиваются в линейном свете. Снимки рядом: `survivium-builds/android/vulkan-colours-*.png`.
+костров с тенями там смешиваются в линейном свете. Снимки рядом: `survivium-builds/general/android/vulkan-colours-*.png`.
 
 **Тесты.** Устройства в CI нет: задача `android` падает, если не вышел экспорт или проверка подписи; как
 играется, проверяют на телефоне.

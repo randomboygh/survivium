@@ -57,7 +57,7 @@
   эпох в `BUNDLE_SYSTEM.md` заменена ссылкой на сгенерированную «Карту эпох».
 - **Архивировано** (строка `Статус: ARCHIVED — снимок на <дату>…` вместо ACTIVE, текст не тронут):
   `audit/AUDIT_REPORT.md`, `audit/CLEANUP_REPORT.md`, `audit/CODEBASE_AUDIT.md`, `audit/TESTING_CI_AUDIT.md`,
-  `audit/TESTING_CI_REPORT.md`, `specifications/BUNDLE_SYSTEM_READINESS.md`. `planning/TESTING_CI_ROADMAP.md`
+  `audit/TESTING_CI_REPORT.md`, `specifications/BUNDLE_SYSTEM_READINESS.md`. `planning/archive/TESTING_CI_ROADMAP.md`
   — DONE (раздел «Дальше» остаётся списком открытых задач).
 - **Удалено:** ничего.
 

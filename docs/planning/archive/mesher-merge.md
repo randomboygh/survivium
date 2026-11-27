@@ -6,7 +6,7 @@ Earlier: PARKED by the user (2026-11-18): back to the old mesher. The world sett
 `WorldData.old_slopes` again (the old curved slopes, now a level a cell, no corners going down two levels);
 `soft_slopes` is set by nothing and kept for this work. Parts 3-4 are in draft PR #742.
 Earlier status: in a PR (2026-11-17). Threads «Совместить старый и новый мешер» (branch `claude/project-thread-swdhm6`)
-and its part 2 (branch `claude/project-thread-dvxhsh`). Plan of the earlier mesher work: `docs/planning/mesher.md`.
+and its part 2 (branch `claude/project-thread-dvxhsh`). Plan of the earlier mesher work: `docs/planning/archive/mesher.md`.
 
 ## What the user asked (2026-11-17, Russian, paraphrased)
 
@@ -46,7 +46,7 @@ If the user picks Б: swap the ramp profile in `SlopeMesher` for soft worlds (th
   lid over the slope: the dark sawtooth along diagonal slopes). Fixed in the cube face loop (`floor_k`).
 - Cut walls over such a floor reach `CUT_SKIRT` 0.08 down into it (a hairline crack showed).
 - Shore water also over a floor slope under a cut (the waterline stepped round the cut cells).
-- Pictures: project library `survivium-builds/old-new-merge/` (`before-*` old vs new, `variant-a-*` first
+- Pictures: project library `survivium-builds/world/old-new-merge/` (`before-*` old vs new, `variant-a-*` first
   draft, `now-*` current).
 
 ## Done in part 2 (thread «Совместить старый и новый мешер, часть 2»)
@@ -66,11 +66,11 @@ If the user picks Б: swap the ramp profile in `SlopeMesher` for soft worlds (th
 1. Decide (with the user) whether the old bicubic code and `old_slope_mesher.gd` are removed.
 2. A `mesher_test` case for the floor under a cut (no flat lid) would be good.
 
-## Tools (in the project library under notes/mesher-merge/, copied into a debug folder under tools, never committed)
+## Tools (in the project library under `survivium-builds/world/old-new-merge/src/`, copied into a debug folder under tools, never committed)
 
 - cells.gd, run with godot --headless --script on the copy, arguments x0 z0 x1 z1 slopes: prints
   each column's ground level, `~` if water on top, and the shape byte (bits 0..3 low corners NW NE SE SW,
   16<<k cut/fill).
 - `dump.gd` + `render.py`: triangles of the test world's chunks, rendered with numpy (see
-  `notes/edge-preview/`).
+  `survivium-builds/world/mesher-blocks/edge-preview/`).
 - Close shots: `ground-old-*-near` (pixel_scale 4) in `tools/shot/shots.gd`, crop and scale 3x with PIL.

@@ -139,7 +139,7 @@ ad41a53 (PR #372 слит, клиент 0.2.372). Что исправлено �
 |---|---|
 | `systems/audio.md`, `world-data.md`, `world-generation.md`, `time-weather.md`, `wildlife.md` | сверены, расхождений нет (последние PR правили их сами) |
 | `testing/CI_PIPELINE.md`, `testing/TEST_COVERAGE.md` | совпадают с `build.yml` и тестами |
-| `audit/PERFORMANCE_REPORT.md`, `audit/REFACTORING_REPORT.md`, `planning/REFACTORING_ROADMAP.md` | уже DONE, это отчёты на дату |
+| `audit/PERFORMANCE_REPORT.md`, `audit/REFACTORING_REPORT.md`, `planning/archive/REFACTORING_ROADMAP.md` | уже DONE, это отчёты на дату |
 | `docs/generated/*` | пишутся генераторами, свежесть проверяет CI |
 | README модов `core`, `materials`, `music`, `plants`, `resources`, `sounds`, `animals/sparrow` | совпадают с данными |
 | `.github/pull_request_template.md` | одна строка «Что нового», верна |

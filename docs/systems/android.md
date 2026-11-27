@@ -69,7 +69,7 @@ keeps the web on Compatibility); a phone without Vulkan falls back to OpenGL by 
 one see them as Compatibility does (`SRGB`, `SRGB_HINT`, `COMPAT_ALBEDO`, `COMPAT_COLORS`, [rendering.md](rendering.md));
 the sun's light with a shadow, which Compatibility adds in sRGB in a pass of its own, goes through `compat_sun`
 (the globals `ambient_light`, `sun_shadowed` set by `sky.gd`); what blends (water, particles) and the torch's and fires'
-light with shadows still mix in linear light there. Shots side by side: `survivium-builds/android/vulkan-colours-*.png`.
+light with shadows still mix in linear light there. Shots side by side: `survivium-builds/general/android/vulkan-colours-*.png`.
 Under Vulkan too the Adreno 840 drew no pictured tree at all, standing or falling, once `tree.gdshader` held the
 felling's code (#912), while their shadows (`tree_shadow.gdshader`) were drawn (v0.5.912 to v0.5.919; desktop GL
 and lavapipe drew them): the felling went to a copy of the shader of its own (`TreeSprites.falling`,
