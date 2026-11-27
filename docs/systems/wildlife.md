@@ -32,7 +32,8 @@ water, a kind with `biomes` appears only on its own land.
   `stepped`; `moved` — the beasts that stepped in the last `update` (by them the server collects a snapshot,
   `PlayerLink._snap`). Deciding (`_decide`), a beast goes through only the kinds that are a threat, food or
   its own to it (`_cares`), by the lists of beasts by kinds (`_kin`: dropped by every `_add` and `_remove`, rebuilt
-  at the next ask, and also when the number of beasts is not the one they were collected for).
+  at the next ask, and also when the number of beasts is not the one they were collected for; a test that
+  changes `animals` itself drops them too, `_kin_of = -1`).
 - Hunting: `in_front(at, dir)` — the beast on which a blow falls (the nearest on the ground within
   `STRIKE_REACH` ahead, point-blank — from any side, with `health` above 0), `hurt(a, power, from, by,
   lands)` — a blow: the beast loses `power` (a weapon's blow with the addition of the Hunting skill,
