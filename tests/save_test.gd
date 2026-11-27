@@ -134,26 +134,23 @@ func _held_props(main: Node) -> void:
 	Input.parse_input_event(press)
 	main.controls.set_touch(was_touch)
 	await _hold_to_put(main)
-	_out_of_wall(main)
+	_cut_cells(main)
 	main.build.leave()
 	await _frames(2)
 
 
-## A door or a window held up into blocks (an opening to cut into a wall) is drawn before
-## them, toward its front, or the blocks would hide it (BuildMode.out_of_wall, 2026-11-26);
-## in the air, and a thing that cuts nothing, where it goes.
-func _out_of_wall(main: Node) -> void:
+## A door or a window held up into blocks (an opening to cut into a wall) stands there, in
+## the middle of the wall, the blocks it will cut drawn as air (BuildMode.cut_cells,
+## PlanThings.hold_hole, 2026-11-26); in the air, and a thing that cuts nothing, cut none.
+func _cut_cells(main: Node) -> void:
 	var me := Vector3i((main.player.position / main.CELL).floor())
 	var under := me + Vector3i(0, -3, 0)
 	var b = main.build
 	_check(main.world.is_solid(under.x, under.y, under.z) and main.world.is_solid(under.x, under.y + 1, under.z),
 		"the ground under the player is solid")
-	_check(b.out_of_wall("tools:door", under, 0).is_equal_approx(Vector3(0.0, 0.0, b.WALL_OUT)),
-		"a door turned to the south held into blocks hangs before them to the south")
-	_check(b.out_of_wall("tools:door", under, 1).is_equal_approx(Vector3(-b.WALL_OUT, 0.0, 0.0)),
-		"turned to the west, before them to the west")
-	_check(b.out_of_wall("tools:door", me + Vector3i(0, 4, 0), 0) == Vector3.ZERO, "a door held in the air hangs where it goes")
-	_check(b.out_of_wall("tools:table", under, 0) == Vector3.ZERO, "a thing that cuts nothing hangs where it goes")
+	_check(not b.cut_cells("tools:door", under, 0).is_empty(), "a door held into blocks cuts them")
+	_check(b.cut_cells("tools:door", me + Vector3i(0, 4, 0), 0).is_empty(), "a door held in the air cuts none")
+	_check(b.cut_cells("tools:table", under, 0).is_empty(), "a thing that cuts nothing cuts none")
 
 
 ## The build mode's hands with a thing (the user's picks of 2026-11-15): by blueprint (the

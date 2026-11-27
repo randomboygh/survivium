@@ -152,8 +152,9 @@ on a ladder keeps its turn. Solid and occupied are only the cells where its
 voxels are (`Placed.cells_of`), the model and boxes turn together (`Placed.turned`, `Props._model`). A ladder
 is an item with `steps`: its solid parts are boxes by quarters of a cell (`WorldData.blockers` stores an array
 for a cell), the body steps up the half-cell steps with no jump; it is placed over a void too, a tap takes it
-back, it is not counted a station. A door is an item with `door`: the leaf is closed along the north edge of
-its cell, a tap (`Protocol.PROP_OPEN`, `Placed.swing`, the plot's right «Open doors») turns it on a hinge in
+back, it is not counted a station. A door is an item with `door`: the leaf is drawn along the north edge of
+its cell and stands shut in the middle of its depth, between the wall's faces as a window does
+(`Placed.shut_voxels`, `DOOR_SHUT`, 2026-11-27), a tap (`Protocol.PROP_OPEN`, `Placed.swing`, the plot's right «Open doors») turns it on a hinge in
 the north-west corner to the west edge (`Placed.open_voxels`, as it is drawn); an open door is solid nowhere
 (`opened_boxes` are empty: a thrown-back leaf would occupy a quarter of the opening that a body barely passes
 and would stand into the one who opens), nothing is placed in its opening (`Placed._in_open_door`), with a

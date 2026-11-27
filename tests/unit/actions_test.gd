@@ -495,9 +495,10 @@ func _test_stairs_placed() -> void:
 	_check(placed.put_from_bag(who, "tools:door", -1, 40), "a door is set into a gap two cells tall")
 	var door: Dictionary = placed.things[-1]
 	_check(door.cell == Vector3i(30, 1, 20) and Placed.is_door(door) and not door.open
-		and w.blocker_part(30, 1, 20, 0.0, 1.0, 0.0, 0.2) > 0.0 and w.blocker_part(30, 2, 20, 0.0, 1.0, 0.0, 0.2) > 0.0
-		and is_equal_approx(w.blocker_part(30, 1, 20, 0.0, 1.0, 0.5, 1.0), 0.0),
-		"shut, it closes the gap along its north edge, two cells high: %s" % [door])
+		and w.blocker_part(30, 1, 20, 0.0, 1.0, 0.4, 0.6) > 0.0 and w.blocker_part(30, 2, 20, 0.0, 1.0, 0.4, 0.6) > 0.0
+		and is_equal_approx(w.blocker_part(30, 1, 20, 0.0, 1.0, 0.0, 0.3), 0.0)
+		and is_equal_approx(w.blocker_part(30, 1, 20, 0.0, 1.0, 0.75, 1.0), 0.0),
+		"shut, it closes the gap in the middle of the wall's depth, two cells high: %s" % [door])
 	_check(not _walks_north(w, Vector3(30.5, 1.0, 21.5), 19.5), "shut, a body walking north stops at it")
 	who.position = Vector3(30.5, 1.0, 20.5) * WorldData.CELL
 	_check(placed.swing(who, door) and door.open and Placed.record(door).open and not w.blockers.has(door.cell),
@@ -1246,10 +1247,10 @@ func _test_openings() -> void:
 	_check(placed.put_from_bag(who, "tools:door_2x3", -1, 40), "a double door is set into a gap of its size")
 	var door: Dictionary = placed.things[-1]
 	_check(door.cell == Vector3i(14, 1, 20) and placed.cells_of(door).size() == 2
-		and w.blocker_part(14, 2, 20, 0.0, 1.0, 0.0, 0.2) > 0.0 and w.blocker_part(15, 2, 20, 0.0, 1.0, 0.0, 0.2) > 0.0
+		and w.blocker_part(14, 2, 20, 0.0, 1.0, 0.4, 0.6) > 0.0 and w.blocker_part(15, 2, 20, 0.0, 1.0, 0.4, 0.6) > 0.0
 		and placed.cells_of(door).size() == 2 and w.blockers.get(door.cell).end.y > 2.5
-		and is_equal_approx(w.blocker_part(14, 1, 20, 0.0, 1.0, 0.5, 1.0), 0.0),
-		"shut, it closes both cells along their north edge, its leaves three high: %s" % [door])
+		and is_equal_approx(w.blocker_part(14, 1, 20, 0.0, 1.0, 0.0, 0.3), 0.0),
+		"shut, it closes both cells in the middle of the wall's depth, its leaves three high: %s" % [door])
 	_check(not _walks_north(w, Vector3(15.0, 1.0, 21.5), 19.5), "shut, a body walking north stops at it")
 	_check(placed.swing(who, door) and door.open and not w.blockers.has(Vector3i(14, 1, 20)) and not w.blockers.has(Vector3i(15, 1, 20))
 		and _walks_north(w, Vector3(15.0, 1.0, 21.5), 19.5) and _walks_north(w, Vector3(14.5, 1.0, 21.5), 19.5),
@@ -1378,6 +1379,24 @@ func _test_best_turn() -> void:
 	var window: Dictionary = placed.things.filter(func(e: Dictionary) -> bool: return e.item == "tools:window").back()
 	_check(placed.cells_of(window).all(func(c: Vector3i) -> bool: return c.z == 20 and c.y <= 3 and absi(c.x - 12) <= 1),
 		"it goes into the wall under the cell aimed at: %s" % [window])
+	# A floor laid first, a wall built on it, the door set from the ground outside, lower than
+	# the floor (user 2026-11-26): it stands on the floor, not down to the ground under it.
+	for z in range(30, 37):
+		for x in range(30, 39):
+			w.set_cell(x, 1, z, Mat.STONE)
+	for y in range(2, 5):
+		for x in range(30, 39):
+			w.set_cell(x, y, 33, Mat.STONE)
+	who.position = Vector3(34.5, 1.0, 38.5) * WorldData.CELL
+	who.inventory.add("tools:door", 2)
+	_check(placed.put_at(who, "tools:door", Vector3i(34, 3, 33), 40) and placed.things[-1].cell == Vector3i(34, 2, 33)
+		and w.get_cell(34, 1, 33) == Mat.STONE, "a door in a wall on a floor stands on the floor: %s" % [placed.things[-1]])
+	_check(placed.put_at(who, "tools:door", Vector3i(36, 2, 34), 40) and placed.things[-1].cell.y == 2,
+		"aimed at the floor before the wall too: %s" % [placed.things[-1]])
+	# A door or a window is set only into a wall, never in the open (user 2026-11-26).
+	who.inventory.add("tools:window", 1)
+	_check(not placed.put_at(who, "tools:door", Vector3i(40, 1, 40), 40) and not placed.put_at(who, "tools:window", Vector3i(40, 2, 40), 40),
+		"a door or a window in the open is not set")
 
 
 ## The build mode moves a door or a window along its wall (the user's picks, 2026-11-26,

@@ -58,9 +58,6 @@ const DRAG_SHARE := 0.025
 ## A second tap on the ghost of a slope or stairs within this many ms of the first turns
 ## them (Plans.turn_form); a single tap there draws nothing.
 const GHOST_TAP_MS := 400
-## How many cells a door or a window held up into a wall is drawn out of it, toward its
-## front (out_of_wall): in the wall the blocks it will cut would hide it.
-const WALL_OUT := 1.15
 ## How far round the player the palette counts what the blueprint needs (need): its ghost
 ## cells and things within reach of drawing (Plans.PLAN_REACH; the user's pick, 2026-11-26),
 ## counted again when it changes or the player has gone NEED_STEP cells, at most every
@@ -972,8 +969,8 @@ func _drag_new(s: Dictionary) -> void:
 		found = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept, s.get("face", -1))
 	s.spot = found[0]
 	var at: Vector3i = s.spot if s.spot != null else s.aim
-	game.props.hold_new(s.put, at, found[1], out_of_wall(s.put, at, found[1]) if s.spot != null else Vector3.ZERO,
-		game.plan_view.things.material() if ghost else null)
+	game.props.hold_new(s.put, at, found[1], game.plan_view.things.material() if ghost else null)
+	game.plan_view.things.hold_hole(cut_cells(s.put, at, found[1]) if s.spot != null else [])
 	_frame(s.put, at, found[1], s.spot != null)
 
 
@@ -1015,14 +1012,15 @@ func _drag_ghost(s: Dictionary) -> void:
 	s.to = found[0]
 	s.found_turn = found[1]
 	var spot: Vector3i = s.to if s.to != null else at
-	game.plan_view.things.hold(t, spot, found[1], out_of_wall(t.item, spot, found[1]) if s.to != null else Vector3.ZERO)
+	game.plan_view.things.hold(t, spot, found[1])
+	game.plan_view.things.hold_hole(cut_cells(t.item, spot, found[1]) if s.to != null else [], t)
 	_frame(t.item, spot, found[1], s.to != null)
 
 
 ## A door, a window or a hatch held up (stroke `s` of opening `e`): it follows the wall
 ## under the finger (over it on a touch screen, _aimed) as a new one from the bag does,
 ## turned into the wall's plane (Placed.opening_spot, as the server will look for it), and
-## hangs before the blocks it would cut (out_of_wall); let go, it moves there and its old
+## stands in the opening it would cut (cut_cells); let go, it moves there and its old
 ## place is walled up again (release, Placed.move).
 func _drag_opening(s: Dictionary, e: Dictionary) -> void:
 	var hit: Dictionary = _aimed(s.pos) if game.get_viewport().get_visible_rect().has_point(s.pos) else {}
@@ -1040,31 +1038,24 @@ func _drag_opening(s: Dictionary, e: Dictionary) -> void:
 	s.to = found[0]
 	s.turn = found[1]
 	var at: Vector3i = s.to if s.to != null else aim
-	game.props.hold_at(e, at, s.turn, out_of_wall(e.item, at, s.turn) if s.to != null else Vector3.ZERO)
+	game.props.hold_at(e, at, s.turn)
+	game.plan_view.things.hold_hole(cut_cells(e.item, at, s.turn) if s.to != null else [])
 	_frame(e.item, at, s.turn, s.to != null)
 
 
-## Where a door or a window `id` held up at north-west cell `at` turned `turn` is drawn
-## from there, in cells: where it goes into blocks (an opening to cut into a wall) they
-## would hide it, so it hangs WALL_OUT before them, on the side of the wall the camera sees;
-## else where it goes (Props.hold_new).
-func out_of_wall(id: String, at: Vector3i, turn: int) -> Vector3:
+## The blocks door or window `id` at north-west cell `at` turned `turn` will cut out of a
+## wall: it stands there, in the middle of the wall where it will be, and they are drawn
+## cut while it is shown (PlanThings.hold_hole, holes; user 2026-11-26), else they would
+## hide it. None for another thing or a hatch.
+func cut_cells(id: String, at: Vector3i, turn: int) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
 	var item := Items.get_item(id)
 	if not (item.get("door", false) or item.get("window", false)) or item.get("hatch", false):
-		return Vector3.ZERO
-	for o: Vector3i in game.placed.cells_of({"item": id, "cell": Vector3i.ZERO, "turn": turn}):
-		var c: Vector3i = at + o
+		return out
+	for c: Vector3i in game.placed.volume_of(id, at, turn):
 		if game.world.is_solid(c.x, c.y, c.z):
-			var f := Placed.front_of({"turn": turn})
-			var out := Vector3(f.x, 0.0, f.y)
-			# On the wall's side the camera sees (user 2026-11-26: it showed behind the wall).
-			var cam: Camera3D = game.get_viewport().get_camera_3d()
-			if cam != null:
-				var to_cam: Vector3 = cam.global_position - (Vector3(c) + Vector3(0.5, 0.5, 0.5)) * Placed.CELL
-				if out.dot(Vector3(to_cam.x, 0.0, to_cam.z)) < 0.0:
-					out = -out
-			return out * WALL_OUT
-	return Vector3.ZERO
+			out.append(c)
+	return out
 
 
 ## Shows where thing `id` turned `turn` would go from the north-west cell `at`: where it

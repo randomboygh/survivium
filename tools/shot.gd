@@ -2399,8 +2399,9 @@ func _finger(down: bool, pos: Vector2) -> void:
 
 
 ## A thing of the bag tapped by a finger on a phone (2026-11-26, doors into walls): `o` =
-## [item, the world point tapped from the feet in cells, a ghost wall drawn first (bool)];
-## the finger goes down and up at once there, as a player taps; prints where it went.
+## [item, the world point tapped from the feet in cells, a ghost wall drawn first (bool),
+## and, when true, ghost chairs set round the player after]; the finger goes down and up at
+## once there, as a player taps; prints where it went.
 func _tap_thing(o: Array, feet: Vector3i) -> void:
 	var plans = main.session.plans
 	var acts = main.session.actions
@@ -2430,6 +2431,10 @@ func _tap_thing(o: Array, feet: Vector3i) -> void:
 	for i in 3:
 		await process_frame
 	_finger(false, on)
+	if o.size() > 3:
+		# Ghost chairs round the player: before them (nearer the camera), behind, beside.
+		for off: Vector3i in [Vector3i(0, 0, 1), Vector3i(-2, 0, 1), Vector3i(0, 0, -2), Vector3i(-3, 0, 0), Vector3i(1, 0, -1)]:
+			plans.add_thing("tools:wooden_chair", feet + off, 0, [feet + off])
 	for i in 40:
 		await process_frame
 	print("tap_thing: %s" % [plans.things.map(func(t: Dictionary) -> Array: return [t.item, t.cell - feet, t.turn])])
