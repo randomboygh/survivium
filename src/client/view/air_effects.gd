@@ -260,6 +260,7 @@ func _heat(on: bool, sky, clock, indoor: bool) -> void:
 	var mat: ShaderMaterial = view.grade_mat
 	var spots := PackedVector4Array()
 	var power := Vector4.ZERO
+	var phase := Vector4.ZERO
 	if on and not fx.fires.is_empty():
 		var at: Vector2 = view.cam_target
 		var near: Array = []
@@ -281,6 +282,7 @@ func _heat(on: bool, sky, clock, indoor: bool) -> void:
 			var top: Vector2 = cam.unproject_position(PixelView.shear(f.at + Vector3(0.0, 0.25 + high, 0.0)))
 			if fuel <= 0.02:
 				continue
+			phase[spots.size()] = fposmod(floorf(f.at.x) * 1.7 + floorf(f.at.z) * 2.9, TAU)
 			power[spots.size()] = snappedf(lerpf(0.15, 1.0, fuel), 0.05)
 			spots.append(Vector4(roundf(base.x), roundf(base.y), roundf(HEAT_HALF * lerpf(0.6, 1.2, fuel) * PixelView.PIXELS_PER_UNIT),
 				roundf(maxf(3.0, base.y - top.y))))
@@ -291,6 +293,7 @@ func _heat(on: bool, sky, clock, indoor: bool) -> void:
 			spots.append(Vector4(-1000.0, -1000.0, 1.0, 1.0))
 		_give(mat, "heat_spots", spots)
 		_give(mat, "heat_power", power)
+		_give(mat, "heat_phase", phase)
 	# The air is looked at with the breath (BREATH_LOOK), not every frame.
 	var haze := 0.0
 	if on and not indoor:

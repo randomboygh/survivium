@@ -45,6 +45,9 @@ uniform float dream = 0.0;
 // how high over them, in pixels; heat_power how strongly each fire burns (0 none).
 uniform vec4 heat_spots[4];
 uniform vec4 heat_power = vec4(0.0);
+// Each fire's own phase of its waves, from where it stands in the world, so the waves
+// keep their pace while the view moves (a screen position would change it).
+uniform vec4 heat_phase = vec4(0.0);
 // Drops of rain running down the screen's edges in a downpour or after a swim
 // (AirEffects): x their clock (seconds), y how thick they come now (0..1), z when on
 // that clock the screen began to dry (-1 while it does not), w how thick they were then.
@@ -183,7 +186,9 @@ float heat_shift(vec2 p) {
 		// Long, slow waves up the column: several rows go aside together and drift up,
 		// rather than every other row shivering.
 		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 1.5;
-		float w = sin(p.y * 0.3 + TIME * 3.5 + h.x) * 0.7 + sin(p.y * 0.11 + TIME * 1.9) * 0.5;
+		// By the rows over the fire's base, not the screen's, so a moving view does not
+		// slide the waves along the column and make them run faster or slower.
+		float w = sin(d.y * 0.3 + TIME * 3.5 + heat_phase[i]) * 0.7 + sin(d.y * 0.11 + TIME * 1.9 + heat_phase[i]) * 0.5;
 		s += floor(w * k + 0.5);
 	}
 	return clamp(s, -1.0, 1.0);
