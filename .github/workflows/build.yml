@@ -2,8 +2,8 @@ name: Test and build
 
 # Every job runs side by side on a machine of its own, fastest first to fail: `lint` (no
 # Godot, seconds), `checks` (every script compiles, the mods' data, the content reports),
-# `tests` (unit tests, save, server), `progress` (the way to every recipe, in two halves on
-# two machines), `frames` (alone, it measures frame times), the web export and the Windows
+# `tests` (unit tests, save, server), `progress` (the way to every recipe, in three parts on
+# three machines), `frames` (alone, it measures frame times), the web export and the Windows
 # and Linux exports, then the browser smoke test as a desktop, as a phone and as a phone
 # held upright. On a pull request the smoke test runs only when the PR touches what the
 # browser shows differently or carries the label `smoke`, and the way to every recipe only
@@ -158,10 +158,11 @@ jobs:
           path: logs
           if-no-files-found: ignore
 
-  # The way from bare hands to every recipe (tests/progress_test.gd), its two halves on
-  # two machines: the recipes that need what a beast gives, and the rest. On a pull request
-  # that cannot reach it (see `changes`) the job passes at once with its steps skipped, so
-  # the required checks `progress (hunting)` and `progress (other)` still report.
+  # The way from bare hands to every recipe (tests/progress_test.gd), in three parts on
+  # three machines: the recipes that need what an animal gives (a carcass, a fish), those
+  # that need ore, and the rest (see its --part). On a pull request that cannot reach it
+  # (see `changes`) the job passes at once with its steps skipped, so the required checks
+  # `progress (hunting)`, `progress (metal)` and `progress (other)` still report.
   progress:
     needs: changes
     if: needs.changes.outputs.build != 'false'
@@ -170,7 +171,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [hunting, other]
+        part: [hunting, metal, other]
     name: progress (${{ matrix.part }})
     steps:
       - name: Not needed for this pull request

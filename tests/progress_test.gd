@@ -7,7 +7,7 @@ extends SceneTree
 ## make (Controls, Gathering, WorldActions, Placed, Workshop). It fails on the first
 ## thing it cannot get or make and says why, so a change to tools, materials, stations
 ## or recipes that cuts the way is caught in CI. Run:
-## timeout 1200 godot --headless --path . --script res://tests/progress_test.gd [-- --part hunting|other]
+## timeout 1200 godot --headless --path . --script res://tests/progress_test.gd [-- --part hunting|metal|other]
 ##
 ## The animals are hunted the same way: the player is carried up to one and strikes it with
 ## the action button until it falls, then takes its carcass. Fish are caught with a rod from
@@ -48,7 +48,7 @@ const MAX_TRIPS := 16
 ## Slots of the bag here (see _run).
 const BAG := 24
 ## The parts the recipes can be made in, side by side (see _part).
-const PARTS := ["hunting", "other"]
+const PARTS := ["hunting", "metal", "other"]
 ## Frames a wait by the clock lasts at least: a loaded runner's frame can take seconds.
 const WAIT_FRAMES := 30
 
@@ -148,9 +148,12 @@ func _run() -> void:
 	targets = _part(order)
 	if targets.size() < order.size():
 		print("part %s: %d of %d recipes and what they need" % [part, targets.size(), order.size()])
+	var took := {}
 	for r: Dictionary in targets:
+		var at := Time.get_ticks_msec()
 		if not made.has(r.id) and not await _craft(r, 1):
 			break
+		took[r.id] = (Time.get_ticks_msec() - at) / 1000.0
 	for r: Dictionary in targets:
 		_check(made.has(r.id), "made: %s" % r.title)
 	var props := {}
@@ -160,6 +163,10 @@ func _run() -> void:
 	for id in props:
 		_check(set_down.has(id), "set down: %s" % Items.title(id))
 	print("%d swings, %d trips out, %.1f s" % [swings, trips, (Time.get_ticks_msec() - t0) / 1000.0])
+	# What took longest, with what it needed first: where to split the parts again (see _part).
+	var slow := took.keys()
+	slow.sort_custom(func(a: String, b: String) -> bool: return took[a] > took[b])
+	print("slowest: %s" % ", ".join(slow.slice(0, 8).map(func(id: String) -> String: return "%s %.0f s" % [id, took[id]])))
 	_check(Lang.missed.is_empty(), "every text shown has its English: %s" % [Lang.missed])
 	print("%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
@@ -167,11 +174,15 @@ func _run() -> void:
 
 # --- The plan ---------------------------------------------------------------------------
 
-## The recipes of `all` this run makes: all of them, or with `-- --part hunting` those
-## that need what only a beast gives (its carcass, and so hides, fur, bones, tallow) and
-## with `-- --part other` the rest. Each part makes what its recipes need, the camp, the
-## stations and the tools, from an empty bag in a new world; the two together make every
-## recipe, side by side on two machines in CI (`progress` job), in half the time.
+## The recipes of `all` this run makes: all of them, or those of one part. With
+## `-- --part hunting` those that need what only an animal gives (a beast's carcass, and so
+## hides, fur, bones, tallow; a fish caught), with `-- --part metal` of the rest those that
+## need ore (the bars, the metal tools, what is made of them), with `-- --part other` the
+## rest. Each part makes what its recipes need, the camp, the stations and the tools, from
+## an empty bag in a new world; the parts together make every recipe, side by side on
+## machines of their own in CI (`progress` job). The parts are chosen by the time they take
+## (docs/testing/CI_PIPELINE.md); a run ends by naming the recipes that took longest, and
+## tests/run_all.sh warns of a part past 3/4 of its limit: then split it again.
 func _part(all: Array) -> Array:
 	var args := OS.get_cmdline_user_args()
 	var i := args.find("--part")
@@ -181,15 +192,24 @@ func _part(all: Array) -> Array:
 	if not part in PARTS:
 		_fail("--part is one of %s, not `%s`" % [PARTS, part])
 		return []
-	var beasts := {}
+	var animal := {}
 	for k: String in AiRules.SPECIES:
 		var spec: Dictionary = AiRules.SPECIES[k]
-		if k != AiRules.HUMAN and spec.get("carcass", "") != "":
-			beasts[spec.carcass] = true
+		for field in ["carcass", "catch"]:
+			if k != AiRules.HUMAN and spec.get(field, "") != "":
+				animal[Items.get_item(spec[field]).get("id", spec[field])] = true
+	var ore := {}
+	for rec: Dictionary in Mat.RECORDS:
+		if rec.role == "ore" and rec.item != "":
+			ore[Items.get_item(rec.item).get("id", rec.item)] = true
 	return all.filter(func(r: Dictionary) -> bool:
 		var needs := {r.makes: true}
 		_needs_of(r, needs)
-		return needs.keys().any(func(id: String) -> bool: return beasts.has(id)) == (part == "hunting"))
+		if needs.keys().any(func(id: String) -> bool: return animal.has(id)):
+			return part == "hunting"
+		if needs.keys().any(func(id: String) -> bool: return ore.has(id)):
+			return part == "metal"
+		return part == "other")
 
 ## What the world gives a player (the content graph, src/shared/content/content_graph.gd,
 ## finds the same and which tool each takes): what cells, the plants on them, trees and

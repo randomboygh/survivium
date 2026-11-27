@@ -27,7 +27,7 @@ publishing, which waits for everything). The fast ones fail first.
 | `lint` | `tools/lint.py` (rules of scripts and texts, Python, shell, JS, JSON, workflow, the files `hand` lists exist, the trees' look.yaml against their pictures: `tools/tree_feet.py --check`, with Pillow installed first), `tools/doc_index.py --check` (paths in documents, freshness of the code index) and `tools/lang_check.py --strict en,ru` (every key exists in English and Russian, there is no Russian text in the code); without Godot | ~10 s | yes |
 | `checks` | `parse` (every script compiles, `tools/parse_check.gd`), `validate` (the mods' data and each bundle separately), `report` (freshness of `docs/generated/content-*.md`), `balance` (freshness of `docs/balance/GAME_BALANCE_TABLES.md`, `tools/balance_report.gd --check`) | ~1 min | yes |
 | `tests` | `run_tests` (unit tests), `save_test`, `server_test` side by side | ~3 min | yes |
-| `progress (hunting)`, `progress (other)` | two halves of `progress_test`: recipes that need something got from a beast, and the rest — on two machines | see the report | yes |
+| `progress (hunting)`, `progress (metal)`, `progress (other)` | three parts of `progress_test` on three machines: recipes that need something got from an animal (a carcass, a fish), those that need ore, and the rest; chosen by measured time (below) | ~4.5, ~8, ~12.5 min | yes |
 | `frames` | `frame_test` alone on a machine (it measures frames) | ~1.5 min | yes |
 | `export` | the version and «What's new» (`build_info.py`), web export, the patches `web_patch.py` and `web_cache.py`; the artifact `survivium-web` | ~1 min | yes (for the deploy) |
 | `pc` | the Windows and Linux export; the artifacts `survivium-windows`, `survivium-linux` | ~1 min | yes (for publishing) |
@@ -38,8 +38,9 @@ publishing, which waits for everything). The fast ones fail first.
 
 «Blocks» here means: `release` and `deploy` wait for its success, and by the project's rule a PR is merged
 only on green CI. So that GitHub itself does not let a red PR be merged, in the repository's settings
-(Settings → Branches → the rule for `main` → Require status checks) mark the jobs `lint`, `checks`, `tests`,
-`progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`, `android`. `smoke (…)` is not put there: on a PR with
+(Settings → Rules → Rulesets → «main protection», https://github.com/randomboygh/survivium/settings/rules/27271944 →
+Require status checks to pass; there is no classic branch rule) mark the jobs `lint`, `checks`, `tests`,
+`progress (hunting)`, `progress (metal)`, `progress (other)`, `frames`, `export`, `pc`, `android`. `smoke (…)` is not put there: on a PR with
 no client changes it is skipped.
 
 ## Releases
@@ -122,8 +123,30 @@ Every build of `main` that passed every job is a release on GitHub (Releases), m
 ## Time
 
 Measurements before and after — [../audit/TESTING_CI_REPORT.md](../audit/TESTING_CI_REPORT.md). The longest
-is the path to every recipe (`progress_test`); it is divided into two halves that go on two machines. Each job
-is limited by `timeout-minutes`, each check — by its own limit in `tests/run_all.sh`.
+is the path to every recipe (`progress_test`); it is divided into three parts that go on three machines
+(`--part`, see `_part` in the test). Each job is limited by `timeout-minutes`, each check — by its own limit in
+`tests/run_all.sh`, which warns of a check that passed past 3/4 of its limit (`::warning` on the run).
+
+How the parts were chosen (audit TEST-1, 2026-11-27). Two halves, «needs a beast» and the rest, were far from
+equal: on main `progress (hunting)` took 124–174 s and `progress (other)` 750–1393 s, 93 % of its 1500 s limit at
+worst, the long pole of every run. Timed recipe by recipe, the rest's cost was in its trips out (54 of them):
+fish (~135 s), the brick stations (bloomery, fireplace, forge), the smelting (iron, platinum, steel, the brick
+stove, the lantern), the windows' glass and the dyes' berries. Each part makes what its recipes need from an
+empty bag, so a part pays again for what it shares with another (the camp, the brick stations); split by
+what is needed (an animal's carcass or catch, then ore, then the rest) they share little. Locally (three side
+by side on 4 cores) and on #954's PR run, each on a machine of its own:
+
+| part | recipes | trips | locally | CI |
+|---|---|---|---|---|
+| before: `other` | 194 | 54 | 1035 s | 750–1393 s |
+| before: `hunting` | 30 | 6 | 89 s | 124–174 s |
+| `hunting` (beasts and fish) | 37 | 6 | 220–231 s | 217 s |
+| `metal` (needs ore) | 54 | 29 | 440–455 s | 418 s |
+| `other` | 133 | 30 | 510–517 s | 685 s |
+
+A part ends by naming its slowest recipes (`slowest: …`): when one passes ~1100 s (3/4 of the limit), split
+it by them again. Moving a station that only one part's recipes use into that part (the bloomery into `metal`)
+saved nothing: the first brick station a part makes pays for the clay and stone trips, whichever it is.
 
 ## What to do when CI is red
 
