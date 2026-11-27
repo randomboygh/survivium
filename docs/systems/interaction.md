@@ -289,7 +289,11 @@ lies around. The rules are shared (the server checks them), input and hints are 
   the bag and leaves ghost blocks in its hole, and a double tap turns it the other way round in its wall
   (`turn_thing`: turn + 2, its kind's turn not kept); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
   (`kept_turns`): the next ones are set down turned so (`PROP_PUT_AT` with `true`, `Placed.put_spot` `kept`)
-  until the bag holds none; a thing one cell big tapped with one of its kind in the hand sets the next down
+  until the bag holds none; a thing carried (new from the bag, set down and held, a ghost thing) is turned by a
+  second finger (`second_finger` from `Controls.input`, `turn_carried`, its turn kept so too; the user's picks,
+  2026-11-27, 7В): a tap of it within `SECOND_TAP_MS` a quarter clockwise, the two fingers twisted a quarter each
+  `TWIST_STEP` (45°) their way, a light tick each; where the thing takes its turn by itself (a door or a window in
+  a wall, a back to a wall) that turn wins, so it turns only in the open; a thing one cell big tapped with one of its kind in the hand sets the next down
   beside it (`_beside_kind`, `_beside`: the cell under the finger, else past the face the ray goes in by,
   `face_in`; held, it hangs there), and is taken only once the bag holds none; whatever comes into the bag
   while the build or farming mode is on (not while `auto` works, nor over a tool in the hand) has its palette slot chosen

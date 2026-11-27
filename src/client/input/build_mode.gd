@@ -58,6 +58,11 @@ const DRAG_SHARE := 0.025
 ## A second tap on the ghost of a slope or stairs within this many ms of the first turns
 ## them (Plans.turn_form); a single tap there draws nothing.
 const GHOST_TAP_MS := 400
+## A thing carried is turned by a second finger (second_finger, the user's picks 2026-11-27,
+## 7В): a tap of it shorter than this many ms turns it a quarter clockwise, and a twist of
+## the two fingers a quarter each TWIST_STEP of the angle between them, its way.
+const SECOND_TAP_MS := 300
+const TWIST_STEP := PI / 4.0
 ## How far round the player the palette counts what the blueprint needs (need): its ghost
 ## cells and things within reach of drawing (Plans.PLAN_REACH; the user's pick, 2026-11-26),
 ## counted again when it changes or the player has gone NEED_STEP cells, at most every
@@ -94,6 +99,10 @@ var _ghost_wait := {}
 ## A tap on a thing that moves waiting to see whether a second one comes: {"cell", "ms"},
 ## {} for none (see DOUBLE_TAP_MS).
 var _tap_wait := {}
+## The second finger on the screen while a thing is carried (second_finger): its index,
+## where it went down ("from") and when ("ms"), the two fingers' places ("at" by index), the
+## angle between them a turn was last made at, and whether a twist has turned the thing.
+var _second := {}
 ## The turn the player last gave a thing of each kind by a double tap, by item id: the
 ## next ones are set down turned so while the bag holds one (then it is forgotten).
 var kept_turns := {}
@@ -939,6 +948,52 @@ func drag(s: Dictionary) -> void:
 	_frame(e.item, at, turn, s.to != null)
 
 
+## A touch or a drag of a finger while stroke `s` carries a thing (Controls.input): a
+## second finger pressed over the world and let go soon where it went down turns the thing
+## a quarter clockwise; the two fingers twisted turn it a quarter each TWIST_STEP, clockwise
+## or back as they turn. Where the thing takes its turn by itself (a door or a window in a
+## wall, a chair's back to a wall: Placed.put_spot) that turn wins: the finger turns it only
+## in the open (the user's pick, 2026-11-26).
+func second_finger(event: InputEvent, s: Dictionary) -> void:
+	var now := Time.get_ticks_msec()
+	if event is InputEventScreenTouch:
+		if event.pressed and event.index != 0 and _second.is_empty() and not game.hud.covers(event.position):
+			var at := {0: s.pos, event.index: event.position}
+			_second = {"index": event.index, "from": event.position, "ms": now, "at": at,
+				"angle": (event.position - s.pos).angle(), "twisted": false}
+		elif not event.pressed and not _second.is_empty() and event.index == _second.index:
+			if not _second.twisted and now - int(_second.ms) <= SECOND_TAP_MS \
+					and event.position.distance_to(_second.from) < _slop() * 2.0:
+				turn_carried(s, 1)
+			_second = {}
+		return
+	if _second.is_empty() or not (event.index == 0 or event.index == _second.index):
+		return
+	_second.at[event.index] = event.position
+	var angle: float = (_second.at[_second.index] - _second.at[0]).angle()
+	var d := wrapf(angle - float(_second.angle), -PI, PI)
+	# The screen's y goes down: a growing angle turns clockwise as seen, as a quarter does seen
+	# from above (Placed: `turn` clockwise).
+	if absf(d) >= TWIST_STEP:
+		var way := 1 if d > 0.0 else -1
+		_second.angle = wrapf(float(_second.angle) + way * TWIST_STEP, -PI, PI)
+		_second.twisted = true
+		turn_carried(s, way)
+
+
+## Turns the thing stroke `s` carries `way` quarters (1 clockwise seen from above), as the
+## next of its kind is set down (kept_turns); a light tick tells it.
+func turn_carried(s: Dictionary, way: int) -> void:
+	if s.has("prop") and not s.moved or s.has("ghost_thing") and not s.moved or s.has("put") and not s.up:
+		return
+	s.turn = (int(s.turn) + way + 4) % 4
+	var item: String = s.put if s.has("put") else (s.prop.item if s.has("prop") else s.ghost_thing.item)
+	if s.has("put"):
+		s.kept = true
+	kept_turns[item] = s.turn
+	Vibration.play(game, "lift")
+
+
 ## A thing new from the bag pressed (stroke `s` with "put"): it shows at once (the user's
 ## pick, 2026-11-26), over the place pressed till the finger goes a little way (_slop), then
 ## over the place under the finger (over it on a touch screen, _aimed) while that is on the
@@ -1077,6 +1132,7 @@ func _frame(id: String, at: Vector3i, turn: int, fits: bool) -> void:
 ## it waits for a second tap (DOUBLE_TAP_MS) and then goes back into the bag.
 func release(s: Dictionary) -> void:
 	s.held = false
+	_second = {}
 	if s.has("put"):
 		var was_up: bool = s.up
 		s.up = false

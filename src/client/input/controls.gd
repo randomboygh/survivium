@@ -139,6 +139,10 @@ func input(event: InputEvent) -> void:
 		if fingers.is_empty() and Time.get_ticks_msec() - last_touch_ms > 1000:
 			set_touch(false)
 		mouse_pos = event.position
+	# A second finger while a thing is carried in the build mode turns it (BuildMode.second_finger).
+	if (event is InputEventScreenTouch or event is InputEventScreenDrag) and game.build != null and game.build.on \
+			and _thing_stroke(_stroke) and _stroke.held:
+		game.build.second_finger(event, _stroke)
 	# A stroke goes on wherever the button is let go, over the interface too.
 	if event is InputEventMouseButton and not event.pressed and not _stroke.is_empty() \
 			and event.button_index == _stroke.button:

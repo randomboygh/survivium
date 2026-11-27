@@ -1466,6 +1466,12 @@ func _run() -> void:
 				var held: Dictionary = main.controls._stroke
 				print("press: chosen %s, stroke %s, aim %s, spot %s, turn %s, face %s" % [main.build.chosen(), held.keys(),
 					held.get("aim"), held.get("spot"), held.get("shown"), held.get("face")])
+			if shot.has("second_turn"):
+				# A second finger turns the thing pressed `second_turn` quarters (BuildMode.turn_carried).
+				for k in absi(shot.second_turn):
+					main.build.turn_carried(main.controls._stroke, signi(shot.second_turn))
+				for i in 10:
+					await process_frame
 			if shot.has("opening"):
 				await _move_opening(shot.opening, feet)
 			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts") or shot.has("undo") or shot.has("need") \

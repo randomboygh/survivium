@@ -343,6 +343,12 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "turn": 1, "press": ["tools:door", Vector3(-6.98, 0.6, -4.5)]},
 	"build-lift-bed": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_bed", Vector3(-1.5, 0.0, -5.5)]},
+	# A bed new from the bag held in the open of the room, then turned a quarter by a second
+	# finger (BuildMode.second_finger, 2026-11-27).
+	"build-twist-0": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_bed", Vector3(-3.5, 0.0, -3.0)]},
+	"build-twist-1": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_bed", Vector3(-3.5, 0.0, -3.0)], "second_turn": 1},
 	"build-lift-chair": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_chair", Vector3(-6.5, 0.0, -1.5)]},
 	# The ghost of lone stairs rising away from the player (north), then tapped twice: turned
