@@ -880,12 +880,16 @@ func _run() -> void:
 	main.build.on = true
 	main.build.set_height(4)
 	await process_frame
-	# The player's floor: its floor and one row of walls show (the user's pick, 2026-11-27).
+	# Entering it cuts nothing: all floors show until a level button is pressed.
+	var enter_cut: int = streamer.build_cut
+	# The first press down shows the player's floor: its floor and one row of walls.
+	streamer.shift_cut(-1)
+	await process_frame
 	var own_cut: int = streamer.build_cut
 	streamer.shift_cut(1)
 	await process_frame
 	var floor_cut: int = streamer.build_cut
-	var floors_ok: bool = own_cut == streamer.ground_level and streamer.build_floor == 1 \
+	var floors_ok: bool = enter_cut == -1 and own_cut == streamer.ground_level and streamer.build_floor == 1 \
 		and floor_cut == streamer.ground_level + main.build.height \
 		and streamer.cut_level >= main.world.size_y and not streamer.layers_on and streamer.top_level() == floor_cut
 	main.build.on = false

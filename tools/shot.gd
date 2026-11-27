@@ -1376,6 +1376,7 @@ func _run() -> void:
 				await process_frame
 			if shot.has("build_floor"):
 				# The level buttons stepped by floors (ChunkStreamer.build_floor).
+				main.chunks.floors_on = true
 				main.chunks.build_floor = shot.build_floor
 				for i in 30:
 					await process_frame

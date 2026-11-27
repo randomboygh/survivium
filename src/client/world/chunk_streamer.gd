@@ -259,6 +259,10 @@ var cut_level := -1
 ## the shape drawn (BuildMode.height); 0 for none, the ordinary cut. Only what is built is
 ## cut there (ChunkMesher.BUILT_BLUE), never natural ground (the user's pick, 2026-11-26).
 var build_floor := 0
+## Whether the build mode cuts the floors: off on entering it (all floors show, as out of
+## it), on from the first press of a level button, off again by the level label (the
+## user's pick, 2026-11-27).
+var floors_on := false
 ## The level the floors are cut over (built cells above it are left out), -1 for none.
 var build_cut := -1
 ## The cut that follows the player looks only at natural ground (the build mode, _roof).
@@ -1633,6 +1637,9 @@ func _rises_behind(x: int, level: int, z: int) -> bool:
 func build_level(level: int) -> int:
 	if game.build == null or not game.build.on or game.view.first_person:
 		build_floor = 0
+		floors_on = false
+		return -1
+	if not floors_on:
 		return -1
 	var reach := floors_range()
 	return clampi(level + build_floor * floor_height(), reach.x, reach.y)
@@ -1664,6 +1671,12 @@ func shift_cut(d: int) -> void:
 	if world == null:
 		return
 	if by_floors():
+		manual_level = -1
+		if not floors_on:
+			# The first press cuts: down to the player's floor, up to the one above.
+			floors_on = true
+			build_floor = maxi(0, d)
+			return
 		# A floor at a time while the next one is within reach (see build_level).
 		var reach := floors_range()
 		var next := ground_level + (build_floor + d) * floor_height()
@@ -1710,12 +1723,16 @@ func view_range() -> Vector2i:
 func reset_view_level() -> void:
 	manual_level = -1
 	build_floor = 0
+	floors_on = false
 
 
 ## Whether level button `d` (1 up, -1 down) has somewhere to go.
 func can_shift(d: int) -> bool:
 	if by_floors():
 		var reach := floors_range()
+		if not floors_on:
+			var first := ground_level + maxi(0, d) * floor_height()
+			return first >= reach.x and first <= reach.y
 		var floor_at := ground_level + (build_floor + d) * floor_height()
 		return build_floor + d == 0 or floor_at >= reach.x and floor_at <= reach.y
 	var view := view_range()
