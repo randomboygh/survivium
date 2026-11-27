@@ -47,8 +47,9 @@
 // the approved drawing (bundles by their normal, leaves by their facing, bark by sun) under
 // the sun where it stands in the world, seen from the side shown: looking toward it, the
 // crown and the bark are in their shade. The bark and the leaves take the sun's shadow (the
-// ground's: of the other trees, of hills) a step darker; where the drawing has them in shade
-// already, nothing more.
+// ground's: of the other trees, of hills), the bark a step darker, the leaves as on the
+// crown's shaded side (the user's pick, 2026-11-27: a step was not seen); where the drawing
+// has them in shade already, nothing more. A crown takes it as a round one would (CROWN_LEAN).
 // Two shaders are made of this code. As it is, it draws the trees standing, the stumps and
 // the pieces of wood (the chunks', ChunkStreamer). With FALLING defined (TreeSprites.falling
 // makes that copy in the game) it draws the trees falling, felled (TreeHits): the felling's
@@ -73,6 +74,8 @@ uniform sampler2D snow_frames : filter_nearest;
 uniform ivec2 ramps_at;
 // How much of the trees' blossom is out (Sky): all of it in spring.
 global uniform float blossom_amount;
+// How dark the night is (Sky: 0 by day, 1 at night).
+global uniform float night_glow;
 
 #include "res://shaders/tree_pictures.gdshaderinc"
 
@@ -140,6 +143,13 @@ const float SWAY_ROOM = 4.0;
 // hash, so one crown is wholly over the other; much less than the depth between rows of
 // cells.
 const float DEPTH_TIE = 0.04;
+// A crown is round, not the flat picture through its trunk: the leaves the camera sees stand
+// nearer the sun than the picture, and the far side of the crown in front of them nearer
+// still, so a neighbour's shadow climbs higher up a crown than up its picture (at 17:00 it
+// reached only the lowest leaves, 2026-11-27). The sun's shadow is looked up as if the
+// picture leaned toward the sun by CROWN_LEAN of its half width at its top (less lower down,
+// none at its foot; the end of the vertex).
+const float CROWN_LEAN = 2.0;
 // The bark's outline is left off a picture's lower edge (where the trunk and the roots meet
 // the ground) up to BASE_RISE pixels over the foot's row: such a texel takes the bark over it.
 const float BASE_RISE = 16.0;
@@ -575,6 +585,28 @@ void vertex() {
 	vec4 seen = VIEW_MATRIX * vec4(VERTEX, 1.0);
 	seen.z += DEPTH_TIE * (0.1 + 0.9 * hash12(foot.xz * 3.7 + 11.0));
 	POSITION = PROJECTION_MATRIX * seen;
+#ifndef FALLING
+	// The crown's lean (CROWN_LEAN): the picture is drawn where POSITION puts it, but Godot
+	// takes the sun's shadow where VERTEX is (Compatibility in this stage, Mobile where the
+	// fragment's lies). The point leans toward the sun, then slides back along the light to
+	// its own depth: the shadow map is read where the leaning picture would be, at the depth
+	// the picture has, so its own picture still casts nothing on it and a tree close in front
+	// of it still does. By day only: the lamps and the fires light the crowns at the same
+	// VERTEX, and theirs is the light that matters at night.
+	if (sways && q.y > 0.0) {
+		vec2 sun_xz = right * sun_view.x + view_up * sun_view.y;
+		vec2 cast = vec2(0.0, -1.0) - sun_xz / max(sun_view.z, 0.05);
+		// The light in the drawn world (PixelView.light_dir) and the way to the sun over the
+		// ground, drawn.
+		vec2 run = view_up * view_slope - cast - view_up * dot(cast, view_up) * (view_squash - 1.0);
+		vec3 to_light = normalize(vec3(run.x, 1.0, run.y));
+		vec2 toward = -normalize(cast);
+		toward += view_up * dot(toward, view_up) * (view_squash - 1.0);
+		float half_w = max(ax + 0.5, c.z - ax - 0.5) / TEXELS;
+		vec3 lean = vec3(toward.x, 0.0, toward.y) * (CROWN_LEAN * half_w * rise / (ay + 0.5) * (1.0 - night_glow));
+		VERTEX += lean - to_light * dot(lean, to_light);
+	}
+#endif
 }
 
 vec3 unocta(vec2 e) {
@@ -603,8 +635,8 @@ vec3 leaf_colour(float k, float c) {
 }
 
 // The leaves' steps (0..6) of a leaf texel `g` (alpha bits `a`) under the light L: x in
-// the sun, y in a shadow: a step darker, but no darker than on the crown's shaded side (its
-// bundle in shade whatever way it faces), one shade, not two, as the bark's.
+// the sun, y in a shadow: as on the crown's shaded side (its bundle in shade whatever way it
+// faces), never lighter than in the sun.
 vec2 leaf_steps(vec4 g, int a, vec3 L) {
 	float d = dot(unocta(g.rg), L);
 	float base = d > D1 ? 4.0 : (d > D2 ? 3.0 : 2.0);
@@ -627,14 +659,14 @@ vec2 leaf_steps(vec4 g, int a, vec3 L) {
 		c = vec2(base + (base < 2.5 ? t_shade : t), 2.0 + t_shade);
 	}
 	c = clamp(min(c, vec2(d < DP ? 5.0 : 6.0, 5.0)), 0.0, 6.0);
-	return vec2(c.x, max(c.x - 1.0, c.y));
+	return vec2(c.x, min(c.x, c.y));
 }
 
 // The leaves' steps (0..6) of a conifer's frond texel `g` (alpha bits `a`) under the light
 // L: the band of its crown normal (an inner ring's a step darker), the half of the frond
 // turned from the sun, its strokes and its root third a step darker each, a lit tip a
-// step lighter where the band is light. x in the sun, y in a shadow: a step darker, but no
-// darker than with the band of the crown's side away from the sun.
+// step lighter where the band is light. x in the sun, y in a shadow: with the band of the
+// crown's side away from the sun, never lighter than in the sun.
 vec2 frond_steps(vec4 g, int a, vec3 L) {
 	float d = dot(unocta(g.rg), L);
 	float b = d > FRONDS_BANDS.x ? 5.0 : (d > FRONDS_BANDS.y ? 4.0 : (d > FRONDS_BANDS.z ? 3.0
@@ -648,7 +680,7 @@ vec2 frond_steps(vec4 g, int a, vec3 L) {
 		t.x += 1.0;
 	}
 	t = clamp(min(t, vec2(d < FRONDS_PALE ? 5.0 : 6.0)), 0.0, 6.0);
-	return vec2(t.x, max(t.x - 1.0, t.y));
+	return vec2(t.x, min(t.x, t.y));
 }
 
 // The leaves' steps (0..6) of a willow's texel `g` (alpha bits `a`) under the light L
@@ -688,7 +720,7 @@ vec2 hanging_steps(vec4 g, int a, vec3 L) {
 		c = vec2(base + (base < 2.5 ? t_shade : t), 2.0 + t_shade);
 	}
 	c = clamp(min(c, vec2(d < DP ? 5.0 : 6.0, 5.0)), 0.0, 6.0);
-	return vec2(c.x, max(c.x - 1.0, c.y));
+	return vec2(c.x, min(c.x, c.y));
 }
 
 // Blossom (spring, blossom_amount) on the leaves of a species that has it (its ramp row's
@@ -772,8 +804,9 @@ float palm_step(vec4 g, vec4 b, int i) {
 
 // A palm leaf's colour of texel `g` under the light L: its steps at the two drawn suns
 // nearest it, crossfaded as the bark's (a sun behind the tree as its mirror image in front,
-// the leaf then in its shade). `shade`: a step darker, but no darker than the darkest the
-// leaf is drawn at any sun (one shade, not two). The soft outline: half way to the darkest.
+// the leaf then in its shade, a step darker). `shade`, in a shadow: the darkest the leaf is
+// drawn at any sun (as on the crown's shaded side, as leaf_steps). The soft outline: half
+// way to the darkest.
 vec3 palm_colour(float k, vec4 g, vec4 b, int a, vec3 L, out vec3 shade) {
 	float back = smoothstep(SIDE_BLEND, -SIDE_BLEND, L.z);
 	L.z = abs(L.z);
@@ -786,12 +819,15 @@ vec3 palm_colour(float k, vec4 g, vec4 b, int a, vec3 L, out vec3 shade) {
 		low = min(low, palm_step(g, b, j));
 	}
 	vec3 lit = mix(leaf_colour(k, s0), leaf_colour(k, s1), f);
-	shade = mix(leaf_colour(k, max(s0 - 1.0, low)), leaf_colour(k, max(s1 - 1.0, low)), f);
+	// Turned from the sun: a step darker, no darker than the darkest.
+	vec3 away = mix(leaf_colour(k, max(s0 - 1.0, low)), leaf_colour(k, max(s1 - 1.0, low)), f);
+	shade = leaf_colour(k, low);
 	if ((a & 1) != 0) {
 		lit = mix(lit, ramp(k, 0.0), 0.5);
+		away = mix(away, ramp(k, 0.0), 0.5);
 		shade = mix(shade, ramp(k, 0.0), 0.5);
 	}
-	return mix(lit, shade, back);
+	return mix(lit, away, back);
 }
 
 // The bark's step in shade: a step under its step where no crown shades it (`open`, the

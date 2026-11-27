@@ -178,7 +178,14 @@ slice, to free the far meshes.
   take turns row by row (stripes). The bark also takes the sun's shadow (the shadow map, as the ground: other
   crowns, hills) a bark step darker, never two under its own crown's drawn shade (the bare frame holds the step
   without it, `in_shade`; `sun_as` gives the sun's pass the colour the shaded step would get); the leaves and fronds
-  too, a step darker but never darker than on the crown's shaded side (`leaf_steps`, `frond_steps`). A species'
+  too, as on the crown's shaded side (`leaf_steps`, `frond_steps`; a palm's leaf as the darkest it is drawn at any
+  sun; a step darker was hardly seen, 2026-11-27). A crown takes the shadow as a round crown would, not as its flat
+  picture through the trunk: by day each point of the picture looks the shadow up as if the picture leaned toward
+  the sun by `CROWN_LEAN` of its half width at the top (in proportion to the height, none at the foot), slid back
+  along the light to its own depth (Godot reads the sun's shadow at `VERTEX`, the picture is drawn at `POSITION`),
+  so a neighbour's shadow climbs a crown higher (at 17:00 it reached only the lowest leaves) and the tree's own
+  picture still casts nothing on it; not at night, when the lamps and fires, lighting the same `VERTEX`, are the
+  light. A species'
   ramp row says the rule its leaves are lit by
   (`TreeLooks.rule`): the conifers' frames hold fronds instead of bundles (the crown's normal where the frond lies,
   its side axis, its halves, strokes, root third and tip; a pine cap's texels a normal each on the cap's ball),
