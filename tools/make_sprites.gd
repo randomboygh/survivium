@@ -6,14 +6,16 @@ extends SceneTree
 ## worn/<look>.png (clothes on the figure) in the bundle of the item of that look, and
 ## for the body's forms player/forms/<build>_<figure>/<layer>.png and worn/<look>/<build>_<figure>.png;
 ## and the animals drawn from the user's references (ANIMALS) as their species' pictures,
-## sprites/creatures/<sprite>.png in the bundle of the species. A picture painted over by hand
-## is overwritten, so name the pictures to make (an animal by its file, boar.png):
+## sprites/creatures/<sprite>.png in the bundle of the species. A picture made or finished
+## by hand is named in its bundle's `hand` list and left as it is (tools/hand_art.gd); name
+## the pictures to make (an animal by its file, boar.png) or make them all:
 ## godot --headless --path . --script res://tools/make_sprites.gd -- <picture ...> | --all
 
 const Figure := preload("res://src/client/view/figure.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const PlayerArt := preload("res://tools/art/player_art.gd")
+const HandArt := preload("res://tools/hand_art.gd")
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 const ToolArt := preload("res://tools/art/tool_art.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
@@ -164,6 +166,8 @@ func _init() -> void:
 	for path in pictures:
 		if only.is_empty() or only.has(path.get_file()) or only.has(path):
 			var file: String = ProjectSettings.globalize_path(path if path.begins_with("res://") else "%s/%s.png" % [dir, path])
+			if HandArt.kept(file):
+				continue
 			DirAccess.make_dir_recursive_absolute(file.get_base_dir())
 			pictures[path].save_png(file)
 			print("saved ", file)

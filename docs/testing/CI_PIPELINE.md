@@ -24,7 +24,7 @@ publishing, which waits for everything). The fast ones fail first.
 
 | Job | What it does | Time | Blocks |
 |---|---|---|---|
-| `lint` | `tools/lint.py` (rules of scripts and texts, Python, shell, JS, JSON, workflow), `tools/doc_index.py --check` (paths in documents, freshness of the code index) and `tools/lang_check.py --strict en,ru` (every key exists in English and Russian, there is no Russian text in the code); without Godot | ~10 s | yes |
+| `lint` | `tools/lint.py` (rules of scripts and texts, Python, shell, JS, JSON, workflow, the files `hand` lists exist, the trees' look.yaml against their pictures: `tools/tree_feet.py --check`, with Pillow installed first), `tools/doc_index.py --check` (paths in documents, freshness of the code index) and `tools/lang_check.py --strict en,ru` (every key exists in English and Russian, there is no Russian text in the code); without Godot | ~10 s | yes |
 | `checks` | `parse` (every script compiles, `tools/parse_check.gd`), `validate` (the mods' data and each bundle separately), `report` (freshness of `docs/generated/content-*.md`), `balance` (freshness of `docs/balance/GAME_BALANCE_TABLES.md`, `tools/balance_report.gd --check`) | ~1 min | yes |
 | `tests` | `run_tests` (unit tests), `save_test`, `server_test` side by side | ~3 min | yes |
 | `progress (hunting)`, `progress (metal)`, `progress (other)` | three parts of `progress_test` on three machines: recipes that need something got from an animal (a carcass, a fish), those that need ore, and the rest; chosen by measured time (below) | ~4.5, ~8, ~12.5 min | yes |

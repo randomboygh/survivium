@@ -6,6 +6,7 @@ extends RefCounted
 ## frame resampled on a grid anchored at the ground and the middle column (anim/src/hare_half.py).
 ## tools/make_sprites.gd saves it as the rabbit bundle's picture
 ## (content/animals/rabbit/sprites/creatures/rabbit.png), the sheet Creatures draws from.
+## The frames as letters (hare_b.py) and this table's writer (write_hare_art.py) are in tools/art/animals/.
 ##
 ## Each state has four frames (the user's rule: at most four) for the south (as it comes at the
 ## camera), the north (as it goes away) and the west; the east is the west mirrored, as the game

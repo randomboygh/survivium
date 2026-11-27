@@ -16,6 +16,7 @@ import os
 import sys
 
 from PIL import Image
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 
 def hexc(s):
@@ -180,7 +181,7 @@ def main():
             continue
         bundle = "perch" if f.name == "perch" else "fish"
         path = os.path.join(ROOT, bundle, "sprites", "creatures", "%s.png" % f.name)
-        f.sheet().save(path)
+        hand_art.save(f.sheet(), path)
         print(path, f.W, f.H)
 
 

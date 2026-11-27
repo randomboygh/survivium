@@ -1,1 +1,3 @@
 title: "[tools.big_chest.bundle]"
+# Files made or finished by hand, which the generators of tools/ leave as they are (tools/hand_art.gd).
+hand: [models/big_chest.png]

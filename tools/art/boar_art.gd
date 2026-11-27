@@ -6,6 +6,7 @@ extends RefCounted
 ## three columns of each view left out, the same in all its frames (boar_07.py there).
 ## tools/make_sprites.gd saves it as the boar bundle's picture
 ## (content/animals/boar/sprites/creatures/boar.png), the sheet Creatures draws from.
+## The frames as letters (boar_07.py) and this table's writer (write_art07.py) are in tools/art/animals/.
 ##
 ## Each state has four frames (the user's rule: at most four) for the south (as it comes at the
 ## camera), the north (as it goes away) and the west; the east is the west mirrored, as the game

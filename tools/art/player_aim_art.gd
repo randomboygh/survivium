@@ -18,8 +18,8 @@ extends RefCounted
 ## their corner from the grip), which ToolArt draws for a shape with `bow` instead of turning it.
 ## The bow has no dark edge of its own where the figure's outline goes (the two made a line two
 ## pixels thick): its dark letters (K, x) only part its wood from the skin and from its string.
-## Made with the review tools in the project library
-## (survivium-builds/character/anim/src/gen_aim_gd.py).
+## Made with the review tools in the project library,
+## written by tools/art/character/gen_aim_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 

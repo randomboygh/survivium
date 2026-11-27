@@ -43,8 +43,8 @@ extends RefCounted
 ## raised arm, which stays where it is in every form), the
 ## waistband's row `hips` and the hands' places `hands` ([right, left]: the hand's lowest
 ## pixel under its middle, the one nearer the body on a tie, less the bob; so a hand that
-## moves moves its place). Made with the review tools in the project library
-## (survivium-builds/character/anim/src/gen_gesture_gd.py).
+## moves moves its place). Made with the review tools in the project library,
+## written by tools/art/character/gen_gesture_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 

@@ -71,6 +71,11 @@ Each in one line; the system's context doc has the detail.
 - A mod's file is read only through `Content` (`real`, `text`, `file_exists`, `files_at`, `picture`, `sound`), never
   by `FileAccess` at `Content.ROOT`: on a server with other mods the file is one taken from it (decision 189,
   `Content.serve`). `hello` names the hash of the mods' files: a test's hello has six args.
+- Art: the source of a drawing (the frames as rows of letters, the generator that turns them into a table or a
+  picture) lives in `tools/art/<topic>/` with a README of its commands, never only in the library, which keeps the
+  references and the reviews. A picture or sound made or finished by hand is named in its bundle's `hand` list
+  (`bundle.yaml`, `mod.yaml`, `assets/hand.yaml`): the generators of `tools/` leave it as it is (`tools/hand_art.gd`,
+  `tools/hand_art.py`).
 - Never use -1 as "none" for world coordinates: negative ones are real.
 - Tests of time-based behaviour wait by `Time.get_ticks_msec`, not frames. A per-frame flag computed
   before a state-changing update is stale in that frame.

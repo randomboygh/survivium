@@ -21,6 +21,7 @@ import math
 import os
 
 from PIL import Image
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 PAL = {"O": "#1c1e24", "F": "#7c7a74", "H": "#a29e94", "S": "#5a5852", "R": "#3c3c40", "C": "#d6d0c2",
        "D": "#2a2a30", "d": "#3c3c44", "E": "#e0a428", "N": "#16161a", "P": "#8e2a2a", "T": "#f4f0e6"}
@@ -364,5 +365,5 @@ def sheet():
 
 
 if __name__ == "__main__":
-    sheet().save(PATH)
+    hand_art.save(sheet(), PATH)
     print(PATH)

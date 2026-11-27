@@ -98,8 +98,9 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
 - `src/shared/content/trees.gd`, `bushes.gd` — the registries of species of trees and kinds of shrubs (the
   mods' data). Every species is drawn as pictures (`picture` is required, `Trees.check`; the generators of the
   old leaf-cluster crowns left in trees PR 6): `src/shared/content/tree_looks.gd` reads them (`picture: tree/look.yaml` in
-  its `trees.yaml`, the approved drawings of `survivium-builds/trees-redraw`, made by `integration/pr1/src/`
-  `export_pr1.py` + `pack_pr1.py` (the conifers `pr2/src/*_pr2.py`, the willow and the palms `pr3/src/*_pr3.py`), then `python3 tools/tree_feet.py` writes each look's `foot`: the bark's half
+  its `trees.yaml`, the approved drawings of the trees' redraw, made by `tools/art/trees/src/`
+  `export_pr1.py` + `pack_pr1.py` (the conifers `*_pr2.py`, the willow and the palms `*_pr3.py`, the seasons `*_pr4.py`,
+  the stumps `*_pr5.py`; `tools/art/trees/README.md`), then `python3 tools/tree_feet.py` writes each look's `foot`: the bark's half
   width and the foot's front in pixels, by which the grass rows round the foot, and each look's `taper`, how high its
   trunk goes up to the crown and how wide it is there; each stump's `cut`, the ellipse its cut wood is drawn as, and
   `top`, how high: the ring a body is held off by, see character.md): its looks (3 sizes × 2 variants), each with its
@@ -126,7 +127,7 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   and young trees stay. Not by `standing_look`: an old tree's trunk may be as high as a look's, its crown over it.
   Pieces of wood lying in the woods (decision 5А of the trees' redraw): a log, a fallen trunk with its limbs, a broken
   trunk with a sprout (`Growth.PIECE_LOG` / `PIECE_FALLEN` / `PIECE_BROKEN`, TreeLooks `pieces`, drawn by
-  `survivium-builds/trees-redraw/integration/pieces/src/`). One place in each `Growth.PIECE_BLOCK` (8) square of
+  `tools/art/trees/src/export_pieces.py` + `pack_pieces.py`). One place in each `Growth.PIECE_BLOCK` (8) square of
   cells (`WorldGen._piece_site`, a lattice column by the square's hash) has one by the biome's `pieces` chances
   (`_piece_kind`; the woods' biomes), of one of the biome's species, on ground a tree would take (`_ground_takes`);
   a log or a fallen trunk only on level dry ground as far as the layout reaches (`_level_way`), and no tree grows on

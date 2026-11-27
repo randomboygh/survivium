@@ -15,6 +15,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import make_plant_art as art  # noqa: E402
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 CONTENT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "content")
 ## Alpha of the texels that glint (dew drops): opaque enough to be drawn, below 255 so
@@ -77,7 +78,7 @@ PRIMROSE = [
 def save(img, *path):
     path = os.path.join(CONTENT, *path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
+    hand_art.save(img, path)
     print(path)
 
 

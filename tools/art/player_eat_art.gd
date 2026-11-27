@@ -22,7 +22,7 @@ extends RefCounted
 ## hand with the food: where the food's middle goes, the other: its lowest pixel next to
 ## the body], less the bob), `a` -1: the food as it is carried, `f` in front of the body,
 ## `of` false: the other hand behind the food, `eyes` "shut". Made with the review tools
-## in the project library (survivium-builds/character/anim/src/gen_eat_gd.py).
+## in the project library, written by tools/art/character/gen_eat_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 

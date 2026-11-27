@@ -13,6 +13,7 @@ import os
 import random
 
 from PIL import Image
+import hand_art  # noqa: E402  (the pictures made by hand are left as they are)
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "content", "plants")
 TILE = 16
@@ -57,7 +58,7 @@ def bark(name, dark, light, marks=None, seed=1, file=None):
                     img.putpixel(((x + dx) % (TILE * 3), y), colour + (255,))
     path = os.path.join(ROOT, name, "textures", "%s.png" % (file or name + "_bark"))
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
+    hand_art.save(img, path)
     print(path)
 
 
@@ -80,7 +81,7 @@ def sprite(name, frames, bundle=None, across=1, shades=None):
                     img.putpixel((f * w + x, y), shade.get(ch, PAL[ch]))
     path = os.path.join(ROOT, bundle or name, "sprites", "plants", "%s.png" % name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
+    hand_art.save(img, path)
     print(path)
 
 
@@ -485,7 +486,7 @@ def seeds(name, bundle, colour):
                     out.putpixel((x, y), lerp(tuple(c * 0.55 for c in colour), colour, k))
         path = os.path.join(ROOT, bundle, kind, "%s.png" % name)
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        out.save(path)
+        hand_art.save(out, path)
         print(path)
 
 
@@ -503,7 +504,7 @@ def carrot_model(bundle):
         img.putpixel((level * 16 + 12, 2), PAL["l"])
     path = os.path.join(ROOT, bundle, "models", "carrot.png")
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
+    hand_art.save(img, path)
     print(path)
 
 
@@ -625,7 +626,7 @@ def berry_model(name, bundle, colour, shine, size=3):
                     img.putpixel((level * 16 + x, y), c)
     path = os.path.join(ROOT, bundle, "models", "%s.png" % name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
+    hand_art.save(img, path)
     print(path)
 
 
@@ -689,7 +690,7 @@ def sedge():
                 img.putpixel((f * w + px, py), tuple(int(min(255, c * 128)) for c in tone) + (255,))
     path = os.path.join(ROOT, "grass", "sprites", "plants", "sedge.png")
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
+    hand_art.save(img, path)
     print(path)
 
 

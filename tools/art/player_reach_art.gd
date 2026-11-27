@@ -16,8 +16,8 @@ extends RefCounted
 ## the first row of the body), the waistband's row `hips`, the hands' places `hands` ([the
 ## hand in use, the other]: the hand's lowest pixel next to the body, less the bob; what
 ## it holds goes there), `a` the way what it holds points (-1: as carried) and `f` whether
-## that hand is in front of the body. Made with the review tools in the project library
-## (survivium-builds/character/anim/src/gen_reach_gd.py).
+## that hand is in front of the body. Made with the review tools in the project library,
+## written by tools/art/character/gen_reach_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 

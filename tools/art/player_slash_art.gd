@@ -23,8 +23,8 @@ extends RefCounted
 ## behind the blade, which comes across in front of it; `trail` the trail a blade leaves
 ## (PlayerArt.INK o, +, -: rows of the frame's pixels from `at`), which the game draws for an
 ## item with `trail` over the figure and its outline, or behind them where the blade is
-## behind the body (`f` false) (Figure). Made with the review tools in the project library
-## (survivium-builds/character/anim/src/gen_slash_gd.py).
+## behind the body (`f` false) (Figure). Made with the review tools in the project library,
+## written by tools/art/character/gen_slash_gd.py.
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 
