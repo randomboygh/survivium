@@ -46,6 +46,9 @@ const GLIDE := 9.0
 
 ## Whether the last touch scrolled the list (or stopped it flying).
 var dragged := false
+## How many times a finger or the mouse took hold of the list, or the wheel turned it: a
+## glide asked for by code (glide_to, again and again till it gets there) gives way to them.
+var touched := 0
 ## For tests: the time in ms instead of the clock's, while not negative.
 var now_ms := -1
 
@@ -121,6 +124,7 @@ func _input(event: InputEvent) -> void:
 	if press:
 		if _finger == -1 and _on(list, pos) and not _held_by_control(list, pos):
 			_finger = index
+			touched += 1
 			_from = _y(list, pos)
 			# A list caught flying (or gliding) stops where it is, and the touch is no tap.
 			_caught = _moving and (absf(_speed) > MIN_SPEED or _aiming)
@@ -328,6 +332,7 @@ func _on_list_input(event: InputEvent) -> void:
 	if _end() <= 0.0 or b.shift_pressed or _finger != -1:
 		return
 	_list.accept_event()
+	touched += 1
 	wheel(1.0 if b.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1.0, b.factor)
 
 

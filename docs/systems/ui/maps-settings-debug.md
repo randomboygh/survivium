@@ -70,7 +70,7 @@ Part of [Interface and settings](../ui.md). The maps, the settings, the performa
   nothing; a touch of a slider, a bar or an input field stays theirs; like a phone's lists, a flick flies on
   and slows by itself (`FRICTION`; a touch stops it and picks nothing), a pull past the top or the end stretches
   the list less and less (`PULL`) and springs back when let go (`SPRING`), a flick into an end bounces off it a
-  little (`BOUNCE`); the mouse wheel glides an eighth of the list a notch and bounces too; `glide_to` glides the list to a given scroll, slowing as it comes (`GLIDE`), a touch stops it; a list whose rows fit
+  little (`BOUNCE`); the mouse wheel glides an eighth of the list a notch and bounces too; `glide_to` glides the list to a given scroll, slowing as it comes (`GLIDE`), a touch stops it (`touched` counts the touches and wheel turns, so a caller gliding again gives way to them); a list whose rows fit
   neither scrolls nor stretches and leaves its wheel to the list around it; the stretch moves the content after
   each sort of the ScrollContainer, its scroll stays within bounds; the engine's own touch drag of the list is
   off; `DragScroll.attach`: every `Kit.scroll` (settings, testing, main menu pages, host and join windows,

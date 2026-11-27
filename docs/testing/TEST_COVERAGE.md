@@ -36,7 +36,7 @@ ordinary. The goal is what must be covered automatically.
 | Saving and loading | К | `store_test`, `save_test` (84 checks: digging, things, the clock, the map, old saves) | a new field of a save — a check in `save_test`; there |
 | World generation | К | `generation_test` (11), `shapes_test` | determinism by seed, the world by parts equals the world at once; there |
 | Protocol and server | К | `net_test`, `session_test`, `server_test` (182 checks), the layers in `content_test` | login, refusals, a cut, the check of movement, the host; there |
-| Hands and the world | В | `actions_test` (13), `plans_test`, `farming_test`, `progress_test` | every action of the hands — a check; there |
+| Hands and the world | В | `actions_test` (13), `plans_test`, `farming_test`, `progress_test`, `save_test` (a chest tapped by a finger opens as it lifts, `_chest_by_touch`) | every action of the hands — a check; there |
 | The character, strengths, skills, body | В | `character_test`, `body_test` (10), `skills_test` (5) | there |
 | Balance: tools × durability × skills, beasts, PvP, stamina, the experience curve, food | В | `balance_test` (9; limits with reasons, `docs/balance/GAME_BALANCE_DESIGN.md`), the tables of `tools/balance_report.gd` | there |
 | Beasts, fishing | В | `wildlife_test` (18), `progress_test` (hunting each beast with a carcass, each kind of fish) | there |

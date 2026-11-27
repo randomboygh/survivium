@@ -220,7 +220,12 @@ lies around. The rules are shared (the server checks them), input and hints are 
   `BUILD`, `farm_step` — `FARM_WORK`. Seeds and bushes too are planted only in farm mode. It calls the hands'
   rules not directly but by `game.net` requests (`Protocol.DIG`, `PLACE`, `PLAN`, `FRONT`, `PLANT_AT`, `EAT`),
   and by the answer plays the body's work (`_did`); so do `gathering.gd` (`GATHER`, `PICKUP`) and `props.gd`
-  (`PROP_PUT`) — [network.md](network.md).
+  (`PROP_PUT`) — [network.md](network.md). A tap on a placed thing (a chest, a station, a door, a sign, a
+  bed) acts as the press lifts over it, as a button does (`_prop_press`, `_lift_on_prop`: lifted away from
+  it, or over the interface, it does nothing); the rest of the world's taps act as they land. Opened as the
+  finger landed, the bag had the rest of the touch: its list kept the finger and did not glide to the chest,
+  and the slot under the finger was chosen as it lifted (the user's report of 2026-11-27; `save_test`
+  `_chest_by_touch`). A tap that comes as the press lifts (the first-person view's, `look_swipe.gd`) acts at once.
 - `src/client/input/work_mode.gd` — what the build and the farming modes share (both extend it): the hands remembered on entry and given back on `leave`, the palette of the bag under a filter, the eraser, `auto`; a mode adds its hooks (`_filters`, `_in_palette`, `_show`, `_left`).
 - `src/client/input/build_mode.gd` — build mode (`game.build`): entry from the bag («Build») or from a panel
   cell with a block or thing, exit (the hands return what they held), the palette (`palette`; the filters
