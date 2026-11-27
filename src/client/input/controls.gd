@@ -161,6 +161,12 @@ func input(event: InputEvent) -> void:
 			_lift_on_prop(event.position)
 
 
+## Whether the playtest keys Z, X and T work: in developer mode (Settings.testing_unlocked)
+## where the playtest switches do (Settings.may_cheat).
+func _playtest_keys() -> bool:
+	return game.settings.testing_unlocked and game.settings.may_cheat()
+
+
 func unhandled_input(event: InputEvent) -> void:
 	if game.view.first_person and look.input(event):
 		return
@@ -210,14 +216,18 @@ func unhandled_input(event: InputEvent) -> void:
 				# Turns the next lone slope or stairs drawn (the farming mode has none).
 				if game.build.on:
 					game.build.turn()
+			# The playtest keys: only in developer mode where the switches work (2026-11-27
+			# audit UI-5), so a stray key does not turn a player's season or clock.
 			KEY_Z:
-				if game.session != null:
+				if _playtest_keys() and game.session != null:
 					game.session.clock.next_season()
 			KEY_X:
-				game.settings.set_raining(not game.clock.raining)
+				if _playtest_keys():
+					game.settings.set_raining(not game.clock.raining)
 			KEY_T:
-				var s = game.settings
-				s.set_time_boost(1.0 if s.time_boost > 1.0 else s.FAST_FORWARD)
+				if _playtest_keys():
+					var s = game.settings
+					s.set_time_boost(1.0 if s.time_boost > 1.0 else s.FAST_FORWARD)
 			KEY_G:
 				game.settings.set_value("shadows", not game.settings.values.shadows)
 			KEY_H:
