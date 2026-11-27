@@ -253,6 +253,11 @@ func _run() -> void:
 		and back.of(Protocol.YOU)[0][1].inventory.slots.any(func(s: Variant) -> bool: return s is Array and s[0] == "resources:branch"),
 		"with the character as it was, the branches in the bag")
 	_check(server.session.players.size() == 2 and net.online() == 2, "and nobody new in the world")
+	# Its world copy starts empty: a rejoin is told all a join is (2026-11-27 audit NET-5).
+	var join_kinds := [Protocol.YOU, Protocol.TEAM, Protocol.INVITES, Protocol.CLAIMS, Protocol.SQUARES, Protocol.KNOWLEDGE,
+		Protocol.SKILLS, Protocol.SHOP, Protocol.CLOCK, Protocol.PROPS, Protocol.PLANS, Protocol.VESSELS, Protocol.ICE_HOLES]
+	_check(await _until(func() -> bool: return join_kinds.all(func(k: String) -> bool: return back.kinds().has(k))),
+		"and is told all a new player is, the holes in the ice too: %s" % [join_kinds.filter(func(k: String) -> bool: return not back.kinds().has(k))])
 	var again = back.socket.net.request(Protocol.CRAFT_PAUSE, [false])
 	_check(await _until(func() -> bool: return again.done) and again.value == false, "requests count from one again on the new connection")
 	var chunk_events: Array = anya.of(Protocol.CHUNK)
@@ -815,6 +820,10 @@ func _renew(node: Node) -> void:
 	var first: int = node.seed_value
 	var folder: String = node.store.dir.get_file()
 	var listed: Array = node.server.access.listed.duplicate()
+	node.server.access.authors[Server.kept("renew-author")] = "Автор"
+	node.server.access.hosts[Server.kept("renew-host")] = "Хозяин"
+	var authors: Dictionary = node.server.access.authors.duplicate()
+	var hosts: Dictionary = node.server.access.hosts.duplicate()
 	_check(Lang.t(node.server.command("test bot-", Server.ROLE_PLAYER)).contains("host"), "a player may not give «test» there")
 	_check(node.command("test bot-") == "There are no bots", "a host may: no bots yet")
 	_check(node.command("test world ../%s" % folder).begins_with("No such world") and node.command("test world nowhere").begins_with("No such world"),
@@ -823,6 +832,9 @@ func _renew(node: Node) -> void:
 	_check(await _until(func() -> bool: return node.seed_value == 9 and node.server.listening and a.socket.ended)
 		and a.socket.close_code == Protocol.CLOSE_RENEW, "the server goes over to it and the players are told to come again (%d)" % a.socket.close_code)
 	_check(node.server.access.listed == listed and node.saves != null, "who may come in stays, and the new world is saved too")
+	var kept: Dictionary = node.server.store.read_access() if node.server.store != null else {}
+	_check(node.server.access.authors == authors and kept.get("authors") == authors
+		and kept.get("hosts") == hosts, "the authors and the hosts stay too, written into the new world's access: %s %s, %s %s" % [authors, kept.get("authors"), hosts, kept.get("hosts")])
 	var back := _bot("Host", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("seed") == 9
 		and back.reply.value.get("playtest") == false and back.reply.value.has("host"), "a player comes into the new world: %s" % [back.reply.value.get("seed")])

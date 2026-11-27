@@ -15,6 +15,7 @@ const Tools := preload("res://src/shared/content/tools.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
 
 const CELL := WorldData.CELL
 ## Seconds between the rolls for a fish to come to the float, and the chance of one with
@@ -101,7 +102,7 @@ func pull(who) -> Dictionary:
 			return out
 		out.full = catch != ""
 	if line.bait != "" and line.bite <= 0.0:
-		who.give(line.bait, 1)
+		Inventory.give_or_lay(who, line.bait, 1)
 	return out
 
 
@@ -112,7 +113,7 @@ func step(delta: float) -> void:
 		if not _holds(who, line):
 			_end(who, line)
 			if line.bait != "" and not who.is_dead():
-				who.give(line.bait, 1)
+				Inventory.give_or_lay(who, line.bait, 1)
 			continue
 		var fish = line.fish
 		if fish != null and fish.gone:

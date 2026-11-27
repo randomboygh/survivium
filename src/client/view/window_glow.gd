@@ -83,12 +83,18 @@ func update(delta: float, sky, fires: Array, lamps: Array, roofed: Callable) -> 
 		_wait = PICK_EVERY
 		_pick(sky, fires, lamps, roofed)
 	var step := minf(1.0, delta * EASE)
+	# A window whose node was freed before `remove` is let go after the loop: not erased
+	# from the dictionary while it is walked.
+	var gone: Array[Vector3i] = []
 	for cell: Vector3i in windows:
 		var w: Dictionary = windows[cell]
 		if w.amount == w.target:
 			continue
 		w.amount = w.target if absf(w.target - w.amount) < 0.01 else lerpf(w.amount, w.target, step)
-		_show(cell, w)
+		if not _show(cell, w):
+			gone.append(cell)
+	for cell in gone:
+		windows.erase(cell)
 
 
 ## Every lit light under a roof near each window, as the window's target glow, where they
@@ -132,15 +138,15 @@ func _pick(sky, fires: Array, lamps: Array, roofed: Callable) -> void:
 
 
 ## Draws window `w` on `cell` as bright as its amount: its glass made the first time.
-func _show(cell: Vector3i, w: Dictionary) -> void:
+## False when its node was freed (a typed variable cannot take a freed one: checked first).
+func _show(cell: Vector3i, w: Dictionary) -> bool:
+	if not is_instance_valid(w.node):
+		return false
 	var node: MeshInstance3D = w.node
-	if not is_instance_valid(node):
-		windows.erase(cell)
-		return
 	var glow: MeshInstance3D = w.glow
 	if glow == null:
 		if w.amount <= 0.0:
-			return
+			return true
 		glow = MeshInstance3D.new()
 		glow.mesh = _glass_of(w.model)
 		var mat := shared_material().duplicate() as ShaderMaterial
@@ -157,6 +163,7 @@ func _show(cell: Vector3i, w: Dictionary) -> void:
 	if w.has("source"):
 		mat.set_shader_parameter("source", w.source)
 		mat.set_shader_parameter("flicker", w.flicker)
+	return true
 
 
 ## The panes of a window's voxel model `model`: its glass alone, in voxel units.

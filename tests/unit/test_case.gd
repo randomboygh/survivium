@@ -248,7 +248,11 @@ class Who extends RefCounted:
 	func use_tool() -> void:
 		pass
 
-	func lay(_kind: String, _data: Variant) -> Vector3:
+	## What was laid at the feet ([kind, data]).
+	var laid: Array = []
+
+	func lay(kind: String, data: Variant) -> Vector3:
+		laid.append([kind, data])
 		return position
 
 	# What was said as the player reads it (a Lang.line put together, in the source language).

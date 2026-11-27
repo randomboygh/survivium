@@ -549,6 +549,21 @@ func _test_stairs_placed() -> void:
 	who.position = Vector3(30.5, 1.0, 22.5) * WorldData.CELL
 	_check(placed.put_from_bag(who, "tools:window", -1, 40) and placed.things[-1].cell != door.cell and Placed.is_part(placed.things[-1]),
 		"a window is set down too, and taken up at a tap")
+	# Taken up into a bag with one free slot, the door takes it and its wreath is laid at
+	# the feet, not lost (GAME-6).
+	who.inventory.remove("tools:door_wreath", 99)
+	var inv = who.inventory
+	var free_left := false
+	for i in inv.slots.size():
+		if inv.slots[i] == null:
+			if free_left:
+				inv.slots[i] = Inventory.stack("resources:dirt", 1)
+			free_left = true
+	who.laid.clear()
+	who.position = Vector3(30.5, 1.0, 21.5) * WorldData.CELL
+	_check(placed.take_up(who, door) and inv.count("tools:door") == 1 and inv.count("tools:door_wreath") == 0
+		and who.laid == [["tools:door_wreath", 1]],
+		"a door taken up into the last free slot leaves its wreath at the feet: %s" % [who.laid])
 
 
 ## Lava (Mat.burns) burns the body that steps on it and throws it back off, and a thing

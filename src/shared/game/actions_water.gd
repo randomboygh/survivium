@@ -248,7 +248,7 @@ func _pull(who) -> Dictionary:
 		_learn_each(who, "fish")
 		# A skilled angler now and then lands two.
 		if _extra(who, "fish"):
-			who.give(r.caught, 1)
+			Inventory.give_or_lay(who, r.caught, 1)
 		var to: Vector3 = who.position + Vector3(0.0, 0.6, 0.0)
 		done.shot = [r.caught, r.from, to, r.from.distance_to(to) / CATCH_SPEED]
 	elif r.full:

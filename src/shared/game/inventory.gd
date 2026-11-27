@@ -325,6 +325,16 @@ func _unpack_back(packed: Variant) -> void:
 			slots[base + j] = _read(id, h)
 
 
+## Gives `n` of item `id` to `who` (a Character) with `who.give`, or quietly into the bag
+## when `quiet`; what does not fit is laid at their feet (`who.lay`), never lost (2026-11-27
+## audit GAME-6). Returns how many went into the bag.
+static func give_or_lay(who, id: String, n: int, worn := 0, q := NORMAL, text := "", quiet := false) -> int:
+	var got: int = who.inventory.add(id, n, worn, null, q, text) if quiet else who.give(id, n, worn, q, text)
+	if got < n:
+		who.lay(id, drop_data(stack(id, n - got, worn, null, q, text)))
+	return got
+
+
 ## Puts up to `n` of item `id` (worn by `worn` swings) of quality `q`, saying `text` (a
 ## sign's words), into the bag, topping up stacks first (their quality joins, see blend;
 ## a sign only a stack with the same words); returns how many went in (fewer when the

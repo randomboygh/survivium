@@ -36,8 +36,9 @@ const OwnMods := preload("res://src/shared/content/own_mods.gd")
 const LINGER := 30.0
 ## How far a line of chat is heard, in world units (sixty cells: about a screen and a half).
 const CHAT_RANGE := 30.0
-## Seconds a connection has to say hello.
+## Seconds a connection has to say hello, and to finish the WebSocket handshake before it.
 const HELLO_WAIT := 10.0
+const HANDSHAKE_WAIT := 3.0
 ## Seconds one told its mods' files are not the server's (Protocol.WHY_MODS) has to take
 ## the server's and say hello again, seconds it may ask for nothing meanwhile, and such
 ## connections at most (they are not counted with those that have not said hello: a
@@ -58,8 +59,10 @@ const MATES_EVERY := 0.5
 ## client sends only small messages: a bigger one is not taken).
 const BUFFER := 4 << 20
 const INBOUND := 256 << 10
-## Connections that have not said hello yet, at most, and from one address at most (all
-## of a tunnel's come from this machine: only the first counts for them).
+## Connections that have not said hello yet, at most, and from one address at most. All
+## of a tunnel's come from this machine, so its own address has no limit of its own (a few
+## silent sockets would shut every newcomer out: 2026-11-27 audit NET-2); once PENDING_MAX
+## wait, the oldest of them is put out to make room for the new one.
 const PENDING_MAX := 16
 const PENDING_PER_ADDRESS := 4
 ## Messages a connection may send a second, and in a burst: more are not read, and one
@@ -240,10 +243,15 @@ func poll() -> void:
 		var peer := Peer.new()
 		var stream := tcp.take_connection()
 		peer.address = stream.get_connected_host()
-		if _pending() >= PENDING_MAX or _pending(peer.address) >= PENDING_PER_ADDRESS:
+		if not _local(peer.address) and _pending(peer.address) >= PENDING_PER_ADDRESS:
 			stream.disconnect_from_host()
 			flag(null, "connections", "too many connections without a hello from " + peer.address, 1)
 			continue
+		if _pending() >= PENDING_MAX:
+			var oldest := _oldest_pending()
+			oldest.ws.close(CLOSE_REFUSED, "hello first")
+			peers.erase(oldest)
+			flag(null, "connections", "too many connections without a hello: the oldest, from %s, put out" % oldest.address, 1)
 		peer.ws = WebSocketPeer.new()
 		peer.ws.inbound_buffer_size = INBOUND
 		peer.ws.outbound_buffer_size = BUFFER
@@ -280,7 +288,7 @@ func poll() -> void:
 						or peer.fetching and now - peer.fetched_at > FETCH_IDLE):
 					ws.close(CLOSE_REFUSED, "hello first")
 			WebSocketPeer.STATE_CONNECTING:
-				if now - peer.since > HELLO_WAIT:
+				if now - peer.since > HANDSHAKE_WAIT:
 					ws.close(CLOSE_REFUSED, "hello first")
 			WebSocketPeer.STATE_CLOSED:
 				_dropped(peer)
@@ -1101,14 +1109,22 @@ static func _same(a: String, b: String) -> bool:
 	return d == 0
 
 
-## Connections that have not said hello (from `address`; "" any, and all of this
-## machine's count as one address only if it is another).
+## Connections that have not said hello (from `address`; "" any).
 func _pending(address := "") -> int:
 	var n := 0
 	for p in peers:
 		if p.account == null and p.close_code == 0 and not p.fetching and (address == "" or p.address == address):
 			n += 1
 	return n
+
+
+## The connection that has waited longest without a hello (one is, see _pending).
+func _oldest_pending() -> Peer:
+	var oldest: Peer = null
+	for p in peers:
+		if p.account == null and p.close_code == 0 and not p.fetching and (oldest == null or p.since < oldest.since):
+			oldest = p
+	return oldest
 
 
 ## The connections taking the mods' files before a hello (Peer.fetching), from `address`
