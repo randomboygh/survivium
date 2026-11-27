@@ -6,6 +6,7 @@ func run() -> void:
 	_test_mesher()
 	_test_cap()
 	_test_built()
+	_test_uncovered()
 	_test_bank_trunk()
 	_test_diagonal_step()
 	_test_patch()
@@ -143,7 +144,8 @@ func _test_built() -> void:
 	_check(tops == (28 + 6 * 2) * 4 and built_tops == (28 + 6) * 4,
 		"plain tops of built and natural cells are merged apart (%d tops, %d built)" % [tops, built_tops])
 	# A cut over level 0 of two solid levels 8 × 8, the upper natural in the west half: the
-	# build cut's caps close only the built east half.
+	# build cut's caps close only the built east half (32), and the natural half's side
+	# toward the built cells left out (8, see _test_uncovered).
 	var c := WorldData.new(4, Vector2i(8, 8))
 	for z in 8:
 		for x in 8:
@@ -152,8 +154,56 @@ func _test_built() -> void:
 			c.set_natural(x, 1, z, x < 4)
 	var built_area := _mesh_area(ChunkMesher.build_cap(c, 0, 0, 0, WorldData.CHUNK, true))
 	var all_area := _mesh_area(ChunkMesher.build_cap(c, 0))
-	_check(absf(built_area - 32.0 * WorldData.CELL * WorldData.CELL) < 0.001 and all_area > built_area * 1.5,
+	_check(absf(built_area - 40.0 * WorldData.CELL * WorldData.CELL) < 0.001 and all_area > built_area * 1.5,
 		"the build cut's caps close only built cells (%.2f of %.2f)" % [built_area, all_area])
+
+
+## The ground a building stood on or in, uncovered by the build cut of the floors under
+## it, is closed by dark caps (ChunkMesher._uncovered, the user's ask 2026-11-27), not left
+## open to the sky: the tops of natural cells under the built cells left out, and their
+## sides toward them.
+func _test_uncovered() -> void:
+	var CELL := WorldData.CELL
+	for sunk in [false, true]:
+		# Natural ground three levels deep, 8 × 8, and a floor of 3 × 3 on it (level 3) or in
+		# place of its top cells (level 2).
+		var w := WorldData.new(6, Vector2i(8, 8))
+		for z in 8:
+			for x in 8:
+				for y in 3:
+					w.set_cell(x, y, z, Mat.STONE)
+					w.set_natural(x, y, z, true)
+		var floor_y := 2 if sunk else 3
+		for z in range(2, 5):
+			for x in range(2, 5):
+				w.set_cell(x, floor_y, z, Mat.STONE)
+		var mesh := ChunkMesher.build_cap(w, 0, 0, 0, WorldData.CHUNK, true)
+		var tops := 0
+		var sides := 0
+		var top_y := true
+		var toward := true
+		if mesh != null:
+			var arrays := mesh.surface_get_arrays(0)
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+			for v in verts.size():
+				if normals[v].y > 0.9:
+					tops += 1
+					top_y = top_y and absf(verts[v].y - (floor_y - ChunkMesher.CAP_SINK) * CELL) < 0.001
+				else:
+					sides += 1
+					# A side faces the floor's middle column, from the ring of cells round it.
+					var mid := Vector3(3.5, 0.0, 3.5) * CELL
+					var out := Vector3(verts[v].x, 0.0, verts[v].z) - mid
+					toward = toward and out.dot(normals[v]) < 0.0
+		# On the ground: the tops under the floor only. In it: those, and the sides of the
+		# ring of natural cells round the hole, three a side.
+		_check(tops == 9 * 4 and top_y and sides == (12 * 4 if sunk else 0) and toward,
+			"the ground under a floor %s it left out shows dark tops and sides (%d tops, %d sides)"
+				% ["in" if sunk else "on", tops / 4, sides / 4])
+		# The cut over the floor uncovers nothing.
+		_check(_mesh_area(ChunkMesher.build_cap(w, floor_y, 0, 0, WorldData.CHUNK, true)) == 0.0,
+			"a cut over the floor %s the ground uncovers nothing" % ["in" if sunk else "on"])
 
 
 ## A tree's foot against a bank a level higher on its west and north, as by a river: its

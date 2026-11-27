@@ -1078,8 +1078,9 @@ func build_room(w, at: Vector3) -> Vector3:
 ## planks, walls three high, a ceiling of planks), the upper one on the lower one's
 ## ceiling, a doorway in each south wall, a blueprint's ghost wall on the upper floor. The
 ## trees round stay (natural, never cut). Returns where the player stands: inside the
-## lower room, or the upper one (`upper`).
-func two_floors(w, at: Vector3, upper := false) -> Vector3:
+## lower room, or the upper one (`upper`). `sunk`: the lower floor lies in place of the
+## ground's top cell, as the build mode lays a floor.
+func two_floors(w, at: Vector3, upper := false, sunk := false) -> Vector3:
 	# Found once a run, like build_room's.
 	if not _house_found:
 		_house_spot = Vector3i((flat_near(w, at) / CELL).floor())
@@ -1087,7 +1088,7 @@ func two_floors(w, at: Vector3, upper := false) -> Vector3:
 	var spot := _house_spot
 	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
 	var brick: int = maxi(Mat.index("materials:brick"), Mat.STONE)
-	var a := spot + Vector3i(-4, 0, -5)
+	var a := spot + Vector3i(-4, -1 if sunk else 0, -5)
 	for x in range(a.x, a.x + 9):
 		for z in range(a.z, a.z + 7):
 			for y in range(a.y, a.y + 12):

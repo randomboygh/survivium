@@ -213,7 +213,8 @@ func _run() -> void:
 		if shot.get("build_room", false):
 			main.player.position = places.build_room(main.world, main.player.position)
 		if shot.get("two_floors", false):
-			main.player.position = places.two_floors(main.world, main.player.position, shot.get("upper", false))
+			main.player.position = places.two_floors(main.world, main.player.position, shot.get("upper", false),
+				shot.get("sunk", false))
 		if shot.get("plan", false):
 			main.player.position = places.plan(main.world, main.player.position)
 		if shot.has("ceiling"):

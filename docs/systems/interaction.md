@@ -370,7 +370,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   the player (under a roof, in a pit: the layers) looks only at natural ground there (`_natural_only`, `_roof`;
   `indoor` still counts any roof) and only on the player's own floor. A finger passes through the built cells
   above (`Controls.pick` skips them), and the requests that take the cut get `ChunkStreamer.top_level`. Leaving
-  build mode (or the first-person view) brings the ordinary cut back. A placed thing standing across the cut is
+  build mode (or the first-person view) brings the ordinary cut back. Under a building (a floor below its own) the
+  ground it stood on or in shows a dark section, not a hole (`ChunkMesher._uncovered`, the user's ask,
+  2026-11-27). A placed thing standing across the cut is
   drawn cut there, closed by dark caps as the walls (`Props._cut_model`, `VoxelModel.cut_below`, `capped`), not
   hollow, its whole model only casting the shadow (`WholeShadow`); a window's glow is left out above it too.
 

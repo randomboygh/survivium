@@ -458,6 +458,17 @@ const SHOTS := {
 	# Entering the build mode: all floors show until a level button is pressed (2026-11-27).
 	"build-floors-enter": {"time": 0.4, "season": 1, "two_floors": true, "build_mode": "draw", "stroke": false,
 		"kind": "cube", "height": 5, "touch": true, "hide": ["chunks: grass"]},
+	# The floor below the house's: what was built is left out, the ground under it and
+	# round it shows its dark section, not a hole (2026-11-27); `sunk` lays the lower
+	# floor in place of the ground's top cell.
+	"build-floors-under": {"time": 0.4, "season": 1, "two_floors": true, "build_mode": "draw", "stroke": false,
+		"kind": "cube", "height": 5, "touch": true, "hide": ["chunks: grass"], "build_floor": -1},
+	"build-floors-under-sunk": {"time": 0.4, "season": 1, "two_floors": true, "sunk": true, "build_mode": "draw",
+		"stroke": false, "kind": "cube", "height": 5, "touch": true, "hide": ["chunks: grass"], "build_floor": -1},
+	# The same house out of the build mode, the view cut by hand under its floor: the caps
+	# of the cut the dark section under the house is drawn like.
+	"build-floors-cut": {"time": 0.4, "season": 1, "two_floors": true, "touch": true, "hide": ["chunks: grass"],
+		"cut": -2},
 	"build-floors-off": {"time": 0.4, "season": 1, "two_floors": true, "touch": true, "hide": ["chunks: grass"]},
 	"build-tap-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-4.75, 0.6, -6.98)]},
