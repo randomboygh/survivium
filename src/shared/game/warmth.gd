@@ -94,8 +94,8 @@ static func fire_heat(placed, p: Vector3) -> float:
 	if placed == null:
 		return 0.0
 	var best := 0.0
-	for e: Dictionary in placed.things:
-		if not e.lit or not placed.is_fire(e):
+	for e: Dictionary in placed.fires:
+		if not e.lit:
 			continue
 		var d: float = placed.center(e).distance_to(p)
 		if d < FIRE_REACH:

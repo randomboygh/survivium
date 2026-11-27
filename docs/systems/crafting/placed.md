@@ -2,6 +2,20 @@
 
 Part of [Crafting, stations and things on cells](../crafting.md). `placed.gd`, models of things, the crafting panel.
 
+- The code is a chain of parts (each calls only itself and the parts before it; callers preload `placed.gd`):
+  `placed_kinds.gd` (constants, signals, what a kind is: `is_fire`, `is_door`, `is_opening`…, the models'
+  shapes, the saved record) ← `placed_store.gd` (the things and lights set down and the cells they block,
+  the index, saving, the start's camp, free ground) ← `placed_spots.gd` (where a thing fits: `put_spot`,
+  walls, ghosts of the blueprint, a light's cell) ← `placed_build.gd` (set down, take up, move, openings cut
+  into walls) ← `placed_fires.gd` (fires and fuel, rain, rain catchers, melting, spoiling, `step`) ←
+  `placed.gd` (doors, signs, crosses, beds, seats).
+- The index (`placed_store.gd`, GAME-2): the north-west cell → its things (`at`, `light_at`), the chunk of
+  `INDEX_CHUNK` cells → its things (`near(lo, hi)`: those whose square may cover the columns, by `widest`), and
+  the lists `fires`, `beds`, `seated`; kept by `put`, `put_light` and `_forget`, built anew in
+  `read_footprints`. The rules asked every tick (`burning`, `seat_near`, `bed_under`, `nearest_bed`,
+  `stations_near`, `_shut_door_on`, `_in_open_door`, `Warmth.fire_heat`) look only at those, not over every
+  thing of the world; `things` keeps its order. A thing is never moved in place (a move is a remove and a
+  `put`), so the index needs no other hook; `tests/unit/placed_index_test.gd` compares it with a look over all.
 - `src/shared/game/placed.gd` — things on cells by the item's class `prop` and its flags (below):
   `put_from_bag`, `take_up`, `put_out`, `light`, `feed`, `destroy`, `stations_near`, `burns`; a campfire burns
   on fuel: a record's `fuel` is the seconds of burning (no more than the item's `fuel_max`, a new one is
