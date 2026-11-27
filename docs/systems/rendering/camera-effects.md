@@ -82,7 +82,12 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   For 1 bit and CGA the night's darks are lifted by a gamma (`retro_lift`, set by `Sky._update_grade` from
   `sky_light`), else the world is all black outside a fire's light.
 - `src/client/view/sky.gd` — light, colour correction, ground fog, puddles, weather on screen for
-  `game.clock`; `light_side` (one of eight sides, with a margin).
+  `game.clock`; `light_side` (one of eight sides, with a margin). The ground fog glows round torches, fires and
+  lamps (`fog_glow` in `common.gdshaderinc`, added by `veil`): the light's colour as bright as it burns now (dim by
+  day), falling off smoothly to `FOG_GLOW_REACH` of its range, `FOG_GLOW` times the fog there; `FireShadows` writes
+  the nearest lights (`light_spots`' third row, `fog_glows` of them) whenever there is a fog (`Sky.ground_fog`), none
+  for a light under a roof (its fog would be outside the walls). Stepped by a dither it showed as stripes under
+  Vulkan.
 - `src/client/view/effects.gd` — particles, campfires, the torch (an item with `light` in the hand, otherwise
   a weak glow). The light of a torch/lantern in the hand stands at the height of its flame
   (`Player.torch_height`, no higher than `HAND_TOP` 0.75 units), so that in a house two cells high it burns

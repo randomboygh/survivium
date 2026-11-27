@@ -798,24 +798,6 @@ float fog_at(vec3 p) {
 	return m * mix(0.6, 1.0, near) * reach;
 }
 
-// How far in front of a pictured tree the fog over it is taken from (world units, a
-// cell and a half: past a trunk two cells wide). fog_at takes a trunk's column top for
-// ground, so on the trunk's own plane the fog would lie a trunk higher (tree.gdshader,
-// and the grass at the tree's foot, grass.gdshader).
-const float FOG_AHEAD = 0.75;
-
-// What veils the colour at `p`: the levels below fading away (`fade`, from
-// depth_fade) and the fog on the ground, so trunks, walls and the player stand out of
-// it and the crowns stay clear.
-// rgb is the colour given off in place, a how much of the thing's own colour gives way.
-vec4 veil(vec3 p, float fade) {
-	if (fog <= 0.0) {
-		return vec4(depth_haze * fade, fade);
-	}
-	float m = min(fog_at(p), 0.85);
-	return vec4(depth_haze * fade * (1.0 - m) + fog_color * m, 1.0 - (1.0 - fade) * (1.0 - m));
-}
-
 // Footprints (tracks.gd): a map of the ground round the player, a texel for each of the
 // ground's, repeating every PRINT_MAP texels: r the kind of print (top 3 bits, 0 none)
 // and its level modulo 32, g the clock's byte (print_now) when it was made. The ground's
@@ -912,8 +894,9 @@ vec3 toon_light(vec3 normal, vec3 light, vec3 light_color, float attenuation, bo
 // first two rows of LIGHT_MAP texels are the cells that are solid, a bit a level (the
 // levels 0..7, then 8..15), then a row a level with the shape of each cell (Chunk.shapes:
 // the low corners of a sloping top, then the corners cut off or filled in). light_spots
-// is LIGHT_SPOTS by 2 texels: (where light i stands, unsheared, its range), then (the
-// column of its map's north-west corner x and z, its base level, 2 when it has one).
+// is LIGHT_SPOTS by 3 texels: (where light i stands, unsheared, its range), then (the
+// column of its map's north-west corner x and z, its base level, 2 when it has one), then
+// its glow in the fog (see fog_glow).
 global uniform sampler2D light_blocks : filter_nearest;
 global uniform sampler2D light_spots : filter_nearest;
 const int LIGHT_MAP = 32;
@@ -1038,6 +1021,53 @@ bool light_blocked(int i, vec3 p) {
 bool light_hidden(vec3 at, vec3 dir, vec3 p, vec3 normal) {
 	int i = light_spot(at, dir);
 	return i >= 0 && light_blocked(i, p + normal * 0.025);
+}
+
+// The lights the fog glows round: the first fog_glows of light_spots (FireShadows), each
+// with a third row of its glow's colour (linear, by how bright it burns now; black under a
+// roof, which would only light the fog outside its walls).
+global uniform float fog_glows;
+// How far the fog's glow reaches as a share of the light's range, and how bright it is
+// where it is thickest (times the fog there).
+const float FOG_GLOW_REACH = 1.0;
+const float FOG_GLOW = 1.0;
+
+// The light the fog at `p` gives off round the torches and fires: falling off smoothly
+// with the distance to the flame, as the fog itself thins out, so the fog round a fire
+// glows warm instead of only hiding its light. (In dithered steps the dither showed as
+// stripes over the glow under Vulkan.)
+vec3 fog_glow(vec3 p) {
+	vec3 glow = vec3(0.0);
+	for (int i = 0; i < LIGHT_SPOTS; i++) {
+		if (float(i) >= fog_glows) {
+			break;
+		}
+		vec4 spot = texelFetch(light_spots, ivec2(i, 0), 0);
+		float d = length(p - spot.xyz) / max(spot.w * FOG_GLOW_REACH, 0.01);
+		if (d < 1.0) {
+			glow += texelFetch(light_spots, ivec2(i, 2), 0).rgb * (1.0 - d) * (1.0 - d);
+		}
+	}
+	return glow * FOG_GLOW;
+}
+
+// How far in front of a pictured tree the fog over it is taken from (world units, a
+// cell and a half: past a trunk two cells wide). fog_at takes a trunk's column top for
+// ground, so on the trunk's own plane the fog would lie a trunk higher (tree.gdshader,
+// and the grass at the tree's foot, grass.gdshader).
+const float FOG_AHEAD = 0.75;
+
+// What veils the colour at `p`: the levels below fading away (`fade`, from
+// depth_fade) and the fog on the ground, so trunks, walls and the player stand out of
+// it and the crowns stay clear; the fog glows round torches and fires (fog_glow).
+// rgb is the colour given off in place, a how much of the thing's own colour gives way.
+vec4 veil(vec3 p, float fade) {
+	if (fog <= 0.0) {
+		return vec4(depth_haze * fade, fade);
+	}
+	float m = min(fog_at(p), 0.85);
+	vec3 glow = m > 0.0 && fog_glows > 0.0 ? fog_glow(p) * m : vec3(0.0);
+	return vec4(depth_haze * fade * (1.0 - m) + fog_color * m + glow, 1.0 - (1.0 - fade) * (1.0 - m));
 }
 
 // How many texels the hot air moves the ground's pattern sideways at world texel
