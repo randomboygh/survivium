@@ -506,6 +506,83 @@ func _every_window(main: Node) -> void:
 	await _frames(2)
 
 
+## A storage tapped in the world with a finger opens as the finger lifts, not as it lands (the
+## user's report of 2026-11-27, Controls._prop_press): opened at the press, the bag had the
+## rest of the touch, its list kept the finger and did not glide down to the storage (on every
+## open but the first, slow one), and the slot under the finger was chosen on the lift.
+func _chest_by_touch(main: Node) -> void:
+	root.size = Vector2i(920, 1600)
+	main.build.leave()
+	main.controls.set_touch(true)
+	var bag = main.hud.bag
+	if bag.visible:
+		main.hud.toggle_bag()
+	var before: Array = main.placed.things.duplicate()
+	main.host.player.inventory.add("tools:chest", 1)
+	await _frames(2)
+	_check(main.props.put_from_bag("tools:chest"), "a chest is set down in front of the player to be tapped")
+	await _frames(3)
+	var e: Dictionary = {}
+	for t: Dictionary in main.placed.things:
+		if t.item == "tools:chest" and not before.any(func(b: Dictionary) -> bool: return is_same(b, t)):
+			e = t
+	if e.is_empty():
+		_check(false, "the chest set down to be tapped is in the client's copy")
+		return
+	var view = main.view
+	var at: Vector2 = view.container.global_position + view.image_of(main.placed.center(e)) * view.view_scale
+	_check(is_same(main.gathering.target_at(at).get("prop"), e), "a finger on the chest's place points at the chest")
+	for time in 2:
+		bag._scroll.scroll_vertical = 0
+		await _wait_ms(600)
+		_touch(at, true)
+		await _frames(3)
+		_check(not bag.visible, "a chest does not open as the finger lands on it (%d)" % time)
+		_touch(at, false)
+		await _frames(2)
+		_check(bag.visible and is_same(bag._chest_entry, e), "the chest opens as the finger lifts (%d)" % time)
+		# The glide takes about half a second (slow frames stretch it: wait by the clock).
+		var want := 0
+		var until := Time.get_ticks_msec() + 6000
+		while Time.get_ticks_msec() < until:
+			await process_frame
+			want = _strip_scroll(bag, e)
+			if want > 0 and absi(bag._scroll.scroll_vertical - want) <= 1:
+				break
+		_check(bag._from == null, "the finger that opened the chest chooses no slot under it (%d)" % time)
+		var bar: ScrollBar = bag._scroll.get_v_scroll_bar()
+		_check(want > 0 and absi(bag._scroll.scroll_vertical - want) <= 1,
+			"the list glides down to the chest opened (%d: at %d, its strip %d; range %d of %d, list %d, %d chests, moving %s)"
+			% [time, bag._scroll.scroll_vertical, want, bar.page, bar.max_value, bag._list.get_combined_minimum_size().y,
+			bag._chests.size(), bag._drag.moving()])
+		main.hud.toggle_bag()
+		await _frames(2)
+	# A press on the chest lifted away from it opens nothing.
+	await _wait_ms(600)
+	_touch(at, true)
+	await _frames(2)
+	_touch(at + Vector2(0.0, -400.0), false)
+	await _frames(3)
+	_check(not bag.visible, "a press on a chest lifted away from it opens nothing")
+	main.controls.set_touch(false)
+	# Taken back up: the place in front of the player is for the tests after this.
+	for t: Dictionary in main.session.placed.things:
+		if t.cell == e.cell and t.item == e.item:
+			_check(main.session.placed.take_up(main.host.player, t), "the chest tapped is taken back up")
+			break
+	await _frames(3)
+
+
+## The scroll of the bag's list that shows the strip of chest `e` at the top, as far as the
+## list scrolls; 0 while the strip is not there.
+func _strip_scroll(bag, e: Dictionary) -> int:
+	var i: int = bag._chests.find(e)
+	if i < 0 or i >= bag._chest_grids.size():
+		return 0
+	var bar: ScrollBar = bag._scroll.get_v_scroll_bar()
+	return roundi(clampf(bag._chest_grids[i].line.position.y, 0.0, maxf(bar.max_value - bar.page, 0.0)))
+
+
 ## A beast's body lying before the player is taken by a press of the action button, not
 ## by the button held on from what it did (the user's pick of 2026-11-21: Controls._front_body).
 func _body_by_button(main: Node) -> void:
@@ -759,6 +836,7 @@ func _run() -> void:
 		"wiping all data leaves nothing but the logs")
 	WorldStore.erase_dir(wipe)
 	await _sign_window(main)
+	await _chest_by_touch(main)
 	await _every_window(main)
 	await _held_props(main)
 	await _body_by_button(main)
