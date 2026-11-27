@@ -1309,13 +1309,13 @@ func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := fals
 	if rest == IN_FLOOR:
 		cut_from = aim.y
 	_swap_fences = item.get("door", false) and item.get("fence", false)
-	if into_wall and not _walled(aim) and not _in_gap(aim):
-		# A door or a window goes only into a wall (or a gap left in one), never in the open
-		# (user 2026-11-26).
+	if into_wall and not _walled(aim) and not _in_gap(aim) and not _moving_cells().has(aim):
+		# A door or a window goes only into a wall (or a gap left in one, or the opening it is
+		# moved from), never in the open (user 2026-11-26).
 		return [null, turn]
 	var spot: Variant
 	if into_wall and _walled(aim):
-		spot = _wall_spot(who, aim, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from, item.get("door", false))
+		spot = _wall_spot(who, aim, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from, item.get("door", false), turn)
 	else:
 		spot = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from)
 	_swap_fences = false
@@ -1338,13 +1338,15 @@ func _walled(c: Vector3i) -> bool:
 ## wall's foot. `aim` where no wall is near (it stands in the open).
 func _wall_near(aim: Vector3i, feet: int, door: bool) -> Vector3i:
 	var at := aim
-	if not _walled(aim) and not _in_gap(aim):
+	# The opening moved stands in a wall: its own cells are of it (opening_spot).
+	var own := _moving_cells()
+	if not _walled(aim) and not _in_gap(aim) and not own.has(aim):
 		var best := -1.0
 		for dy in range(-WALL_SNAP, 2):
 			for dz in range(-WALL_SNAP, WALL_SNAP + 1):
 				for dx in range(-WALL_SNAP, WALL_SNAP + 1):
 					var c := aim + Vector3i(dx, dy, dz)
-					if c.y < feet or not _walled(c):
+					if c.y < feet or not (_walled(c) or own.has(c)):
 						continue
 					var d := float(dx * dx + dz * dz) + dy * dy * 0.5
 					if best < 0.0 or d < best:
@@ -1366,14 +1368,19 @@ func _floor_cell(c: Vector3i) -> bool:
 
 
 ## Whether cell `c` is a gap left in a wall (a doorway): wall cells on both sides of it along
-## a row, WALL_SNAP + 1 cells at most from it.
+## a row, WALL_SNAP + 1 cells at most from it, each the end of a wall going on along that row,
+## not of one across it (inside a small room the walls left and right are no doorway: user
+## 2026-11-27, doors stood in the middle of a room).
 func _in_gap(c: Vector3i) -> bool:
 	for along: Vector3i in [Vector3i(1, 0, 0), Vector3i(0, 0, 1)]:
+		var across := Vector3i(along.z, 0, along.x)
 		var sides := 0
 		for way in [-1, 1]:
 			for k in range(1, WALL_SNAP + 2):
-				if _walled(c + along * way * k):
-					sides += 1
+				var w: Vector3i = c + along * way * k
+				if _walled(w):
+					if not (_walled(w + across) and _walled(w - across)):
+						sides += 1
 					break
 		if sides == 2:
 			return true
@@ -1383,9 +1390,9 @@ func _in_gap(c: Vector3i) -> bool:
 ## The north-west cell of an opening `offsets` (`high` tall) set into the wall at wall cell
 ## `aim` (put_spot): of the spots round it that fit (_fits, blocks at `cut_from` or higher cut
 ## out), the one with the most of its cells in the wall, then for a door the lowest, then the
-## nearest. Null for none.
+## nearest; never one across its wall (_across, turned `turn`). Null for none.
 func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], rest: int, high: int, cut_from: int,
-		door: bool) -> Variant:
+		door: bool, turn: int) -> Variant:
 	var mid := Vector2.ZERO
 	for o: Vector3i in offsets:
 		mid += Vector2(o.x, o.z) + Vector2(0.5, 0.5)
@@ -1405,6 +1412,8 @@ func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], 
 					continue
 				if door and _sunk(corner, offsets):
 					continue
+				if _across(corner, offsets, high, turn):
+					continue
 				var walled := 0
 				for o: Vector3i in offsets:
 					for k in high:
@@ -1417,6 +1426,45 @@ func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], 
 					best = corner
 					best_by = by
 	return best
+
+
+## The cells of the opening moved (_moving, opening_spot), none while none is.
+func _moving_cells() -> Array[Vector3i]:
+	if _moving.is_empty():
+		return []
+	return opening_cells(_moving)
+
+
+## Whether an opening at north-west cell `corner` (its cells `offsets`, `high` tall) turned
+## `turn` would stand across the wall it is cut into: more wall beside its cells across its
+## plane than along it, or one of them a corner's (a door by a corner turned into the other wall's plane; user
+## 2026-11-27: it stays in the plane of the wall it goes into). The cells of the opening
+## moved (_moving) are of the wall.
+func _across(corner: Vector3i, offsets: Array[Vector3i], high: int, turn: int) -> bool:
+	var cells := {}
+	for o: Vector3i in offsets:
+		for k in high:
+			cells[corner + o + Vector3i(0, k, 0)] = true
+	var own := _moving_cells()
+	var plane := Vector3i(1, 0, 0) if posmod(turn, 2) == 0 else Vector3i(0, 0, 1)
+	var cross := Vector3i(plane.z, 0, plane.x)
+	var along := 0
+	var across := 0
+	for c: Vector3i in cells:
+		var here := Vector2i.ZERO
+		for way in [-1, 1]:
+			var a: Vector3i = c + plane * way
+			if not cells.has(a) and (_walled(a) or own.has(a)):
+				here.x += 1
+			var b: Vector3i = c + cross * way
+			if not cells.has(b) and (_walled(b) or own.has(b)):
+				here.y += 1
+		# A corner's cell (walls beside it both ways) is no place for one.
+		if here.x > 0 and here.y > 0:
+			return true
+		along += here.x
+		across += here.y
+	return across > along
 
 
 ## Whether a door at north-west cell `corner` (its cells `offsets`) would go down into a
@@ -1437,9 +1485,11 @@ func _sunk(corner: Vector3i, offsets: Array[Vector3i]) -> bool:
 func plane_turn(aim: Vector3i, turn: int, face: int, p: Vector3) -> int:
 	var along_x := 0
 	var along_z := 0
+	# The cells of the opening moved are of its wall (opening_spot).
+	var own := _moving_cells()
 	for i in SIDES.size():
 		var c: Vector3i = aim + SIDES[i]
-		if _solid(c) or _fences.has(c):
+		if _solid(c) or _fences.has(c) or own.has(c):
 			if i % 2 == 1:
 				along_x += 1
 			else:
@@ -1450,6 +1500,9 @@ func plane_turn(aim: Vector3i, turn: int, face: int, p: Vector3) -> int:
 	elif face >= 0 and face < SIDES.size():
 		# A face looking north or south is a wall running along x.
 		flat_x = face % 2 == 0
+	elif not _moving.is_empty():
+		# An opening moved over a corner stays in the plane of the wall it was in.
+		flat_x = int(_moving.get("turn", 0)) % 2 == 0
 	else:
 		return turn
 	# Turn 0 stands along the north edge of its cell, its front south (front_of).
