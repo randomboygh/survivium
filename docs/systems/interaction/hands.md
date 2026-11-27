@@ -60,7 +60,7 @@ Part of [Hands and the world: digging, building, chopping, mowing, gathering](..
   about (they live only near players), so there `step_far_traps` catches by chance over the clock's days since
   the last look (sleep and time away included): a kind its bait lures, on the ground of one of its biomes, is
   caught with the chance `1 − exp(−days / trap_days)` (rabbit: once a day on average; `trap_days` 0 never),
-  eating one bait (`_put_in`). A live item (`alive`, `released_kind`) in the hand is
+  eating one bait (`_put_in`). The biome under the trap comes from the layout (`trap_biome`, `WorldGen.biome_of`), since a far trap's chunk is mostly forgotten (things set down do not keep one). A live item (`alive`, `released_kind`) in the hand is
   `tend_kind` «release», `release` lets it out a cell ahead, tame and its own (`Wildlife.release`))
   ← `actions_boat.gd` (a raft and a boat, decision 178, answer 4Б: an item with `vessel` in the hand, with the
   action button facing open water (`launch_spot`: the water column ahead within `LAUNCH_REACH`, the whole

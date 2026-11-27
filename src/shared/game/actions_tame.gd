@@ -50,6 +50,8 @@ var _trap_wait := 0.0
 var _trap_rng := RandomNumberGenerator.new()
 ## The time of the clock (days) at the last look at the far traps, -1 before the first.
 var _trap_at := -1.0
+## The biome under each far trap looked at (by cell; see trap_biome).
+var _trap_biome := {}
 
 
 ## The number `who` is known by as an owner (Player.id; 0 for one without).
@@ -322,10 +324,24 @@ func far_catch_chance(kind: String, e: Dictionary, days: float) -> float:
 		return 0.0
 	var biomes: Array = spec.get("biomes", [])
 	if not biomes.is_empty():
-		var b: int = world.biome_at(e.cell.x, e.cell.z)
+		var b := trap_biome(e)
 		if b == BiomesData.NONE or not BiomesData.IDS[b] in biomes:
 			return 0.0
 	return 1.0 - exp(-days / mean)
+
+
+## The biome under trap `e`, also where its chunk is not kept (a far trap's is mostly
+## forgotten: things set down do not keep a chunk): laid out by the generator
+## (WorldGen.biome_of) and remembered by cell.
+func trap_biome(e: Dictionary) -> int:
+	var b: int = _trap_biome.get(e.cell, BiomesData.NONE)
+	if b != BiomesData.NONE:
+		return b
+	var gen = wildlife.gen if wildlife != null else null
+	b = gen.biome_of(e.cell.x, e.cell.z) if gen != null else world.biome_at(e.cell.x, e.cell.z)
+	if b != BiomesData.NONE:
+		_trap_biome[e.cell] = b
+	return b
 
 
 ## Animal `a` caught in trap `e`: it eats a bait and sits in it as its `trapped` item.

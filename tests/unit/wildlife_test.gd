@@ -1188,6 +1188,32 @@ func _test_far_trap(life: Wildlife, actions: WorldActions, trap: Dictionary, who
 	actions.step_far_traps(traps)
 	_check(trap.items.count("tools:live_rabbit") == 0, "a far trap with no bait catches nothing")
 	trap.items.add("plants:carrot", 1)
+	_test_forgotten_trap(life, actions, spec)
+
+
+## A far trap whose chunk is forgotten (things set down do not keep one) still knows its
+## biome from the layout (ActionsTame.trap_biome): it catches on a meadow, not on a desert.
+func _test_forgotten_trap(life: Wildlife, actions: WorldActions, spec: Dictionary) -> void:
+	var gen_was = life.gen
+	var lay := OneBiome.new()
+	life.gen = lay
+	var placed: Placed = life.placed
+	for biome: String in ["biomes:meadow", "biomes:desert"]:
+		lay.biome = Biomes.index(biome)
+		var cell := Vector3i(100000 + (0 if biome == "biomes:meadow" else 64), 6, 100000)
+		var far := placed.put("tools:trap", cell)
+		_check(life.world.chunk_at(cell.x, cell.z) == null, "the far trap's chunk is not kept")
+		far.items.add("plants:carrot", 1)
+		var traps := {far.cell: far}
+		actions.people = []
+		actions.step_far_traps(traps)
+		life.clock.day += 30
+		actions.step_far_traps(traps)
+		var lives: bool = biome in spec.biomes
+		_check(far.items.count("tools:live_rabbit") == (1 if lives else 0),
+			"a far trap with its chunk forgotten catches on %s: %s" % [biome, lives])
+		placed.things.erase(far)
+	life.gen = gen_was
 
 
 ## Taming with a trap (ActionsTame.step_traps): a trap with a carrot in it lures a wild
