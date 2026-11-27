@@ -38,6 +38,7 @@ const Trees := preload("res://src/shared/content/trees.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
 const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
+const Numbering := preload("res://src/shared/world/numbering.gd")
 ## How far a tree reaches from its trunk, so a chunk made again knows which trees of
 ## its neighbours to grow again (see Growth.place).
 const TREE_REACH := 10
@@ -67,9 +68,17 @@ const FLOOD_HEADROOM := 2
 const HALL_MOST := 6.3
 
 var world: WorldData
-## Cells of a saved chunk come from a world saved with materials in another order:
-## saved index -> loaded index (see Mat.remap); empty when the orders agree.
+## Cells of a chunk sent by a server that numbers its materials in another order:
+## its index -> the loaded index (see Mat.remap); empty when the orders agree. A save's
+## chunks are read by `numberings` instead.
 var material_map := PackedByteArray()
+## The orders the saved chunks' contents are numbered in (Numbering.of_world, kept in
+## world.json), the loaded one among them at `numbering` (Numbering.add_current); the
+## chunks packed name it (`order`). Empty for a generator with no save of its own.
+var numberings: Array = []
+var numbering := 0
+## Numbering.maps of each saved order, by its index, made when first needed.
+var _maps := {}
 ## Stage of each chunk, by Vector2i(cx, cz); absent means nothing is made yet.
 var stages := {}
 ## The laid-out columns of chunks between TERRAIN and SHAPED (see _window), by chunk.
@@ -253,7 +262,36 @@ func pack(key: Vector2i) -> Dictionary:
 	world.refresh_shapes()
 	var d := world.pack_chunk(key)
 	d["planted"] = planted.get(key, [])
+	if not numberings.is_empty():
+		d["order"] = numbering
 	return d
+
+
+## Takes the orders of the save (Numbering.of_world of its world.json): the chunks read
+## are translated into the loaded order, the ones packed name it (see numberings).
+func number_by(saved: Array) -> void:
+	numberings = saved.duplicate(true)
+	numbering = Numbering.add_current(numberings)
+	_maps.clear()
+
+
+## Puts saved chunk record `d` into the loaded order (see numberings, material_map).
+func _translate(d: Dictionary) -> void:
+	if numberings.is_empty():
+		if not material_map.is_empty():
+			var cells: PackedByteArray = d.cells
+			for i in cells.size():
+				cells[i] = material_map[cells[i]] if cells[i] < material_map.size() else Mat.STONE
+			d.cells = cells
+		return
+	var at: Variant = d.get("order", 0)
+	var order: int = int(at) if (at is int or at is float) and int(at) >= 0 and int(at) < numberings.size() else 0
+	if order == numbering:
+		return
+	if not _maps.has(order):
+		_maps[order] = Numbering.maps(numberings[order])
+	if not Numbering.same(_maps[order]):
+		Numbering.translate(d, _maps[order])
 
 
 # --- Jobs ------------------------------------------------------------------------
@@ -272,11 +310,7 @@ func start(key: Vector2i, stage: int) -> Job:
 	if stage == TERRAIN and kept != null and kept.has_chunk(key):
 		var d: Dictionary = kept.read_chunk(key)
 		if world.can_unpack(d):
-			if not material_map.is_empty():
-				var cells: PackedByteArray = d.cells
-				for i in cells.size():
-					cells[i] = material_map[cells[i]] if cells[i] < material_map.size() else Mat.STONE
-				d.cells = cells
+			_translate(d)
 			job.restore = d
 			job.trees = d.get("planted", [])
 			job.rows = 1 + job.trees.size()

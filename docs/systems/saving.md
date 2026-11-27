@@ -45,16 +45,25 @@ convert the saves of old versions.
   bundle the player switched off stays off; a world saved before `known` knew the bundles
   `Mods.OLD_ADDITIVE`, and the torch — from the mark 9. A bundle with cells, trees, shrubs, plants, biomes or
   beasts does not enter an old world: it changes the ground and the material numbers;
-- before 5 — the cells' material numbers by the old list `OLD_MATERIALS`, otherwise by `materials` from
-  `world.json` (`Mat.remap`); the old ids of items and recipes — `Items.canon`, `Crafting.canon`,
+- the numbers in chunk files (cells' materials, tree species, bush types, column biomes) follow the load
+  order of the mods, which a mod update or a missing bundle changes. `world.json` keeps every order its chunks
+  were written in (`numberings`: a list of `{materials, trees, bushes, biomes}` id lists) and each chunk file
+  names its own (`order`, an index; a chunk without it is of the first). At the start the loaded order is
+  added to the list when it is new (`WorldGen.number_by`, `numbering.gd`); a chunk of another order is
+  translated as it is read (`Numbering.translate`), a chunk written names the loaded one. Nothing is rewritten
+  in the background, and an unvisited chunk keeps its meaning however many saves follow (audit DATA-1/2).
+  A save without `numberings` has one order: before 5 the old list `OLD_MATERIALS`, otherwise `materials`
+  from `world.json` (`Numbering.of_world`, `WorldStore.materials_of`); an id no longer loaded becomes stone,
+  the first tree species or bush type, or no biome. The old ids of items and recipes — `Items.canon`, `Crafting.canon`,
   `Mat.RENAMED`; these functions look at the records' field `was` too (`Content.canon`).
 
 **Limits.** A world's set of bundles changes only by the arrival of supplementing bundles; a bundle with
 cells or beasts an old world will not see. A renamed record lists the old ids in its field `was` (no code
 needed); renaming a bundle needs an entry in `Mods.RENAMED`. A saved chunk returns at once at the stage
 SHAPED. A world's set of bundles is decided by shared code (`Mods.of_world`); the material numbers and old
-ids are converted by the shared `world_store.gd` (`materials_of`, `OLD_MATERIALS`, `CONTENT`), the server will
-convert them by it too.
+ids are converted by the shared `world_store.gd` and `numbering.gd` (`Numbering.of_world`, `OLD_MATERIALS`,
+`CONTENT`), the same for the server. A live mod reload that shifts trees, bushes or biomes during play is
+not yet translated in memory (only materials are kept, `Mods.cells_kept`).
 
 **Tests.** `tests/unit/store_test.gd` (`save`), `tests/save_test.gd` (plays, saves, starts again; the world
 remembers the known bundles; an old save without a torch and without a sword gets the torch, and the sword

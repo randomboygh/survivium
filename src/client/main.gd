@@ -110,6 +110,7 @@ const FreezeLog := preload("res://src/client/ui/freeze_log.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const LastLog := preload("res://src/client/ui/last_log.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Numbering := preload("res://src/shared/world/numbering.gd")
 const WorldShader := preload("res://shaders/world.gdshader")
 const WaterShader := preload("res://shaders/water.gdshader")
 const GrassShader := preload("res://shaders/grass.gdshader")
@@ -444,9 +445,9 @@ func start_world() -> void:
 	var maker: GDScript = load(TEST_GROUND) if world_seed == WorldStore.TEST_SEED else WorldGen
 	gen = maker.new(world_seed, 48, world_options)
 	gen.saved = save.store
-	if not save.saved_materials.is_empty():
-		# The save numbered its materials in its own order (its mods then): translate.
-		gen.material_map = Mat.remap(save.saved_materials)
+	# The save numbered its materials, trees, bushes and biomes in the orders of its
+	# mods then: its chunks are translated as they are read (Numbering).
+	gen.number_by(Numbering.of_world(save.meta))
 	StartTimes.spawn_ms = Time.get_ticks_msec() - t0
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, StartTimes.spawn_ms])
 	await _loading_stage("[map_and_materials]")

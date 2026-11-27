@@ -244,7 +244,8 @@ the folder. In the container's browser on 2026-11-01 on 419 records the reading 
   `Mat.reload()` recompiles the script. Hence `Mods.rescan`, not `reload`.
 - `const X := Mat.GRASS` is a parse error: the materials' numbers are known only after loading.
 - The materials' numbers go in the order of loading: a world's set of bundles cannot be changed, an old world
-  is converted by `Mat.remap` by the list `materials` from `world.json`.
+  is translated chunk by chunk by the orders kept in `world.json` `numberings` (materials, trees, bushes,
+  biomes; `src/shared/world/numbering.gd`, see `docs/systems/saving.md`).
 - A reference without a namespace means the mod of the file where it is written: in a patch of another's
   record — the patch's mod (`Content._qualified` appends it before merging), not the record's mod.
 - A return typed with one's own script (`-> VoxelModel`) without `class_name` is a parse error on which the

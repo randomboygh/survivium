@@ -1,5 +1,6 @@
 extends "res://tests/unit/test_case.gd"
 ## Saving and loading a world and its chunks.
+const Numbering := preload("res://src/shared/world/numbering.gd")
 
 
 func run() -> void:
@@ -90,19 +91,53 @@ func _test_save() -> void:
 			_ensure_stage(b, side, WorldGen.SHAPED)
 			remade += 1
 	_check(remade > 0 and _same_cells(b.world, w, area), "neighbours made again get the saved chunk's crowns")
-	# A save made when the materials were numbered in another order (its world.json's
-	# `materials`): read through Mat.remap, its stone comes back as stone by name. Here
-	# the save's list says dirt where stone is and stone where dirt is.
-	var swapped := Mat.IDS.duplicate()
-	swapped[Mat.DIRT] = Mat.IDS[Mat.STONE]
-	swapped[Mat.STONE] = Mat.IDS[Mat.DIRT]
+	# A save made when the materials, trees, bushes and biomes were numbered in another
+	# order (its world.json's `numberings`, Numbering): read in the loaded order, its
+	# stone comes back as stone by name. Here the save's list says dirt where stone is
+	# and stone where dirt is, and lists the tree species backwards.
+	var now := Numbering.current()
+	var swapped: Array = now.materials.duplicate()
+	swapped[Mat.DIRT] = now.materials[Mat.STONE]
+	swapped[Mat.STONE] = now.materials[Mat.DIRT]
+	var backwards: Array = now.trees.duplicate()
+	backwards.reverse()
 	var c := WorldGen.new(42)
 	c.saved = again
-	c.material_map = Mat.remap(swapped)
+	c.number_by([{"materials": swapped, "trees": backwards}])
 	for i in range(area.size() - 1, -1, -1):
 		_ensure_stage(c, area[i], WorldGen.SHAPED)
 	_check(b.world.get_cell(stone.x, stone.y, stone.z) == Mat.STONE and c.world.get_cell(stone.x, stone.y, stone.z) == Mat.DIRT,
-		"a saved chunk is read by the material order of its save (Mat.remap)")
+		"a saved chunk is read by the material order of its save")
+	var last: int = backwards.size() - 1
+	_check(c.world.trees.has(trunks[1]) and c.world.trees[trunks[1]] == last - b.world.trees[trunks[1]],
+		"and its trees by the species order of its save")
+	_check(c.numbering == 1 and c.numberings.size() == 2 and c.pack(home).order == 1,
+		"the loaded order is added to the save's, and a chunk packed names it")
+	# Saved again in the loaded order without the chunk being changed (world.json takes
+	# the list on every save), then read again: the chunk keeps its meaning (DATA-1).
+	for k: Vector2i in c.world.unsaved:
+		again.write_chunk(k, c.pack(k))
+	c.world.unsaved.clear()
+	again.write_json("world.json", {"seed": 42.0, "content": WorldStore.CONTENT, "materials": now.materials, "numberings": c.numberings})
+	var d := WorldGen.new(42)
+	d.saved = WorldStore.new("user://test_saves/save")
+	d.number_by(Numbering.of_world(d.saved.read_json("world.json")))
+	for i in range(area.size() - 1, -1, -1):
+		_ensure_stage(d, area[i], WorldGen.SHAPED)
+	_check(d.numbering == 1 and d.world.get_cell(stone.x, stone.y, stone.z) == Mat.DIRT and d.world.trees.get(trunks[1]) == c.world.trees[trunks[1]],
+		"an unchanged chunk keeps its meaning after the world is saved in the loaded order and read again")
+	# A chunk changed and saved again names the loaded order: read the same.
+	d.world.set_material(stone.x, stone.y + 1, stone.z, Mat.STONE)
+	again.write_chunk(home, d.pack(home))
+	var e := WorldGen.new(42)
+	e.saved = WorldStore.new("user://test_saves/save")
+	e.number_by(Numbering.of_world(e.saved.read_json("world.json")))
+	for i in range(area.size() - 1, -1, -1):
+		_ensure_stage(e, area[i], WorldGen.SHAPED)
+	_check(e.world.get_cell(stone.x, stone.y, stone.z) == Mat.DIRT and e.world.get_cell(stone.x, stone.y + 1, stone.z) == Mat.STONE,
+		"a chunk saved in the loaded order is read as it was written")
+	_check(Numbering.of_world({}).is_empty() and Numbering.of_world({"content": 4})[0].materials == Array(WorldStore.OLD_MATERIALS)
+		and Numbering.of_world({"content": 9}) == [{}], "a new world has no orders; an old save the one of its materials")
 	_check(WorldStore.materials_of({"content": 4}) == WorldStore.OLD_MATERIALS and WorldStore.materials_of({"content": 9}).is_empty()
 		and WorldStore.materials_of({"content": 2, "materials": ["core:air"]}) == PackedStringArray(["core:air"]),
 		"an old save without its list numbers by the core's first thirteen; a newer one by its own list")

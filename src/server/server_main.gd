@@ -37,6 +37,7 @@ const Clock := preload("res://src/shared/game/clock.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Rules := preload("res://src/shared/game/rules.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Numbering := preload("res://src/shared/world/numbering.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 ## The test world's plan, compiled only for the test world (WorldStore.TEST_SEED).
@@ -310,8 +311,7 @@ func _open_world() -> bool:
 	var maker: GDScript = load(TEST_GROUND) if seed_value == WorldStore.TEST_SEED else WorldGen
 	var gen = maker.new(seed_value, 48, settings)
 	gen.saved = store
-	if had_save:
-		gen.material_map = Mat.remap(WorldStore.materials_of(meta))
+	gen.number_by(Numbering.of_world(meta if had_save else {}))
 	var clock := Clock.new()
 	clock.time_speed = config.day_speed()
 	if had_save and meta.get("sky") is Dictionary:

@@ -9,7 +9,7 @@ extends RefCounted
 ## (Minimap), one a frame among the chunks. What goes in, the systems of src/shared tell themselves
 ## (Clock, Placed, Character, the bag: to_dict or to_list); other modules keep their
 ## part of the player with track(). Older saves are translated by the store
-## (WorldStore.materials_of, Mods.of_world), the same way for the server. Off for tests
+## (Numbering.of_world, Mods.of_world), the same way for the server. Off for tests
 ## and tools (`enabled`). `game` is the Main node.
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
@@ -59,9 +59,6 @@ var store: WorldStore
 ## the player's record.
 var has_save := false
 var meta := {}
-## The ids of the materials in the order the save's cells are numbered (see
-## WorldStore.materials_of), empty for a new world.
-var saved_materials: PackedStringArray = []
 var player_record := {}
 ## The player was put back where the save had them (else they start at the spawn).
 var player_placed := false
@@ -129,9 +126,6 @@ func choose_world() -> void:
 	# bundles new to it that only add things to make (Mods.of_world); its items and cells
 	# are renamed as they load (Items.canon, Mat.RENAMED).
 	game.world_mods = Mods.of_world(meta)
-	# The order the materials were numbered in when the world was saved (its cells hold
-	# the numbers).
-	saved_materials = WorldStore.materials_of(meta)
 	player_record = store.read_json(PLAYER)
 	played = meta.get("played", 0.0)
 	print("save %s: %d chunks, %.0f s played" % [store.dir, store.chunk_count(), played])
@@ -284,6 +278,7 @@ func _write_world() -> void:
 		"known": Mods.all(),
 		"content": WorldStore.CONTENT,
 		"materials": Array(Mat.IDS),
+		"numberings": game.gen.numberings,
 		"levels": game.world.size_y,
 		"created": meta.get("created", Time.get_datetime_string_from_system()),
 		"saved": Time.get_datetime_string_from_system(),
