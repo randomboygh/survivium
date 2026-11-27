@@ -70,9 +70,9 @@ Part of [Protocol and server](../network.md). The connection, the copy of the wo
   `left`, `near`, `state`, `tint`, `frame`, `fresh`, `aloft()`), the same signals `born` / `gone` / `stepped`;
   `fresh` is set by `snap`, `creatures.gd` takes it off when it has set the picture.
 - `src/client/game/creatures.gd`, `props.gd`, `fire_shadows.gd`, `voices.gd`, `sky.gd`, the HUD, the sounds —
-  read the copies as they read the rules; `props.place()` (the save's things, the start camp) and the
-  «Testing» page (`settings.gd`: season, weather, hour, time speed) write into the server's
-  `game.session.placed` / `session.clock` — before С4 and С5.
+  read the copies as they read the rules; the save is put into the server's session by
+  `save.restore_world()` (`Session.from_saved`, [saving.md](../saving.md)); the «Testing» page (`settings.gd`:
+  season, weather, hour, time speed) writes into `session.clock` — before С5.
 - `src/client/game/character.gd` — the copy of the player's character: it does not run the rules (`update`
   only sets the player after `go_to_column`), takes the bag, strength, death and home from `you`/`vitals`,
   death hides the player (`_fell`) and resets the save; it remains `who` for what the client reads from the

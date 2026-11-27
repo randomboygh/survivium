@@ -315,9 +315,7 @@ func _open_world() -> bool:
 		had_save = true
 		_meta = meta
 		seed_value = int(meta.seed)
-		settings = {}
-		for k: String in WorldGen.DEFAULT_SETTINGS:
-			settings[k] = int(meta.get("settings", {}).get(k, WorldGen.DEFAULT_SETTINGS[k]))
+		settings = WorldStore.settings_of(meta)
 		say("world %s: %d chunks saved" % [store.dir, store.chunk_count()])
 	elif config.world != "":
 		say("no world %s" % store.dir)
@@ -334,8 +332,7 @@ func _open_world() -> bool:
 	gen.number_by(Numbering.of_world(meta if had_save else {}))
 	var clock := Clock.new()
 	clock.time_speed = config.day_speed()
-	if had_save and meta.get("sky") is Dictionary:
-		clock.from_dict(meta.sky)
+	Session.read_clock(clock, meta if had_save else {})
 	var placed := Placed.new()
 	placed.read_footprints()
 	session = Session.new(gen.world, gen, clock, Rules.of(config.rules), placed)
@@ -347,29 +344,9 @@ func _open_world() -> bool:
 			session.make_chunk(key + Vector2i(dx, dz))
 	var cell := WorldGen.find_spawn(gen.world, guess)
 	spawn = (Vector3(cell) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL
-	if had_save and meta.get("teams") is Dictionary:
-		session.teams.from_dict(meta.teams)
-	if had_save and meta.get("fights") is Dictionary:
-		session.fights.from_dict(meta.fights)
-	if had_save and meta.get("territory") is Dictionary:
-		session.territory.from_dict(meta.territory)
-	if had_save and meta.get("plans") is Array:
-		session.plans.from_list(meta.plans)
-	if had_save and meta.get("tame") is Array:
-		session.wildlife.add_tamed(meta.tame)
-	if had_save and meta.get("vessels") is Array:
-		session.actions.vessels.from_list(meta.vessels)
-	if had_save and meta.get("ice_holes") is Array:
-		session.ice.from_saved(meta.ice_holes)
-	if had_save and meta.get("decay") is Dictionary:
-		session.decay.from_dict(meta.decay)
-	if had_save and meta.get("placed") is Array:
-		placed.from_list(meta.placed)
-	else:
-		placed.start_camp(spawn)
-		if gen.has_method("plan_things"):
-			for t: Array in gen.plan_things():
-				placed.put_plan(t)
+	# What the save holds, the same code as single player's (Session.from_saved); a new
+	# world gets the camp of the start at the spawn.
+	session.from_saved(meta if had_save else {}, spawn, true)
 	runner = Runner.new(session)
 	runner.pausable = false
 	runner.playing = true

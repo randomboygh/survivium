@@ -25,6 +25,14 @@ const Plans := preload("res://src/shared/game/plans.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Currents := preload("res://src/shared/world/currents.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const Items := preload("res://src/shared/content/items.gd")
+
+## The parts of world.json only a server writes and reads (ServerStore): the teams and the
+## fights. Single player leaves them in the file as a server saved them (WA-020).
+const SERVER_PARTS := ["teams", "fights"]
 
 ## Seconds of one long frame the characters, workshops and lights catch up on at most: a
 ## slow phone's frame (5 FPS) counts in full, while a pause (the tab hidden, a freeze of
@@ -178,6 +186,92 @@ func _init(w, g, c: Clock, r, p) -> void:
 	ice.clock = clock
 	actions.ice = ice
 
+
+
+## world.json as this session writes it, the one save code of single player and the server
+## (audit GAME-3/UI-1/DATA-5; docs/systems/saving.md): the world (`info`: its "seed",
+## WorldGen "settings" and bundles "mods"; `created` as the save read had it, "" for now;
+## seconds `played` over all runs), the bundles known, the numberings of its chunks, the
+## clock, the things placed, the land, the plans, the tamed animals, the boats, the holes
+## in the ice and the decay; on a server (`server`) also SERVER_PARTS. A caller adds only
+## its own keys (the server's next player's number).
+func to_saved(info: Dictionary, created: String, played: float, server: bool) -> Dictionary:
+	var now := Time.get_datetime_string_from_system()
+	var out := {
+		"format": WorldStore.FORMAT,
+		"seed": info.seed,
+		"settings": info.settings,
+		"mods": info.mods,
+		"known": Mods.all(),
+		"content": WorldStore.CONTENT,
+		"materials": Array(Mat.IDS),
+		"numberings": gen.numberings,
+		"levels": world.size_y,
+		"created": created if created != "" else now,
+		"saved": now,
+		"played": played,
+		"sky": clock.to_dict(),
+		"placed": placed.to_list(),
+		"territory": territory.to_dict(),
+		"plans": plans.to_list(),
+		"tame": wildlife.tamed_list(),
+		"vessels": actions.vessels.to_list(),
+		"ice_holes": ice.to_saved(),
+		"decay": decay.to_dict(),
+	}
+	if server:
+		out.teams = teams.to_dict()
+		out.fights = fights.to_dict()
+	return out
+
+
+## Puts the clock and season of world.json `meta` (to_saved: "sky") into `clock`, before a
+## session is made over it, so the chunks made first already show the saved season.
+static func read_clock(c: Clock, meta: Dictionary) -> void:
+	if meta.get("sky") is Dictionary:
+		c.from_dict(meta.sky)
+
+
+## Puts back what world.json `meta` holds (to_saved; {} for a new world) but the clock
+## (read_clock), in the order the parts need: the teams and fights (on a server, `server`)
+## and the land before the things, since a thing taken away tells the land
+## (placed.removed, _init); the decay needs the world (set by _init). A world with no
+## things saved gets the camp of the start next to `camp_at` (Placed.start_camp, and the
+## test world's camp, TestGround.plan_things); a save from before things could be placed
+## gets its chest and campfire back by name ("props").
+func from_saved(meta: Dictionary, camp_at: Vector3, server: bool) -> void:
+	if server and meta.get("teams") is Dictionary:
+		teams.from_dict(meta.teams)
+	if server and meta.get("fights") is Dictionary:
+		fights.from_dict(meta.fights)
+	if meta.get("territory") is Dictionary:
+		territory.from_dict(meta.territory)
+	if meta.get("plans") is Array:
+		plans.from_list(meta.plans)
+	if meta.get("tame") is Array:
+		wildlife.add_tamed(meta.tame)
+	if meta.get("vessels") is Array:
+		actions.vessels.from_list(meta.vessels)
+	if meta.get("ice_holes") is Array:
+		ice.from_saved(meta.ice_holes)
+	if meta.get("decay") is Dictionary:
+		decay.from_dict(meta.decay)
+	if meta.get("placed") is Array:
+		placed.from_list(meta.placed)
+	elif meta.get("props") is Dictionary:
+		for name: String in ["chest", "campfire"]:
+			var c: Variant = meta.props.get(name)
+			if c is Array and c.size() == 3:
+				var cell := Vector3i(int(c[0]), int(c[1]), int(c[2]))
+				if name == "chest":
+					placed.put(Items.with_prop("chest"), cell, meta.get("chest"))
+				else:
+					placed.put(placed.CAMPFIRE, cell)
+	else:
+		placed.start_camp(camp_at)
+		if gen != null and gen.has_method("plan_things"):
+			for t: Array in gen.plan_things():
+				placed.put_plan(t)
 
 ## Brings `who` (Character) into the world with their `workshop` (Workshop).
 func add_player(who, workshop) -> void:

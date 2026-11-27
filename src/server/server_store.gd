@@ -16,8 +16,6 @@ extends RefCounted
 ## save is lost, the save itself is whole.
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
-const Mods := preload("res://src/shared/content/mods.gd")
-const Mat := preload("res://src/shared/content/materials.gd")
 
 const PLAYERS := WorldStore.PLAYERS
 ## The parts of a player's record, as the game's save names them (save_game.gd).
@@ -171,29 +169,9 @@ static func restore(link, record: Dictionary) -> void:
 		who.teleport(Vector3(p[0], p[1], p[2]))
 
 
+## world.json: what the session saves (Session.to_saved, the code single player saves
+## with too) with the teams and fights, and the next player's number.
 func _world_meta(next_id: int) -> Dictionary:
-	return {
-		"format": WorldStore.FORMAT,
-		"seed": info.seed,
-		"settings": info.settings,
-		"mods": info.mods,
-		"known": Mods.all(),
-		"content": WorldStore.CONTENT,
-		"materials": Array(Mat.IDS),
-		"numberings": session.gen.numberings,
-		"levels": session.world.size_y,
-		"created": meta.get("created", Time.get_datetime_string_from_system()),
-		"saved": Time.get_datetime_string_from_system(),
-		"played": played,
-		"sky": session.clock.to_dict(),
-		"placed": session.placed.to_list(),
-		"teams": session.teams.to_dict(),
-		"territory": session.territory.to_dict(),
-		"plans": session.plans.to_list(),
-		"fights": session.fights.to_dict(),
-		"tame": session.wildlife.tamed_list(),
-		"vessels": session.actions.vessels.to_list(),
-		"ice_holes": session.ice.to_saved(),
-		"decay": session.decay.to_dict(),
-		"next_player": next_id,
-	}
+	var out: Dictionary = session.to_saved(info, str(meta.get("created", "")), played, true)
+	out.next_player = next_id
+	return out

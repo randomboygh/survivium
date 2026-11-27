@@ -127,49 +127,10 @@ func watch(placed) -> void:
 	placed.melt_changed.connect(_on_opened)
 
 
-## Puts the placed things into the world as the save had them, or the camp of the start
-## next to the player in a new world (Placed.start_camp; and the test world's camp); the
-## near chunks are built by then, so the ground under them is known. They go into the
-## server's things (the saves move to the server at С4); the copy drawn here gets them
-## by events.
+## The things placed are in the world (SaveGame.restore_world put the save into the
+## server's session, or a server far away sent them: Protocol.PROPS); the copy drawn here
+## got them by events. What burns starts warming the player.
 func place() -> void:
-	if game.session == null:
-		# A server far away placed them: the copy has them (Protocol.PROPS).
-		_heat_later()
-		return
-	var meta: Dictionary = game.save.meta
-	var placed = game.session.placed
-	if meta.get("territory") is Dictionary:
-		game.session.territory.from_dict(meta.territory)
-	if meta.get("plans") is Array:
-		game.session.plans.from_list(meta.plans)
-	if meta.get("tame") is Array:
-		game.session.wildlife.add_tamed(meta.tame)
-	if meta.get("vessels") is Array:
-		game.session.actions.vessels.from_list(meta.vessels)
-	if meta.get("ice_holes") is Array:
-		game.session.ice.from_saved(meta.ice_holes)
-	# Building decay: as the world was saved; a new world as «New game» set it, a world
-	# saved before decay with it on.
-	if meta.get("decay") is Dictionary:
-		game.session.decay.from_dict(meta.decay)
-	elif not game.save.has_save:
-		game.session.decay.on = int(game.settings.values.get("world_decay", 1)) != 0
-	if meta.get("placed") is Array:
-		placed.from_list(meta.placed)
-	elif meta.get("props") is Dictionary:
-		# A save from before things could be placed: the chest and the campfire by name.
-		for name in ["chest", "campfire"]:
-			var c: Variant = game.save.prop_cell(name)
-			if c != null:
-				placed.put(Items.with_prop("chest") if name == "chest" else Placed.CAMPFIRE, c,
-					meta.get("chest") if name == "chest" else null)
-	else:
-		placed.start_camp(game.player.position)
-		# The camp of the test world (TestGround.plan_things), for FPS and freezes.
-		if game.gen.has_method("plan_things"):
-			for t: Array in game.gen.plan_things():
-				placed.put_plan(t)
 	_heat_later()
 
 
@@ -304,7 +265,7 @@ func _cut_model(node: MeshInstance3D, e: Dictionary, model) -> void:
 	if _cut_at < 0 or rows <= 0 or rows >= model.top():
 		# Whole, or wholly above the cut (left out by the shader, its shadow kept).
 		rows = -1
-	if node.get_meta("cut_rows", -1) == rows and node.get_meta("cut_model", null) == model:
+	if node.get_meta("cut_rows", -1) == rows and node.has_meta("cut_model") and node.get_meta("cut_model") == model:
 		return
 	_uncut(node)
 	node.set_meta("cut_rows", rows)

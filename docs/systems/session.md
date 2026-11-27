@@ -72,8 +72,19 @@ whole, `take_work`, `gen_us`, `stages_left`), `tools/profile.gd` (the steps sepa
 tests. The session's players are the server's characters (`src/server/player.gd`) brought by `PlayerLink`;
 the client reads `game.actions`, `game.storms`, `game.rules` as before, the character, the workshop, things on
 cells, the clock and beasts — by their copies, and asks the rules through `game.net` — by protocol requests to
-the server inside the game ([network.md](network.md)). Saving and the «Testing» page write into
-`session.clock` and `session.placed` (before С4, С5).
+the server inside the game ([network.md](network.md)). The «Testing» page writes into `session.clock`
+(before С5).
+
+**Saving** (audit GAME-3/UI-1/DATA-5, the owner's pick «one save code in the session»): the session writes and
+reads its own part of `world.json`, single player (`save_game.gd`) and the server (`server_store.gd`,
+`server_main.gd`) call it. `to_saved(info, created, played, server)` gives the whole file (the world's seed,
+settings, bundles, numberings, the clock, things, land, plans, tamed animals, boats, ice holes, decay; on a
+server also `SERVER_PARTS`: teams and fights); a caller adds only its own keys (the server's `next_player`).
+`read_clock(clock, meta)` puts the clock back before the session is made (the first chunks show the saved
+season); `from_saved(meta, camp_at, server)` puts back the rest in the order the parts need (teams and land
+before things: a thing taken away tells the land), the old-save shim (`props`: the chest and campfire of a
+save from before placing) and the start camp of a new world. A new saved part of the session is added here
+only.
 
 **Limits.** The player's body is moved by the client (`player.gd`), not the session: by decision 153 the
 server will check the movement with the same `body.gd` and correct it. The node's tick takes the last
@@ -88,6 +99,8 @@ own by the share `Wildlife.wanted` and its biomes, with the forgotten ground the
 moves the time, both characters and both workshops, beasts at both players, the wind in turn, pushes, a
 player's leaving; `making`: the player's zone, a step on a tiny budget and the job between calls, the stages
 around a zone in the order «its own chunk first», the accounting of work, a chunk whole, forgetting farther
-than `DROP` after leaving, no players — nothing to do); `tests/save_test.gd` (the server node under the root
+than `DROP` after leaving, no players — nothing to do; `saved`: a session saved comes back whole into a fresh
+one, the teams only on a server, a pre-placing save gets its chest back on both, a new world its camp);
+`tests/save_test.gd` (the server node under the root
 and leaves with the scene); `tests/unit/body_test.gd` (the things' shapes read by the session from models
 match the models); `tests/unit/net_test.gd` (copies through the loop).
