@@ -163,6 +163,20 @@ func _run() -> void:
 		"the server opens a new world, makes the ground round the spawn and listens")
 	_check(server.session.players.is_empty() and server.session.wildlife.animals.is_empty(),
 		"nobody is in the world yet, and no animals: they come with the first player")
+	# A world whose bundle is gone is not opened (audit DATA-3): the server names it and
+	# leaves the save alone; nor does it move to such a world.
+	var gone_dir := ROOT + "/gone"
+	WorldStore.write_json_at(gone_dir + "/" + WorldStore.WORLD, {"format": WorldStore.FORMAT, "seed": 9.0,
+		"mods": server.mods + ["gone/away"]})
+	var gone_text := FileAccess.get_file_as_string(gone_dir + "/" + WorldStore.WORLD)
+	var refused = load("res://scenes/server.tscn").instantiate()
+	refused.hosted = true
+	refused.config.world = gone_dir
+	_check(not refused.start() and "gone/away" in refused.failed and refused.session == null,
+		"a world whose bundle is gone is not opened, the bundle named: %s" % refused.failed)
+	refused.free()
+	_check(not server.renew(0, "gone") and server.server.listening, "the server does not move to a world whose bundle is gone")
+	_check(FileAccess.get_file_as_string(gone_dir + "/" + WorldStore.WORLD) == gone_text, "its save is left as it was")
 
 	# Hello and the welcome; the events of joining follow it.
 	var anya := _bot("Аня")

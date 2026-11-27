@@ -69,6 +69,39 @@ func _start() -> Node:
 	return main
 
 
+## A world whose bundle is gone is not opened (audit DATA-3): the menu names the bundle,
+## «Продолжить» cannot be pressed, nothing loads and the save stays as it was.
+func _missing_bundle(store) -> void:
+	var path: String = store.dir + "/" + WorldStore.WORLD
+	var before := FileAccess.get_file_as_string(path)
+	var meta: Dictionary = JSON.parse_string(before)
+	meta.mods = Array(meta.mods) + ["gone/away"]
+	store.write_json(WorldStore.WORLD, meta)
+	var written := FileAccess.get_file_as_string(path)
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	main.save_root = ROOT
+	root.add_child(main)
+	await _frames(3)
+	_check(main.save.missing == ["gone/away"] and not main.save.has_save, "a world whose bundle is gone is not opened")
+	var mm = main.menu
+	mm._fill_page("single")
+	_check(mm._buttons.play.disabled and mm._note != null and "gone/away" in mm._note.text,
+		"«Продолжить» cannot be pressed and the note names the bundle")
+	mm.play()
+	main.begin_world()
+	await _frames(5)
+	_check(not main.world_started and main.world == null, "nothing loads")
+	main.save.begin()
+	main.save.flush()
+	main.queue_free()
+	await process_frame
+	await process_frame
+	_check(FileAccess.get_file_as_string(path) == written, "the save is left as it was")
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(before)
+	f.close()
+
+
 func _touch(pos: Vector2, down: bool) -> void:
 	var t := InputEventScreenTouch.new()
 	t.position = pos
@@ -851,6 +884,7 @@ func _run() -> void:
 	main.queue_free()
 	await process_frame
 	await process_frame
+	await _missing_bundle(store)
 
 	main = await _start()
 	ch = main.character

@@ -103,6 +103,9 @@ var _load_clock := 0.0
 var _load_frames := 0
 var _load_worst := 0.0
 var _meta := {}
+## Why the world was not opened, for the player (failed), when its bundles are not all
+## here (Mods.missing); "" otherwise.
+var _refusal := ""
 ## The seed of the world renew asked for, while the players are put out; null otherwise;
 ## and its save's folder ("" for the world of the seed).
 var _renew_seed: Variant = null
@@ -125,7 +128,8 @@ func start() -> bool:
 		config.take_args(OS.get_cmdline_user_args())
 	say("%s, build %s, protocol %d" % [Protocol.game_name(), Protocol.build_version(), Protocol.VERSION])
 	if not _open_world():
-		failed = Lang.line("[the_world_could_not_be_opened]", [str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else ""])
+		failed = _refusal if _refusal != "" else Lang.line("[the_world_could_not_be_opened]",
+			[str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else ""])
 		return false
 	_make_server()
 	_open_saves()
@@ -221,6 +225,14 @@ func _make_server() -> void:
 func renew(new_seed: int, folder := "") -> bool:
 	if server == null or server.stopping:
 		return false
+	# A save whose bundles are not all here is not opened: the server would stop.
+	var path := WorldStore.world_dir(new_seed, config.settings)
+	if folder != "":
+		path = folder if folder.contains("://") or folder.begins_with("/") else WorldStore.root + "/" + folder
+	var missing := Mods.missing(WorldStore.read_json_at(path + "/" + WorldStore.WORLD))
+	if not missing.is_empty():
+		say("the world %s needs bundles that are not here: %s; this world stays" % [path, ", ".join(missing)])
+		return false
 	say("another world (%s): everyone leaves and comes in again" % (folder if folder != "" else str(new_seed)))
 	_renew_seed = new_seed
 	_renew_folder = folder
@@ -293,6 +305,12 @@ func _open_world() -> bool:
 		meta = store.read_json(WorldStore.WORLD)
 		if meta.get("format") != float(WorldStore.FORMAT) or not meta.get("seed") is float:
 			say("cannot read the save %s (format %s, %d needed)" % [store.dir, meta.get("format"), WorldStore.FORMAT])
+			return false
+		var missing := Mods.missing(meta)
+		if not missing.is_empty():
+			say("cannot open the world %s: the bundles %s it was made with are not here; put the mods back (the save is left as it is)"
+				% [store.dir, ", ".join(missing)])
+			_refusal = Lang.line("[world_bundles_missing]", [", ".join(missing)])
 			return false
 		had_save = true
 		_meta = meta

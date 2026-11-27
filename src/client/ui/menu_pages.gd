@@ -112,12 +112,15 @@ func _fill_page(page: String) -> void:
 				_slow_code()
 		"single":
 			_caption("[single_player]")
-			_add_button(_box, "play", "[continue]", _play_single)
+			var refused: bool = not game.save.missing.is_empty() and game.link.join_url == ""
+			_add_button(_box, "play", "[continue]", Callable() if refused else _play_single)
 			_describe_world(_buttons.play)
+			if refused:
+				_missing_bundles()
 			_add_button(_box, "new", "[new_game]", _new_world)
 			_add_button(_box, "worlds", "[load_game]", _open_worlds)
 			_add_button(_box, "back", "[back]", _fill_page.bind("top"))
-			lit = "play"
+			lit = "worlds" if refused else "play"
 		"multi":
 			_caption("[multiplayer]")
 			var hosting: bool = game.link.hosted != null
@@ -185,6 +188,15 @@ func _caption(text: String) -> void:
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(l)
+
+
+## The world of this device cannot be opened: the bundles it was made with that are not
+## here (SaveGame.missing), under «Продолжить».
+func _missing_bundles() -> void:
+	_note = UiStyle.label(Lang.f("[world_bundles_missing]", [", ".join(game.save.missing)]), UiStyle.DANGER)
+	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_note.custom_minimum_size = Vector2(WIDTH, 0)
+	_box.add_child(_note)
 
 
 ## The browser draws without the graphics card: why the game is slow, and how to turn
@@ -324,6 +336,10 @@ func _play_single() -> void:
 func play(from := "single") -> void:
 	if settled:
 		close()
+		return
+	if not game.save.missing.is_empty() and game.link.join_url == "":
+		# Not opened: the page says why.
+		_fill_page("single")
 		return
 	back_to = from
 	_want_play = true

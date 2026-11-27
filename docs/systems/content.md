@@ -183,7 +183,8 @@ the code sees content.
 - `Mods.activate(bundles)` — make a world's set the current one and rebuild the registries; `Mods.rescan()` —
   reread `content/` (a button on «Testing»); `Mods.expand(list)` — old mod ids into bundles;
   `Mods.of_world(meta)` — a world's bundles by its `world.json`, with the supplementing ones that have
-  entered since (decision 4А); `Mods.additive(b)` — a bundle has only items, recipes, eras, the start and
+  entered since (decision 4А); `Mods.missing(meta)` — what it lists that is not here (such a world is not
+  opened, [saving.md](saving.md)); `Mods.additive(b)` — a bundle has only items, recipes, eras, the start and
   sounds; `Mods.why(b, dropped)` — what a bundle lacks and what the one before it, switched off, lacks.
 - The registries: `Mat.GRASS` and others (only the core), `Mat.of_role`, `Mat.index`, `Mat.remap`;
   `Items.get_item`, `with_prop`, `with_tool`, `tool_title` (the key of a tool class `[tool.<class>]`),
