@@ -2,6 +2,13 @@
 
 Part of [Chunks on screen](../chunks.md). The queue and budgets of chunk building, the chunk's mesh.
 
+- The streamer is a chain of parts (each calls only itself and the parts before it; callers preload
+  `chunk_streamer.gd`): `streamer_order.gd` (constants, the shared state, which chunks are wanted and in what
+  order: `reach`, `wanted`, `next_chunk`, `_build_score`, `_check_lag`) ← `streamer_nodes.gd` (a chunk's nodes,
+  `_apply_*`, culling boxes, the edge haze, the map's paint queue) ← `streamer_jobs.gd` (`run_jobs` and its
+  budgets, the stash, `kept`, unloading) ← `streamer_edits.gd` (`on_cell_changed`, `set_holes`, `regrow_cell`,
+  `remesh_chunk`) ← `streamer_cut.gd` (the level cut, the build mode's floors, layers, caps) ←
+  `chunk_streamer.gd` (`prepare`, `build_near`).
 - `src/client/world/chunk_streamer.gd` — the queue and the budgets: first those near the spawn (before the
   game), then within `reach()` by the screen (no less than `LOAD_RANGE` = `Session.ZONE`, 5 chunks; a window
   wider than a phone's — farther, `Session.reach_for` from half the screen, up to `Session.ZONE_MOST` 10; the
