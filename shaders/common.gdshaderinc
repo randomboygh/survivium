@@ -204,6 +204,7 @@ global uniform vec2 light_side;
 // shear stretches a way (PixelView.light_range): the shaders ring them by the way in
 // the world (light_stretch), so their light stays round them however the view tilts.
 global uniform float light_reach;
+global uniform float view_lean;
 
 vec3 shear(vec3 p) {
 	vec2 s = p.xz + view_up * (dot(p.xz, view_up) * (view_squash - 1.0) + view_slope * p.y);
@@ -256,6 +257,13 @@ vec3 face_view(vec3 p, vec3 o) {
 // unit of height view_slope tall it keeps its height in pixels at any tilt. Only for
 // what is drawn: tests of where the point is (the cut, roofs, water) take it as it is.
 vec3 stand_tall(vec3 p, vec3 o) {
+	// EXPERIMENT: a true orthographic camera tilted view_lean below the horizon; the
+	// quad leans back to face it, so it keeps its height in pixels.
+	if (view_lean > 0.0) {
+		float d = p.y - o.y;
+		vec2 back = view_up * d * sin(view_lean);
+		return vec3(p.x + back.x, o.y + d * cos(view_lean), p.z + back.y);
+	}
 	// The first-person view draws no shear (slope 0): the quad as it is.
 	return vec3(p.x, o.y + (p.y - o.y) / (view_slope > 0.01 ? view_slope : 1.0), p.z);
 }

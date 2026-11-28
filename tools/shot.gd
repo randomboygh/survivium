@@ -368,12 +368,15 @@ func _run() -> void:
 		# view drifting round (CameraRig.drift_rate) from the second minute on.
 		main.view.wake()
 		# `fp`: the first-person view, [yaw, pitch] in degrees (yaw to the left of north).
+		main.view.ortho_test = shot.has("ortho")
 		main.settings.first_person = shot.has("fp")
 		main.view.set_first_person(shot.has("fp"))
 		if shot.has("fp"):
 			main.view.look_yaw = deg_to_rad(shot.fp[0])
 			main.view.look_pitch = deg_to_rad(shot.fp[1])
 			main.view.look_by(Vector2.ZERO)
+		RenderingServer.global_shader_parameter_set("view_lean",
+			-main.view.look_pitch if shot.get("lean", false) else 0.0)
 		if shot.has("spin"):
 			# Caught in a smooth turn (a turn button held), `spin` degrees round, held still.
 			main.view.hold_turn(1)

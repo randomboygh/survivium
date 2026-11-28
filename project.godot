@@ -274,6 +274,10 @@ view_slope={
 "type": "float",
 "value": 1.0
 }
+view_lean={
+"type": "float",
+"value": 0.0
+}
 rest_view={
 "type": "vec3",
 "value": Vector3(0, -1, 1)

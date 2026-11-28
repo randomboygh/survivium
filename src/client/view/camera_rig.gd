@@ -135,6 +135,8 @@ var _shake := 0.0
 var _shake_left := 0.0
 
 var first_person := false
+## EXPERIMENT: a true orthographic camera tilted, no shear (the first-person path).
+var ortho_test := false
 ## The small cross in the middle of the screen in the first-person view.
 var crosshair: Control
 ## Where the first-person view looks: radians to the left of north (as `turn`), and up
@@ -198,6 +200,11 @@ func set_first_person(on: bool) -> void:
 		camera.fov = FOV
 		camera.near = 0.05
 		camera.far = FAR
+		if ortho_test:
+			camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+			camera.size = PixelView.camera_size(image_size.y)
+			camera.near = 1.0
+			camera.far = 300.0
 		PixelView.set_first_person(look_yaw)
 		# Without the shear every view's box is the same: fitted once.
 		PixelView.box_views = [[PixelView.up, 1.0, 0.0]]
@@ -214,14 +221,14 @@ func set_first_person(on: bool) -> void:
 		PixelView.box_views = [PixelView.view_of(turn, tilt)]
 		if game.chunks != null:
 			game.chunks.refit_boxes()
-	game.player.set_drawn(not on)
+	game.player.set_drawn(not on or ortho_test)
 	if game.chunks != null:
 		# The fog over chunks not built lies on the ground as seen from above; the
 		# first-person view has its own fog with the distance (Sky).
 		game.chunks.set_haze(not on and game.settings.values.edge_mist)
-	game.player.look_way = PixelView.up if on else Vector2.ZERO
+	game.player.look_way = PixelView.up if on and not ortho_test else Vector2.ZERO
 	if crosshair != null:
-		crosshair.visible = on
+		crosshair.visible = on and not ortho_test
 
 
 ## Turns the first-person view by `d` radians: x to the right, y down.
@@ -231,7 +238,8 @@ func look_by(d: Vector2) -> void:
 	look_yaw = wrapf(look_yaw - d.x, -PI, PI)
 	look_pitch = clampf(look_pitch - d.y, -PITCH_MAX, PITCH_MAX)
 	PixelView.set_first_person(look_yaw)
-	game.player.look_way = PixelView.up
+	if not ortho_test:
+		game.player.look_way = PixelView.up
 
 
 ## The cross in the middle of the picture: arms CROSS_ARM pixels of the world long, light
@@ -673,6 +681,9 @@ func update(delta: float) -> void:
 func _first_person_frame(player) -> void:
 	var eye: Vector3 = player.position + Vector3(0.0, EYE, 0.0)
 	camera.global_transform = Transform3D(Basis.from_euler(Vector3(look_pitch, look_yaw, 0.0)), eye)
+	if ortho_test:
+		var b := Basis.from_euler(Vector3(look_pitch, look_yaw, 0.0))
+		camera.global_transform = Transform3D(b, player.position + Vector3(0.0, 0.5, 0.0) + b.z * 100.0)
 	cam_target = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
 	grade_mat.set_shader_parameter("view_origin", Vector2.ZERO)
 	container.position = (-Vector2.ONE * PixelView.MARGIN * view_scale).round()

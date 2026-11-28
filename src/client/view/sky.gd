@@ -610,7 +610,7 @@ static func glowing_night(day: int, time_of_day: float) -> bool:
 ## horizon, and the world fades into it with the distance, hiding the edge of the chunks
 ## built (FIRST_PERSON_FOG world units from the eyes).
 func _first_person_sky(night: float, cut_on: bool) -> void:
-	var on: bool = game.view != null and game.view.first_person and not cut_on
+	var on: bool = game.view != null and game.view.first_person and not game.view.ortho_test and not cut_on
 	if env.fog_enabled != on:
 		env.fog_enabled = on
 		env.fog_mode = Environment.FOG_MODE_DEPTH

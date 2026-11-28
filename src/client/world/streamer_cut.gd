@@ -101,7 +101,7 @@ func update_cut(_delta: float) -> void:
 		hidden_at = at
 		hidden_by = _hiding_level(px, level, pz)
 		hill = hidden_by >= 0 and not _hide_steep and not _rises_behind(px, level, pz)
-	elif _hidden_view != Vector3(PixelView.up.x, PixelView.up.y, PixelView.slope):
+	elif _hidden_view != Vector3(PixelView.up.x, PixelView.up.y, _view_slope()):
 		hidden_by = _hiding_level(px, level, pz)
 		hill = hidden_by >= 0 and not _hide_steep and not _rises_behind(px, level, pz)
 	var target: int = world.size_y
@@ -115,7 +115,7 @@ func update_cut(_delta: float) -> void:
 	if floors >= 0:
 		# The level buttons step by floors meanwhile.
 		manual_level = -1
-	if game.view.first_person:
+	if (game.view.first_person and not game.view.ortho_test):
 		# The eyes see what is round them: nothing cut away, no layers.
 		manual_level = -1
 	elif floors >= 0 and build_floor != 0:
@@ -135,7 +135,7 @@ func update_cut(_delta: float) -> void:
 		# nothing (a ravine running along the view) open nothing either.
 		target = hidden_by - 1
 	_update_depth()
-	var opened: bool = manual_level < 0 and target < world.size_y and not game.view.first_person
+	var opened: bool = manual_level < 0 and target < world.size_y and not (game.view.first_person and not game.view.ortho_test)
 	# Where the automatic cut would cut the view, the layers open it instead and fill
 	# what they leave out with the rock's section, by the solid cells round the player.
 	_update_layers(opened, at)
@@ -170,12 +170,19 @@ func _roof(x: int, y: int, z: int) -> bool:
 ## them. A wall the head looks over hides only the legs and is left alone. A turned or
 ## tilted view looks along its own way: a cell y - level up is drawn over the body
 ## from (y - level) * slope cells toward the camera.
+## EXPERIMENT (ortho_test): the true camera's way down, cells toward it per level.
+func _view_slope() -> float:
+	if game.view.ortho_test:
+		return 1.0 / tan(-game.view.look_pitch)
+	return PixelView.slope
+
+
 func _hiding_level(x: int, level: int, z: int) -> int:
 	var up := PixelView.up
-	_hidden_view = Vector3(up.x, up.y, PixelView.slope)
+	_hidden_view = Vector3(up.x, up.y, _view_slope())
 	var body := Vector2(x + 0.5, z + 0.5)
 	for y in range(level + 2, mini(level + 2 + HIDE_REACH, world.size_y)):
-		var ahead := body - up * PixelView.slope * (y - level)
+		var ahead := body - up * _view_slope() * (y - level)
 		for c: Vector2 in [ahead + up, ahead]:
 			if _roof(floori(c.x), y, floori(c.y)):
 				_hide_steep = _sheer_below(c + up, y)
@@ -219,7 +226,7 @@ func _rises_behind(x: int, level: int, z: int) -> bool:
 ## its walls show, all built above them is left out (the user's pick, 2026-11-27), within
 ## floors_range.
 func build_level(level: int) -> int:
-	if game.build == null or not game.build.on or game.view.first_person:
+	if game.build == null or not game.build.on or (game.view.first_person and not game.view.ortho_test):
 		build_floor = 0
 		floors_on = false
 		return -1
@@ -242,7 +249,7 @@ func floor_height() -> int:
 
 ## Whether the level buttons step by floors (in the build mode, not in first person).
 func by_floors() -> bool:
-	return game.build != null and game.build.on and not game.view.first_person
+	return game.build != null and game.build.on and not (game.view.first_person and not game.view.ortho_test)
 
 
 ## The highest level a built thing shows on, what the finger can touch (the cut of the
