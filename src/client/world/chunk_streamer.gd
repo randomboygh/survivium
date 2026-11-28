@@ -9,8 +9,15 @@ extends "res://src/client/world/streamer_cut.gd"
 ## Session.DROP). The caps over the cut are kept on the chunks around the player, and
 ## the cut itself moves: automatic under a roof or in a cave, manual with the level
 ## buttons. `game` is the Main node that owns the scene.
+##
+## The code is a chain of parts, each calling only itself and the parts before it:
+## streamer_order.gd (constants, shared state, the order of building) ← streamer_nodes.gd
+## (a chunk's nodes, boxes, haze, the map's paints) ← streamer_jobs.gd (run_jobs and the
+## budgets, the stash, kept, unloading) ← streamer_edits.gd ← streamer_cut.gd (the level
+## cut, floors, layers, caps) ← this file. The chunk being built is a ChunkJob
+## (chunk_job.gd). Callers preload this file.
 
-
+## The near chunks to build before play, counted by prepare (see near_pending).
 var near_total := 0
 
 
