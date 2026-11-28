@@ -21,6 +21,13 @@ Part of [Hands and the world: digging, building, chopping, mowing, gathering](..
   and the slot under the finger was chosen as it lifted (the user's report of 2026-11-27; `save_test`
   `_chest_by_touch`). A tap that comes as the press lifts (the first-person view's, `look_swipe.gd`) acts at once.
 - `src/client/input/work_mode.gd` — what the build and the farming modes share (both extend it): the hands remembered on entry and given back on `leave`, the palette of the bag under a filter, the eraser, `auto`; a mode adds its hooks (`_filters`, `_in_palette`, `_show`, `_left`).
+- The build mode is a chain of parts (each calls only itself and the parts before it; callers preload
+  `build_mode.gd`): `build_palette.gd` (constants, the shared state, the palette and what is chosen, the
+  eyedropper, the shape, form, height and thickness, undo and redo) ← `build_need.gd` (what the blueprint near
+  needs, `short_of`, `auto`) ← `build_blueprint.gd` (the cells of a blueprint stroke, replacing, the double tap
+  on the ghost of a slope) ← `build_aim.gd` (where a thing is aimed, beside one of its kind, the taps that turn
+  and take things) ← `build_carry.gd` (`drag`, `second_finger`, `release`: things carried, shown only where they
+  fit) ← `build_mode.gd` (`_left`, `update`, `start_stroke`). The text below names the mode as a whole.
 - `src/client/input/build_mode.gd` — build mode (`game.build`): entry from the bag («Build») or from a panel
   cell with a block or thing, exit (the hands return what they held), the palette (`palette`; the filters
   «All» / «Materials» / «Interior» are in the code but not shown yet), the shape, the kind of block (`form`:
