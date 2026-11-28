@@ -28,7 +28,7 @@ Part of [Crafting, stations and things on cells](../crafting.md). `placed.gd`, m
   as a station; how much is left is seen by the fire itself: `Effects.fire_strength` by `fuel_share` (by the
   root of the share: one just lit is already lively) — a full one burns wide, high and very bright, with
   sparks and far light, one burning down — low dim tongues and short light (`Props` by `fuel_changed`); the
-  «Crafting» tab at a campfire — the button «Add fuel» beside «Put out»/«Light», with a strip of the reserve
+  «Craft» tab at a campfire — the button «Add fuel» beside «Put out»/«Light», with a strip of the reserve
   below (`CraftPanel._draw_fuel`; unavailable at a burnt-out one, a full one or with no fuel in the bag, in
   the hint — how much longer to burn); solid through `WorldData.blockers`; a new world starts with the start
   camp at the spawn (`start_camp` by `Starts.START.camp`: a campfire, a chest — the patch of the chest's
@@ -71,7 +71,7 @@ Part of [Crafting, stations and things on cells](../crafting.md). `placed.gd`, m
   placed light is a model standing (`VoxelProps.standing`: a lying torch is put on its long side) and a little
   flame with light (`Effects.add_lamp`; real light only at the `LAMP_LIGHTS` 6 nearest to the view, the flames
   farther than `LAMP_FLAME_REACH` do not burn).
-- `src/client/ui/craft_panel.gd`, `inventory_window.gd` — the «Crafting» tab (what it spends and what it holds
+- `src/client/ui/craft_panel.gd`, `inventory_window.gd` — the «Craft» tab (what it spends and what it holds
   in the bag, the station, tools with wear, time, by-product) and the bag window. What they ask of the rules
   (start, cancel, pause, repair, take/put out/destroy a station, the bag and chests) goes by requests
   `game.net`; a chest in a request is named by the thing's cell (`Placed.at`) — [network.md](../network.md).
