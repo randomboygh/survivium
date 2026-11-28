@@ -33,7 +33,7 @@ Part of [The character: bag, strengths, skills, body, death, sprite](../characte
   the chunks on its screen are built (`focus_built`) or after `MOST_MS` (20 s). The death screen's respawn
   buttons go this way (the button shows «Getting the place ready… N%»; the first point is built behind the
   screen already), and so do the test page's «Go» to a place (`Character.travel_to_column`) and «To the
-  place of death» (`Settings.go_to_death`): the player goes on meanwhile.
+  place of the last death» (`Settings.go_to_death`): the player goes on meanwhile.
   When the sack vanishes, `expire_sacks` returns where it lay and who died, and the session puts a cross there
   (`Placed.put_grave`: the first item with `grave`, at the base `core:grave`; in the sack's cell or the nearest
   free one within `Placed.GRAVE_REACH` (3) cells, a level above or below; no place — no cross). The cross's

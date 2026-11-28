@@ -46,7 +46,7 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   worn or puts on a fitting one from the bag (the one chosen on «Bag» first), `InventoryWindow._tap_person`;
   the panel at the bottom with the chosen slot or stack is shared by «Character» and «Bag»; a window too
   short draws the figure smaller, `PersonPanel.shrink`, and past that the tab scrolls). The window's tabs —
-  «Character», «Bag» and «Crafting», «Land» (only on marked land, `land_page.gd`) and «Team» (only on a server,
+  «Character», «Bag» and «Craft», «Land» (only on marked land, `land_page.gd`) and «Team» (only on a server,
   `team_page.gd`), see `docs/systems/territory.md`. All rows of tabs (window, settings, «Testing») are one
   joined group one window button tall (`TabRow.tabs`, the chosen one amber, `light`); new tabs are made the
   same way. The scrolled rows of a window keep off the edges and the bar by `UiStyle.BAR_GAP` (`UiStyle.inset`:
