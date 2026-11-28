@@ -6,45 +6,35 @@ extends "res://src/client/world/streamer_order.gd"
 ## World units the shaders may move what a chunk draws past its mesh (leaves and grass
 ## swaying, ice raised): the margin of its culling box (see PixelView.sheared_box).
 const SWAY := 1.0
-
 ## The parts of a chunk's meshes, in the order of chunk_nodes' arrays.
 const PARTS := ["solid", "water", "grass", "clumps", "shadows", "bushes", "drifts"]
 
 ## Counts the changes of chunk_nodes (a chunk built or let go), so the haze knows when the
 ## set is the same (EdgeHaze.update).
 var nodes_changes := 0
-
 ## One cap over the cut per chunk (see update_caps): nodes, the level each was built
 ## for, and the chunks within reach of the player, nearest first.
 var cap_nodes := {}
-
 var cap_levels := {}
-
 ## The caps built lately, by chunk and then by level (at most CAP_KEPT levels a chunk):
 ## a cut that comes back to a level (the player stepping in and out behind a big
 ## object) shows its caps at once instead of building them again chunk by chunk, which
 ## left holes flickering over the cut. A chunk's go when it is meshed again or freed.
 var cap_cache := {}
-
 ## The level every chunk in range has its cap built for, -1 while some are still to
 ## build: update_caps does nothing more until a chunk or the cut changes.
 var _caps_ready := -1
-
 ## The haze over the edge of what is built (the «Туман на краю» setting), null when off.
 var haze: EdgeHaze
-
 var haze_on := false
-
 ## Chunks just made whose columns the roof map (part 0) and the minimap (part 1, its new
 ## crowns only: 2) still have to take, one a frame, nearest to the player first (see
 ## _next_paint): Vector3i(key.x, key.y, part).
 var paint_queue: Array[Vector3i] = []
-
 ## Time spent in the budgeted loops (chunk steps, caps, and the session's generation
 ## given to run_jobs), for tests/frame_test.gd to tell it from what a frame does
 ## outside a budget.
 var budget_us := 0
-
 ## Painting into the roof map and the minimap goes at once while a chunk is built whole
 ## (see build_chunk), else one a frame (see paint_queue).
 var _whole := false

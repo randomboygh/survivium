@@ -177,7 +177,7 @@ func _profile() -> void:
 		main.view.turning = true
 		main.view.on_screen_resized()
 	# The whole map first: streaming is not what is measured here.
-	while not (main.chunks.map_done and main.chunks.pending_chunks.is_empty() and main.chunks.job_mesh == null):
+	while not (main.chunks.map_done and main.chunks.pending_chunks.is_empty() and main.chunks.job == null):
 		await process_frame
 	OS.low_processor_usage_mode_sleep_usec = 0
 	var headless := DisplayServer.get_name() == "headless"
@@ -305,7 +305,7 @@ const ALLOWED_US := 6000
 func _hitches() -> void:
 	while not main.ready_to_play:
 		await process_frame
-	while not (main.chunks.map_done and main.chunks.pending_chunks.is_empty() and main.chunks.job_mesh == null):
+	while not (main.chunks.map_done and main.chunks.pending_chunks.is_empty() and main.chunks.job == null):
 		await process_frame
 	OS.low_processor_usage_mode_sleep_usec = 0
 	# The phone's cadence: a frame every 11 ms, the game's code a share of it.
@@ -401,7 +401,7 @@ func _lights() -> Vector2i:
 func _spikes() -> void:
 	while not main.ready_to_play:
 		await process_frame
-	while not (main.chunks.map_done and main.chunks.pending_chunks.is_empty() and main.chunks.job_mesh == null):
+	while not (main.chunks.map_done and main.chunks.pending_chunks.is_empty() and main.chunks.job == null):
 		await process_frame
 	OS.low_processor_usage_mode_sleep_usec = 0
 	for i in 30:

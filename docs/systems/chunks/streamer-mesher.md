@@ -9,6 +9,14 @@ Part of [Chunks on screen](../chunks.md). The queue and budgets of chunk buildin
   budgets, the stash, `kept`, unloading) ← `streamer_edits.gd` (`on_cell_changed`, `set_holes`, `regrow_cell`,
   `remesh_chunk`) ← `streamer_cut.gd` (the level cut, the build mode's floors, layers, caps) ←
   `chunk_streamer.gd` (`prepare`, `build_near`).
+- `src/client/world/chunk_job.gd` — one chunk being built (`ChunkStreamer.job`, the one set aside `stashed`,
+  null for none): its key, why (`edit`, `keep`, `ground`), its mesh and plant jobs, `part` (`BUILD`,
+  `PLANTS_ONLY`, then the finishing parts), the kept jobs an edit patches (`old_mesh`, `old_plants`) and the
+  budget it had when set aside. The chunk being streamed is `has_target` with `target` (it may wait for the
+  session, or start over after an edit drops its job); while a job is built, `has_target` holds exactly when
+  it is neither an edit nor built to keep. `tests/unit/chunk_job_test.gd` drives `run_jobs` over a small
+  world with a stand-in for Main (edit during a stream, unload during a job, lag then plants) and checks that
+  invariant at every step.
 - `src/client/world/chunk_streamer.gd` — the queue and the budgets: first those near the spawn (before the
   game), then within `reach()` by the screen (no less than `LOAD_RANGE` = `Session.ZONE`, 5 chunks; a window
   wider than a phone's — farther, `Session.reach_for` from half the screen, up to `Session.ZONE_MOST` 10; the
@@ -24,8 +32,8 @@ Part of [Chunks on screen](../chunks.md). The queue and budgets of chunk buildin
   the chunk goes back into the queue, falls into `waiting`, and `next_chunk` takes another in the same frame
   until the generator has made something (`made`): over the network the ring at `LOAD_RANGE` never comes, and
   waiting for it held the near chunks at the sides of a narrow screen); **ground first**: a new chunk on
-  screen (`job_ground`) shows the ground and water as soon as their mesh is built (`_apply_ground`), and
-  builds the grass, shrubs and crowns after (`job_part` −2) and shows them at the end (`_apply_plants`); such
+  screen (`ChunkJob.ground`) shows the ground and water as soon as their mesh is built (`_apply_ground`), and
+  builds the grass, shrubs and crowns after (`ChunkJob.PLANTS_ONLY`) and shows them at the end (`_apply_plants`); such
   a chunk lies in `bare` to the end (if its building was interrupted — in the queue again); while the
   screen lags (below) its plants wait (`plants_wait`, with the mesh job kept for patching), the next hole gets
   its ground sooner, and they are built once the screen has its ground; **lag**: while

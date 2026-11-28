@@ -41,7 +41,7 @@ ordinary. The goal is what must be covered automatically.
 | Balance: tools × durability × skills, beasts, PvP, stamina, the experience curve, food | В | `balance_test` (9; limits with reasons, `docs/balance/GAME_BALANCE_DESIGN.md`), the tables of `tools/balance_report.gd` | there |
 | Beasts, fishing | В | `wildlife_test` (18), `progress_test` (hunting each beast with a carcass, each kind of fish) | there |
 | Territories, PvP | В | `territory_test` (11), `server_test` | there |
-| Chunks on screen, frame budgets | В | `mesher_test`, `frame_test` | nothing the size of a chunk in one frame; there |
+| Chunks on screen, frame budgets | В | `mesher_test`, `chunk_job_test` (the scheduler's jobs: ground first, edits during a stream, unloading during a job), `frame_test` | nothing the size of a chunk in one frame; there |
 | Time, weather | О | `clock_test` | there |
 | The picture, shaders | О | `view_test`, `parse_check` (shaders do not compile without a GPU), screenshots by hand | by hand: see below |
 | The interface | О | `ui_test` (12), `frame_test` (a part of the HUD), `browser_smoke`, `parse_check` | by hand: see below |

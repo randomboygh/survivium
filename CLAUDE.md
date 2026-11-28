@@ -110,7 +110,7 @@ locally unless the PR touches content or crafting, and leave `frame_test` to CI 
 |---|---|
 | UI only | `run_tests`, screenshots |
 | content data, recipes, stations, tools, materials, hands | + `validate`, `report`, `balance` (regenerate with `tools/content_report.gd`, `tools/balance_report.gd`, no `--check`), `progress_hunting`, `progress_metal`, `progress_other` |
-| world, generator, chunks, meshes, every frame | `run_tests -- generation mesher shapes store`, `frame_test` (CI) |
+| world, generator, chunks, meshes, every frame | `run_tests -- generation mesher chunk_job shapes store`, `frame_test` (CI) |
 | saves | `save_test` |
 | network, server, protocol | `run_tests -- net session`, `server_test` |
 

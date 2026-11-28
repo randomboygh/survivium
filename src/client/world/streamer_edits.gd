@@ -64,21 +64,19 @@ func _remesh_around(cell: Vector3i) -> void:
 		if chunk_nodes.has(key):
 			var part := around.intersection(Rect2i(key * CHUNK, Vector2i(CHUNK, CHUNK)))
 			dirty_rects[key] = dirty_rects[key].merge(part) if dirty_rects.has(key) else part
-	if job_mesh != null and keys.has(job_key):
-		if job_edit:
+	if job != null and keys.has(job.key):
+		if job.edit:
 			# The chunk being rebuilt for an edit changed again: the job goes on and
 			# shows the earlier edit, and the chunk is rebuilt once more after it. Were
 			# it started over, digging faster than a rebuild takes (a phone) would
 			# never show the ground changing.
-			keys[job_key] = true
+			keys[job.key] = true
 		else:
 			# A chunk being streamed: start it over as an edit (one built only to keep
 			# its jobs is built whole for the edit).
-			if not job_keep:
-				has_target = true
 			_drop_job()
-	if not stashed.is_empty() and keys.has(stashed[0]):
-		_unstash(stashed[0])
+	if stashed != null and keys.has(stashed.key):
+		_unstash(stashed.key)
 	var queue := {}
 	if chunk_nodes.has(home):
 		queue[home] = true
@@ -113,9 +111,7 @@ func regrow_cell(cell: Vector3i) -> void:
 				parts[k] = parts[k].merge(one) if parts.has(k) else one
 	var queue := {}
 	for k: Vector2i in parts:
-		if job_mesh != null and job_key == k and not job_edit:
-			if not job_keep:
-				has_target = true
+		if job != null and job.key == k and not job.edit:
 			_drop_job()
 		_unstash(k)
 		var part: Rect2i = parts[k]
@@ -132,9 +128,7 @@ func regrow_cell(cell: Vector3i) -> void:
 func remesh_chunk(key: Vector2i) -> void:
 	if not chunk_nodes.has(key):
 		return
-	if job_mesh != null and job_key == key and not job_edit:
-		if not job_keep:
-			has_target = true
+	if job != null and job.key == key and not job.edit:
 		_drop_job()
 	_unstash(key)
 	dirty_chunks[key] = true

@@ -217,6 +217,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 ## src/client/world
 
+- `src/client/world/chunk_job.gd`: The building of one chunk's meshes and plants, a column at a time (ChunkStreamer.run_jobs): which chunk, why it is built, how far it got.
 - `src/client/world/chunk_mesher.gd`: Builds meshes from the cell grid: one quad per visible cell face, with the data the world shader needs for edges and material transitions (see world.gdshader).
 - `src/client/world/chunk_streamer.gd`: The chunks of the world on screen and the level cut.
 - `src/client/world/drifts.gd`: Snowdrifts: low mounds on open level ground that show up with the snow cover and sink and shrink as it melts (drift_size in the terrain shader).
@@ -376,6 +377,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/body_test.gd`: The body on the cells: raycast, walking, water and bogs, slopes, steps, the test ground, pits.
 - `tests/unit/bundle_system_test.gd`: The acceptance of the bundle system (docs/specifications/BUNDLE_SYSTEM.md, section 15): what the TZ (bundles.md) wants added without touching the engine, written as data alone in a mod of the test's…
 - `tests/unit/character_test.gd`: The character: the bag, tool wear, vitals, the change log and death.
+- `tests/unit/chunk_job_test.gd`: The chunk streamer's scheduler (ChunkStreamer.run_jobs with ChunkJob, REND-2) over a small world, with a stand-in for Main: the ground first and the plants after while the screen has a hole, an edit…
 - `tests/unit/clock_test.gd`: Time of day, seasons, the moon and the weather.
 - `tests/unit/content_test.gd`: The data: yaml, the schemas, mods and patches, items, tools, recipes, the layer rule and the hot reload.
 - `tests/unit/decay_test.gd`: Building decay (Decay, decision 186): built cells nobody tends crack at the pace of their material, the ground and what the generator left never; a player near or a claim keeps a chunk tended; a…

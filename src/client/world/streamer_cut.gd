@@ -5,45 +5,33 @@ extends "res://src/client/world/streamer_edits.gd"
 
 ## How much of a frame may go to building caps, in microseconds (see EDIT_BUDGET_US).
 const CAP_BUDGET_US := 3000
-
 ## How many levels of caps a chunk keeps built (see cap_cache).
 const CAP_KEPT := 4
-
 ## How many levels above and below the player's the level buttons may look; from deep
 ## in a pit, up to the surface over it (see view_range).
 const VIEW_REACH := 4
-
 ## Cells behind the player searched for earth rising over the head (see _rises_behind).
 const RISE_REACH := 6
-
 ## One step along a diagonal.
 const SQRT1_2 := 0.70710678
-
 ## Levels above the feet searched for earth that hides the player from the camera.
 const HIDE_REACH := 16
 
 var cap_order: Array[Vector2i] = []
-
 var cap_home := Vector2i(-1000000, 0)
-
 var cap_reach := 0
-
 var cut_level := -1
-
 ## The build mode's cut of the floors (the level buttons in the build mode, BuildMode): how
 ## many floors up (down if negative) from the player's the view looks at, a floor as tall as
 ## the shape drawn (BuildMode.height); 0 for none, the ordinary cut. Only what is built is
 ## cut there (ChunkMesher.BUILT_BLUE), never natural ground (the user's pick, 2026-11-26).
 var build_floor := 0
-
 ## Whether the build mode cuts the floors: off on entering it (all floors show, as out of
 ## it), on from the first press of a level button, off again by the level label (the
 ## user's pick, 2026-11-27).
 var floors_on := false
-
 ## The level the floors are cut over (built cells above it are left out), -1 for none.
 var build_cut := -1
-
 ## The cut that follows the player looks only at natural ground (the build mode, _roof).
 var _natural_only := false
 
@@ -51,39 +39,27 @@ var _natural_only := false
 const BUILT_CAPS := 1 << 16
 
 var _depth_steps := Vector4.ZERO
-
 var manual_level := -1
-
 ## The column whose surface was found last, and that surface (see view_range).
 var _surface_at := Vector3i(1 << 30, 0, 0)
-
 var _surface := 0
-
 ## The cut the player's position asks for; the view follows it at once.
 var cut_target := -1
-
 ## The level the player last stood on: a jump does not move the cut.
 var ground_level := 0
-
 var indoor := false
-
 ## The view in layers is on: where the automatic cut
 ## would cut the view, nothing is cut and the shaders dither away what stands in front
 ## of the player and over their head instead (CaveLayers), from the cell layer_base.
 var layers_on := false
-
 var layer_base := Vector3i.ZERO
-
 ## The lowest level of earth between the camera and the player's body, -1 for none
 ## (see _hiding_level); worked out where the player stands.
 var hidden_by := -1
-
 ## Earth hides the player, but nothing rises behind them: a hill, left whole.
 var hill := false
-
 ## The earth hidden_by found stands as a sheer wall (see _sheer_below).
 var _hide_steep := false
-
 ## The view hidden_by was worked out for (up and slope, see _hiding_level).
 var _hidden_view := Vector3.ZERO
 
