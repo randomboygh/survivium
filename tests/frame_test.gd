@@ -197,9 +197,9 @@ func _run() -> void:
 	# just before: a shared runner's speed drifts over the minutes of the test, and the
 	# idle frame and its unit must be taken on the same machine.
 	var kept_from := Time.get_ticks_msec()
-	while (not streamer.keep_queue.is_empty() or streamer.job_keep) and Time.get_ticks_msec() - kept_from < 20000:
+	while (not streamer.keep_queue.is_empty() or (streamer.job != null and streamer.job.keep)) and Time.get_ticks_msec() - kept_from < 20000:
 		await process_frame
-	_check(streamer.keep_queue.is_empty() and not streamer.job_keep, "the chunks around the player keep their jobs once the map is built")
+	_check(streamer.keep_queue.is_empty() and not (streamer.job != null and streamer.job.keep), "the chunks around the player keep their jobs once the map is built")
 	unit[IDLE] = _chunk_cost()
 	await _settle()
 	await _scenario(IDLE, 120, func(_i: int) -> bool: return false)
@@ -235,7 +235,7 @@ func _run() -> void:
 			w.set_cell(c.x, c.y, c.z, before[i / 10])
 			main.chunks.on_cell_changed(c)
 		return false)
-	_check(main.chunks.dirty_chunks.is_empty() and (main.chunks.job_mesh == null or main.chunks.job_keep), "edits are all built")
+	_check(main.chunks.dirty_chunks.is_empty() and (main.chunks.job == null or main.chunks.job.keep), "edits are all built")
 	_check(w.bushes.size() == bushes_before - 1 and not w.bushes.has(bush), "the bush dug under is gone")
 
 	# The cut moving up and down four times a second, as when walking in and out of
@@ -327,10 +327,10 @@ func _run() -> void:
 	streamer.unload_chunk(far_key)
 	streamer.load_home = Vector2i(-1000000, 0)
 	var stream_from := Time.get_ticks_msec()
-	while not (streamer.job_mesh != null and not streamer.job_edit and streamer.job_key == far_key) \
+	while not (streamer.job != null and not streamer.job.edit and streamer.job.key == far_key) \
 			and Time.get_ticks_msec() - stream_from < 10000:
 		await process_frame
-	var streaming: bool = streamer.job_mesh != null and streamer.job_key == far_key
+	var streaming: bool = streamer.job != null and streamer.job.key == far_key
 	streamer.last_stashed = Vector2i(0x7fffffff, 0)
 	c._cooldown = 0.0
 	c.dig_at(first_dug, Vector3i.UP)
@@ -371,7 +371,7 @@ func _run() -> void:
 	while not (streamer.chunk_nodes.has(far_key) and not streamer.bare.has(far_key)) \
 			and Time.get_ticks_msec() - waited_from < 20000:
 		await process_frame
-	_check(streamer.chunk_nodes.has(far_key) and not streamer.bare.has(far_key) and streamer.stashed.is_empty()
+	_check(streamer.chunk_nodes.has(far_key) and not streamer.bare.has(far_key) and streamer.stashed == null
 		and streamer.kept.has(far_key),
 		"the chunk set aside is built after the edit, and keeps its jobs")
 	main.settings.values.pickup = picks
@@ -569,7 +569,7 @@ func _run() -> void:
 		and main.fire_shadows.enabled and not main.player.torch.shadow_enabled,
 		"mixed fire shadows: the fire's real shadow is the player's, the rest drawn")
 	var kept_at := Time.get_ticks_msec()
-	while (not streamer.keep_queue.is_empty() or streamer.job_keep) and Time.get_ticks_msec() - kept_at < 20000:
+	while (not streamer.keep_queue.is_empty() or (streamer.job != null and streamer.job.keep)) and Time.get_ticks_msec() - kept_at < 20000:
 		await process_frame
 	unit[NIGHT] = _chunk_cost()
 	await _settle()

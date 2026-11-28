@@ -43,7 +43,7 @@ runs two files. Each file prints its checks and seconds.
 | hands, gathering, crafting, `world_actions.gd`, `workshop.gd`, `placed.gd` | 1, 2, `run_tests` | `progress_*`, `save_test` |
 | building: blueprint, doors, windows, stairs, furniture (`plans.gd`, the things' flags in `placed.gd`) | 1, 2, `run_tests -- actions plans` | `save_test`, screenshots `build-*` |
 | shaders, light, the cave view (`shaders/`, `src/client/view/`) | 1, 2, `run_tests -- view` | `frame_test`; screenshots under xvfb or `smoke` in CI: headless does not compile shaders |
-| the generator, the world, chunks, meshes, the streamer | 1, 2, `run_tests -- generation mesher shapes store` | `frame_test` (alone, with no other processes), `save_test` |
+| the generator, the world, chunks, meshes, the streamer | 1, 2, `run_tests -- generation mesher chunk_job shapes store` | `frame_test` (alone, with no other processes), `save_test` |
 | saves (`save_game.gd`, `world_store.gd`) | 1, 2, `run_tests -- store` | `save_test` |
 | network, server, protocol, rights, anti-cheat | 1, 2, `run_tests -- net session security` | `server_test` ([../security/SECURITY_TESTING.md](../security/SECURITY_TESTING.md)) |
 | beasts, weather, clock, territories, skills | 1, 2, `run_tests -- wildlife clock territory skills` | `progress_*` for hunting |
